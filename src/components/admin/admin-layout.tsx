@@ -58,7 +58,7 @@ import { NotificationBell } from "./NotificationBell";
 import { ViewAsClientBanner } from "./ViewAsClientBanner";
 import { EmployeeWaiverLoginPrompt } from "@/components/staff/ContractorPolicy";
 import { cn } from "@/lib/utils";
-import { apiRequest, queryClient, buildApiUrl, refreshAuthForSessionTransition } from "@/lib/queryClient";
+import { apiRequest, queryClient, buildApiUrl, refreshAuthForSessionTransition, authMeQueryFn } from "@/lib/queryClient";
 import { AuthGuard } from "./auth-guard";
 import { UserAccountMenu } from "@/components/layout/user-account-menu";
 import {
@@ -158,7 +158,7 @@ const SETTINGS_TABS: { href: string; label: string; icon: any }[] = [
 const ADMIN_SETTINGS_TABS: { href: string; label: string; icon: any }[] = [
   ...SETTINGS_TABS,
   { href: "/admin/settings?section=sales-reps", label: "Sales Representative", icon: Users },
-  { href: "/admin/settings?section=waiver", label: "GLA - Independent Contractor or W-2 Employee Waiver", icon: FileText },
+  { href: "/admin/settings?section=contracts", label: "Contracts Template", icon: FileText },
   { href: "/admin/settings?section=slack", label: "Slack Channel Configuration", icon: MessageCircle },
 ];
 
@@ -780,23 +780,8 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
 
   const { data } = useQuery<{ user?: any }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const { buildApiUrl } = await import("@/lib/queryClient");
-      const response = await fetch(buildApiUrl("/api/auth/me"), {
-        credentials: "include",
-      });
-      // Same queryKey as AuthGuard — they share one cache entry. Only a real
-      // 401 may produce {user: undefined}; transient errors (502 on deploy,
-      // network blip) must throw so the cached user survives and AuthGuard
-      // doesn't redirect to login over a hiccup.
-      if (response.status === 401) {
-        return { user: undefined };
-      }
-      if (!response.ok) {
-        throw new Error(`auth/me failed: ${response.status}`);
-      }
-      return response.json();
-    },
+    // Same queryKey as AuthGuard, so the same shared queryFn (401-only logout, timeout).
+    queryFn: authMeQueryFn,
     retry: false,
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes to prevent unnecessary refetches
   });

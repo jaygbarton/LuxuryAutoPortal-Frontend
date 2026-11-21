@@ -4,6 +4,16 @@
   "framework": "vite",
   "redirects": [
     {
+      "source": "/list-your-car-key-handoff-enhanced.png",
+      "destination": "/list-your-car-key-handoff-enhanced.webp",
+      "permanent": true
+    },
+    {
+      "source": "/:file(bmw-x6-cta-enhanced.png|bmw-x6-cta.jpg)",
+      "destination": "/bmw-x6-cta.webp",
+      "permanent": true
+    },
+    {
       "source": "/sign-contract/:path*",
       "has": [
         {

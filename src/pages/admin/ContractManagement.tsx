@@ -20,7 +20,8 @@ import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Search, Loader2, Eye, ExternalLink, Send, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AgreementTemplatesCard } from "@/components/admin/AgreementTemplatesCard";
+import { useCoHost } from "@/hooks/use-co-host";
+import { formatHandoffDateTime } from "@/lib/mt-datetime";
 
 interface ContractSubmission {
   id: number;
@@ -41,10 +42,13 @@ interface ContractSubmission {
   isOffboarded: boolean;
   carOffboardAt: string | null;
   carOnboardAt?: string | null;
+  carOnboardLocation?: string | null;
+  carOffboardLocation?: string | null;
   carOffboardReason: string | null;
 }
 
 export default function ContractManagement() {
+  const { isCoHost } = useCoHost();
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState<ItemsPerPage>(() => {
@@ -213,8 +217,16 @@ export default function ContractManagement() {
         </div>
       </div>
 
-      {/* Blank client / employee / co-host agreements — the client one is what the signing page loads. */}
-      <AgreementTemplatesCard />
+      {/* The blank agreements moved to Settings → Contracts Template (one place for every current copy). */}
+      {!isCoHost && (
+        <p className="text-sm text-muted-foreground">
+          The blank client agreement new signing links use is managed in{" "}
+          <a href="/admin/settings?section=contracts" className="text-primary hover:underline">
+            Settings → Contracts Template
+          </a>
+          .
+        </p>
+      )}
 
       {/* Search Bar */}
       <div className="flex flex-col sm:flex-row gap-4">
@@ -373,7 +385,7 @@ export default function ContractManagement() {
                             <span className="text-muted-foreground">Not signed</span>
                           )}
                         </TableCell>
-                        <TableCell className="hidden 2xl:table-cell">{contract.carOnboardAt ? new Date(contract.carOnboardAt).toLocaleDateString('en-US') : '—'}</TableCell>
+                        <TableCell className="hidden 2xl:table-cell whitespace-nowrap">{formatHandoffDateTime(contract.carOnboardAt, contract.carOnboardLocation)}</TableCell>
                         <TableCell className="px-2 sm:px-3 py-3 sm:py-4 hidden 2xl:table-cell whitespace-nowrap">
                           {contract.isOffboarded ? (
                             <div className="flex flex-col gap-1">
@@ -385,13 +397,7 @@ export default function ContractManagement() {
                               </Badge>
                               {contract.carOffboardAt && (
                                 <span className="text-xs text-muted-foreground">
-                                  {new Date(
-                                    contract.carOffboardAt
-                                  ).toLocaleDateString("en-US", {
-                                    month: "2-digit",
-                                    day: "2-digit",
-                                    year: "numeric",
-                                  })}
+                                  {formatHandoffDateTime(contract.carOffboardAt, contract.carOffboardLocation)}
                                 </span>
                               )}
                               {contract.carOffboardReason && (

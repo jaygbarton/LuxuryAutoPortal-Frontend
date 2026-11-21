@@ -340,16 +340,40 @@ export const getQueryFn = <T,>({ on401: unauthorizedBehavior }: {
  * AuthGuard redirects the user to /admin/login (seen as a white flash /
  * surprise "refresh" mid-session).
  */
-export async function authMeQueryFn(): Promise<{ user?: any }> {
-  const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-  if (res.status === 401) {
-    return { user: undefined };
+export async function authMeQueryFn({ signal }: { signal?: AbortSignal } = {}): Promise<{ user?: any }> {
+  // iOS Safari can leave a request made as the app comes back from the
+  // background (or on a weak signal) hanging with no answer and no error. With
+  // no limit the first check never settled and staff sat on "Loading your
+  // account…" with nothing to tap. A timeout turns it into an error, which
+  // shows the reconnect screen that retries by itself.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AUTH_ME_TIMEOUT_MS);
+  const forwardAbort = () => controller.abort();
+  signal?.addEventListener("abort", forwardAbort);
+  try {
+    const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include", signal: controller.signal });
+    if (res.status === 401) {
+      return { user: undefined };
+    }
+    if (!res.ok) {
+      throw new Error(`auth/me failed: ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    // Our own timeout (not React Query cancelling): report it the way the
+    // browser reports a request that got no response, a TypeError.
+    if (controller.signal.aborted && !signal?.aborted) {
+      throw new TypeError("No response from the server");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", forwardAbort);
   }
-  if (!res.ok) {
-    throw new Error(`auth/me failed: ${res.status}`);
-  }
-  return res.json();
 }
+
+/** How long the first "who am I" check waits before giving up and retrying. */
+export const AUTH_ME_TIMEOUT_MS = 15_000;
 
 /**
  * Fast path after role/view-as session changes.

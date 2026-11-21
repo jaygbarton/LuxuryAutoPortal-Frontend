@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ServerReconnecting } from "@/components/auth/ServerReconnecting";
+import { authMeQueryFn } from "@/lib/queryClient";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -15,22 +16,10 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   const { data, isLoading, isError, error, isFetching, refetch, errorUpdateCount } = useQuery<{ user?: { id?: number; email?: string; isAdmin?: boolean; isClient?: boolean; isEmployee?: boolean } }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const { buildApiUrl } = await import("@/lib/queryClient");
-      const response = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-      // Only a real 401 means "logged out". Any other failure (502 during a
-      // deploy, Render cold start, network blip) must THROW so React Query
-      // keeps the previous successful data — otherwise a transient backend
-      // hiccup wipes data.user and AuthGuard bounces the user to /admin/login
-      // (seen as a white flash + unexpected "refresh").
-      if (response.status === 401) {
-        return { user: undefined };
-      }
-      if (!response.ok) {
-        throw new Error(`auth/me failed: ${response.status}`);
-      }
-      return response.json();
-    },
+    // Shared queryFn: only a real 401 means "logged out"; anything else throws
+    // so a backend hiccup keeps the cached user. It also times out a request
+    // that never answers (iOS resuming from the background).
+    queryFn: authMeQueryFn,
     retry: false,
     // Re-verify when the user navigates to a new page (remount), which is a
     // safe moment to redirect — they're not mid-form. We deliberately do NOT

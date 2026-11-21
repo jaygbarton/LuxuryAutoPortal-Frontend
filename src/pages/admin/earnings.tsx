@@ -5,7 +5,7 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { cn } from "@/lib/utils";
-import { rentalMetric } from "@/lib/rentalReportMetrics";
+import { rentalAveragePerKnownTrip, rentalMetric } from "@/lib/rentalReportMetrics";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, ExternalLink, Plus, Image as ImageIcon, ChevronDown, ChevronRight, Upload, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -2004,6 +2004,7 @@ export default function EarningsPage() {
                     label="Days Rented"
                     values={MONTHS.map((_, i) => rentalMetric(incomeExpenseDataValue?.history?.find(row => row.month === i + 1)?.daysRented))}
                     isInteger
+                    partialTotal
                   />
                   {/* Cars Available - was made client-visible per Cathy (2026-07-02),
                       but re-hidden from clients per Hoang (2026-07-23): fleet-wide
@@ -2015,12 +2016,14 @@ export default function EarningsPage() {
                     label="Cars Available"
                     values={MONTHS.map((_, i) => rentalMetric(incomeExpenseDataValue?.history?.find(row => row.month === i + 1)?.carsAvailableForRent))}
                     isInteger
+                    partialTotal
                   />
                   )}
                   <TableRow
                     label="Trips Taken"
                     values={MONTHS.map((_, i) => rentalMetric(incomeExpenseDataValue?.history?.find(row => row.month === i + 1)?.tripsTaken))}
                     isInteger
+                    partialTotal
                   />
                 </CategorySection>
 
@@ -2038,6 +2041,7 @@ export default function EarningsPage() {
                     label="Trips Taken"
                     values={MONTHS.map((_, i) => rentalMetric(incomeExpenseDataValue?.history?.find(row => row.month === i + 1)?.tripsTaken))}
                     isInteger
+                    partialTotal
                   />
                   <TableRow
                     label="Ave Per Rental Per Trips Taken"
@@ -2047,6 +2051,11 @@ export default function EarningsPage() {
                       const trips = rentalMetric(incomeExpenseDataValue?.history?.find(row => row.month === monthNum)?.tripsTaken);
                       return trips === null ? null : trips > 0 ? rental / trips : 0;
                     })}
+                    partialTotal
+                    totalOverride={rentalAveragePerKnownTrip(
+                      MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "rentalIncome")),
+                      MONTHS.map((_, i) => incomeExpenseDataValue?.history?.find(row => row.month === i + 1)?.tripsTaken),
+                    )}
                   />
                 </CategorySection>
 
@@ -2064,6 +2073,7 @@ export default function EarningsPage() {
                       label="Total Trips Taken"
                       values={MONTHS.map((_, i) => rentalMetric(incomeExpenseDataValue?.history?.find(row => row.month === i + 1)?.tripsTaken))}
                       isInteger
+                      partialTotal
                     />
                     <TableRow
                       label="Total Parking Airport"
@@ -2077,6 +2087,11 @@ export default function EarningsPage() {
                         const trips = rentalMetric(incomeExpenseDataValue?.history?.find(row => row.month === monthNum)?.tripsTaken);
                         return trips === null ? null : trips > 0 ? parking / trips : 0;
                       })}
+                      partialTotal
+                      totalOverride={rentalAveragePerKnownTrip(
+                        MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.parkingAirportQB || [], i + 1, "totalParkingAirport")),
+                        MONTHS.map((_, i) => incomeExpenseDataValue?.history?.find(row => row.month === i + 1)?.tripsTaken),
+                      )}
                     />
                   </CategorySection>
                 )}
@@ -2431,6 +2446,12 @@ interface TableRowProps {
   getFormAmount?: (category: string, field: string, month: number) => number;
   // Carry-over is a monthly rolling figure, not a yearly sum (same as I&E).
   hideTotal?: boolean;
+  // Rental rows (days/trips, per-trip averages): months with no verified Turo
+  // activity are null. Total the known months, marked partial, instead of
+  // dashing the whole total (same as I&E's CategoryRow).
+  partialTotal?: boolean;
+  // Yearly figure that is not a sum of the months (a per-trip average).
+  totalOverride?: number | null;
   /** When true, skip rendering if every month (including form amounts) is $0. */
   hideIfZero?: boolean;
 }
@@ -2449,13 +2470,21 @@ function TableRow({
   getFormAmount,
   hideTotal = false,
   hideIfZero = false,
+  partialTotal = false,
+  totalOverride,
 }: TableRowProps) {
   // For Negative Balance Carry Over, display absolute value (remove minus sign)
   const isNegativeBalance = label === "Negative Balance Carry Over";
   const displayValues = (!isInteger && category && field && getFormAmount)
     ? values.map((v, i) => (typeof v === "number" && !isNaN(v) ? v : 0) + getFormAmount(category, field, i + 1))
     : values;
-  const total = displayValues.some(value => value === null) ? null : calculateTotal(displayValues as number[]);
+  const missingMonths = displayValues.flatMap((value, i) => (value === null ? [MONTHS[i]] : []));
+  const isPartial = partialTotal && missingMonths.length > 0 && missingMonths.length < displayValues.length;
+  const total = missingMonths.length > 0 && !isPartial
+    ? null
+    : totalOverride !== undefined
+      ? totalOverride
+      : calculateTotal(displayValues.map(value => value ?? 0));
 
   if (hideIfZero && !isTotal && displayValues.every((v) => Math.abs(Number(v) || 0) < 0.005)) {
     return null;
@@ -2553,9 +2582,12 @@ function TableRow({
           : total === null ? "—"
           : isNegativeBalance && total < 0
             ? `(${Math.abs(total).toFixed(2)})`
-            : isInteger
-              ? total.toString()
-              : formatCurrency(total)}
+            : (
+              <span title={isPartial ? `Partial total — ${missingMonths.join(", ")} need${missingMonths.length === 1 ? "s" : ""} review and ${missingMonths.length === 1 ? "is" : "are"} not included.` : undefined}>
+                {isInteger ? total.toString() : formatCurrency(total)}
+                {isPartial && "*"}
+              </span>
+            )}
       </td>
     </tr>
   );

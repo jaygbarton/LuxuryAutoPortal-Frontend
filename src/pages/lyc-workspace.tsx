@@ -5,6 +5,7 @@ import {Link,Redirect,useLocation} from 'wouter';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {LycProgress} from '@/components/onboarding/LycProgress';
+import {SpamFolderNotice} from '@/components/onboarding/SpamFolderNotice';
 import {applicantUser,lycRequest,personalFields} from '@/lib/lyc';
 import {authMeQueryFn} from '@/lib/queryClient';
 
@@ -62,7 +63,7 @@ export default function LycWorkspace({admin=false}:{admin?:boolean}) {
         </article>)}
         {applications.data?.applications?.map((item:any)=><article key={item.id} className="space-y-4 rounded-xl border p-4 sm:p-5"><div><h3 className="text-lg font-semibold">{item.vehicle}</h3><p className="text-sm text-muted-foreground">Application #{item.id} · {item.vin} · {String(item.status).replaceAll('_',' ')}</p></div><LycProgress steps={item.steps}/>
           {item.contractEmailPending&&<p role="status" className="text-sm">Your application is saved. Agreement email delivery has not been confirmed; GLA can check and resend it.</p>}
-          {!item.contractEmailPending&&!item.steps.find((step:any)=>step.label==='Contract signed')?.done&&<p className="text-sm">Check your email to sign the agreement. GLA approval comes after signing.</p>}
+          {!item.contractEmailPending&&!item.steps.find((step:any)=>step.label==='Contract signed')?.done&&<><p className="text-sm">Check your email to sign the agreement. GLA approval comes after signing.</p>{!admin&&<SpamFolderNotice/>}</>}
           {item.canDropOff&&!admin&&<Button asChild><Link href="/admin/forms?section=client-onboarding&item=car-on">Complete Car Onboarding Form</Link></Button>}
           {['rejected','on-hold'].includes(item.status)&&<p className="text-sm">Please contact GLA to review the next steps for this application.</p>}
         </article>)}

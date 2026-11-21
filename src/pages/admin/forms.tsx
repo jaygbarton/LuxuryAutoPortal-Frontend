@@ -95,6 +95,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCoHost } from "@/hooks/use-co-host";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { api } from "@/lib/api";
+import { formatHandoffDateTime } from "@/lib/mt-datetime";
 import {
   TablePagination,
   ItemsPerPage,
@@ -134,6 +135,9 @@ interface OnboardingSubmission {
   signedContractUrl?: string | null;
   isOffboarded?: boolean;
   carOffboardAt?: string | null;
+  carOnboardAt?: string | null;
+  carOnboardLocation?: string | null;
+  carOffboardLocation?: string | null;
   carOffboardReason?: string | null;
   remarks?: string | null;
   [key: string]: any; // For full submission details
@@ -2278,21 +2282,17 @@ export default function FormsPage() {
                                                   </div>
                                                 </td>
                                                 <td className="py-3 px-2 sm:px-3 text-muted-foreground text-xs sm:text-sm hidden 2xl:table-cell whitespace-nowrap">
-                                                  {submission.contractSignedAt ? (
-                                                    new Date(
-                                                      submission.contractSignedAt,
-                                                    ).toLocaleDateString()
-                                                  ) : (
-                                                    <span className="text-muted-foreground">
-                                                      Not signed
-                                                    </span>
+                                                  {formatHandoffDateTime(
+                                                    submission.carOnboardAt,
+                                                    submission.carOnboardLocation,
                                                   )}
                                                 </td>
                                                 <td className="py-3 px-2 sm:px-3 text-muted-foreground text-xs sm:text-sm hidden 2xl:table-cell whitespace-nowrap">
                                                   {submission.carOffboardAt ? (
-                                                    new Date(
+                                                    formatHandoffDateTime(
                                                       submission.carOffboardAt,
-                                                    ).toLocaleDateString()
+                                                      submission.carOffboardLocation,
+                                                    )
                                                   ) : (
                                                     <span className="text-muted-foreground">
                                                       N/A

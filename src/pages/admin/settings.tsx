@@ -7,6 +7,7 @@ import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { TimezonePreferenceCard } from "@/components/shared/TimezonePreferenceCard";
 import { ContractorPolicySettingsCard } from "@/components/admin/ContractorPolicySettingsCard";
+import { AgreementTemplatesCard } from "@/components/admin/AgreementTemplatesCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,7 @@ import { checkPasswordStrength, getPasswordStrengthColor, getPasswordStrengthLab
 
 interface SlackChannelConfig {
   id: number;
-  formType: "lyc" | "car_onboarding" | "car_offboarding" | "employee_onboarding" | "employee_time_in_out" | "expense_income" | "expense_direct_delivery" | "expense_cogs" | "expense_reimbursed_bills" | "commission_form" | "lyc_client_car_block_off" | "parking_ticket" | "ticket_violation" | "towing_impound" | "car_repaired" | "turo_claims" | "car_recall";
+  formType: "lyc" | "car_onboarding" | "car_offboarding" | "employee_onboarding" | "employee_time_in_out" | "expense_income" | "expense_direct_delivery" | "expense_cogs" | "expense_reimbursed_bills" | "expense_office_support" | "commission_form" | "lyc_client_car_block_off" | "parking_ticket" | "ticket_violation" | "towing_impound" | "car_repaired" | "turo_claims" | "car_recall";
   channelId: string;
   channelName: string | null;
   updatedAt: string;
@@ -36,6 +37,7 @@ const formTypeLabels: Record<string, string> = {
   expense_direct_delivery: "Expenses - Direct Delivery",
   expense_cogs: "Expenses - COGS",
   expense_reimbursed_bills: "Reimbursed & Non-Reimbursed Bills",
+  expense_office_support: "Expenses - Office Support",
   commission_form: "Commission Forms",
   lyc_client_car_block_off: "Client Car Block Off",
   parking_ticket: "Parking Ticket (Car Owner)",
@@ -47,8 +49,10 @@ const formTypeLabels: Record<string, string> = {
 };
 
 /** Keep in sync with the Settings children in admin-layout.tsx. */
-const SETTINGS_SECTIONS = ["timezone", "security", "sales-reps", "waiver", "slack"] as const;
+const SETTINGS_SECTIONS = ["timezone", "security", "sales-reps", "contracts", "slack"] as const;
 type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
+/** Old ?section= values still linked from bookmarks and emails. */
+const SECTION_ALIASES: Record<string, SettingsSection> = { waiver: "contracts" };
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -57,7 +61,8 @@ export default function SettingsPage() {
   // The sidebar's Settings sub-items address one section each via ?section=
   // (same pattern as Operations/Forms). No param, or an unknown one, opens
   // the first section so a bare /admin/settings link still lands somewhere.
-  const sectionParam = new URLSearchParams(useSearch()).get("section");
+  const rawSection = new URLSearchParams(useSearch()).get("section");
+  const sectionParam = (rawSection && SECTION_ALIASES[rawSection]) || rawSection;
   const section = SETTINGS_SECTIONS.includes(sectionParam as SettingsSection)
     ? (sectionParam as SettingsSection)
     : "timezone";
@@ -655,8 +660,34 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {/* Employee waiver (GLA - Independent Contractor or W-2 Employee Waiver) - GLA Admin Only */}
-        {isGlaAdmin && section === "waiver" && <ContractorPolicySettingsCard />}
+        {/* Contracts Template: the current copy of every GLA agreement, grouped by who signs it - GLA Admin Only */}
+        {isGlaAdmin && section === "contracts" && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold text-foreground">Contracts Template</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                The current copy of every GLA agreement. Upload a new file to replace one; earlier versions are kept
+                and can be restored.
+              </p>
+            </div>
+            <AgreementTemplatesCard
+              types={["client"]}
+              title="Clients"
+              description="The agreement car owners sign. New client signing links use the current file."
+            />
+            <AgreementTemplatesCard
+              types={["employee"]}
+              title="Employees"
+              description="Reference copy of the employee agreement. The waiver employees sign is edited below."
+            />
+            <ContractorPolicySettingsCard />
+            <AgreementTemplatesCard
+              types={["co_host"]}
+              title="Co-Hosts"
+              description="Reference copy of the co-host agreement."
+            />
+          </div>
+        )}
 
         {/* Slack Channel Configuration - GLA Admin Only */}
         {isGlaAdmin && section === "slack" && (
@@ -672,16 +703,16 @@ export default function SettingsPage() {
               </CardDescription>
               <p className="text-sm text-amber-700 dark:text-amber-400 mt-2 flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                <span><strong>Income &amp; Expense Receipts:</strong> For Slack notifications to appear when an employee submits an Income &amp; Expense Receipt, set the <strong>Slack Bot Token</strong> below and a <strong>Slack Channel ID</strong> for each category (Income, Direct Delivery, COGS, Reimbursed Bills). Invite the bot to those channels in Slack.</span>
+                <span><strong>Income &amp; Expense Receipts:</strong> For Slack notifications to appear when an employee submits an Income &amp; Expense Receipt, set the <strong>Slack Bot Token</strong> below and a <strong>Slack Channel ID</strong> for each category (Income, Direct Delivery, COGS, Reimbursed Bills, Office Support). Invite the bot to those channels in Slack.</span>
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
-            {(!slackBotTokenConfigured || channels.some((c) => ["expense_income", "expense_direct_delivery", "expense_cogs", "expense_reimbursed_bills"].includes(c.formType) && !(c.channelId && c.channelId.trim()))) && (
+            {(!slackBotTokenConfigured || channels.some((c) => ["expense_income", "expense_direct_delivery", "expense_cogs", "expense_reimbursed_bills", "expense_office_support"].includes(c.formType) && !(c.channelId && c.channelId.trim()))) && (
               <div className="p-3 rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200 text-sm flex items-start gap-2">
                 <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
                 <div>
                   {!slackBotTokenConfigured && <p className="font-medium">Slack Bot Token is not set.</p>}
-                  {channels.some((c) => ["expense_income", "expense_direct_delivery", "expense_cogs", "expense_reimbursed_bills"].includes(c.formType) && !(c.channelId && c.channelId.trim())) && (
+                  {channels.some((c) => ["expense_income", "expense_direct_delivery", "expense_cogs", "expense_reimbursed_bills", "expense_office_support"].includes(c.formType) && !(c.channelId && c.channelId.trim())) && (
                     <p className={slackBotTokenConfigured ? "mt-1" : "mt-1"}>One or more Income &amp; Expense channel IDs are missing. Set a Channel ID for each category so receipts post to the correct channel.</p>
                   )}
                   <p className="mt-1">Retest after saving: submit an Income &amp; Expense Receipt from an employee account and confirm the notification appears in the configured Slack channel(s).</p>

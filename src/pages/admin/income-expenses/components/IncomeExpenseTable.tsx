@@ -1,5 +1,5 @@
 import {reportSectionId,reportSections} from '@/lib/report-navigation';
-import { rentalMetric } from "@/lib/rentalReportMetrics";
+import { rentalAveragePerKnownTrip, rentalMetric } from "@/lib/rentalReportMetrics";
 import React, { useState } from "react";
 import {
   ChevronDown,
@@ -664,6 +664,12 @@ lastSavedNote.current = coHostNote;
     const numValue = Number(value);
     return isNaN(numValue) ? 0 : numValue;
   };
+
+  // A month's trip count, null when it is unknown (needs review). getMonthValue
+  // would read that as 0 trips, which counts the month's money in an average
+  // with no trips to divide it by.
+  const monthTrips = (month: number): number | null =>
+    rentalMetric(data.history?.find((row) => row && row.month === month)?.tripsTaken);
 
   // Reimbursed Parking Airport as the row above shows it (manual + approved
   // form amount). The GLA average section must read the same number, or it
@@ -4495,20 +4501,14 @@ lastSavedNote.current = coHostNote;
                   );
                   return trips > 0 ? rental / trips : 0;
                 })}
-                totalOverride={(() => {
-                  const totalRental = MONTHS.reduce(
-                    (sum, _, i) =>
-                      sum +
+                totalOverride={
+                  rentalAveragePerKnownTrip(
+                    MONTHS.map((_, i) =>
                       getMonthValue(data.incomeExpenses, i + 1, "rentalIncome"),
-                    0,
-                  );
-                  const totalTrips = MONTHS.reduce(
-                    (sum, _, i) =>
-                      sum + getMonthValue(data.history, i + 1, "tripsTaken"),
-                    0,
-                  );
-                  return totalTrips > 0 ? totalRental / totalTrips : 0;
-                })()}
+                    ),
+                    MONTHS.map((_, i) => monthTrips(i + 1)),
+                  ) ?? undefined
+                }
                 isEditable={false}
               />
             </CategorySection>
@@ -4547,20 +4547,12 @@ lastSavedNote.current = coHostNote;
                   );
                   return trips > 0 ? parking / trips : 0;
                 })}
-                totalOverride={(() => {
-                  const totalParking = MONTHS.reduce(
-                    (sum, _, i) =>
-                      sum +
-                      getParkingAirportForMonth(i + 1),
-                    0,
-                  );
-                  const totalTrips = MONTHS.reduce(
-                    (sum, _, i) =>
-                      sum + getMonthValue(data.history, i + 1, "tripsTaken"),
-                    0,
-                  );
-                  return totalTrips > 0 ? totalParking / totalTrips : 0;
-                })()}
+                totalOverride={
+                  rentalAveragePerKnownTrip(
+                    MONTHS.map((_, i) => getParkingAirportForMonth(i + 1)),
+                    MONTHS.map((_, i) => monthTrips(i + 1)),
+                  ) ?? undefined
+                }
                 isEditable={false}
               />
             </CategorySection>
@@ -4611,24 +4603,18 @@ lastSavedNote.current = coHostNote;
                     );
                     return trips > 0 ? parking / trips : 0;
                   })}
-                  totalOverride={(() => {
-                    const totalParking = MONTHS.reduce(
-                      (sum, _, i) =>
-                        sum +
+                  totalOverride={
+                    rentalAveragePerKnownTrip(
+                      MONTHS.map((_, i) =>
                         getMonthValue(
                           data.parkingAirportQB || [],
                           i + 1,
                           "totalParkingAirport",
                         ),
-                      0,
-                    );
-                    const totalTrips = MONTHS.reduce(
-                      (sum, _, i) =>
-                        sum + getMonthValue(data.history, i + 1, "tripsTaken"),
-                      0,
-                    );
-                    return totalTrips > 0 ? totalParking / totalTrips : 0;
-                  })()}
+                      ),
+                      MONTHS.map((_, i) => monthTrips(i + 1)),
+                    ) ?? undefined
+                  }
                   isEditable={false}
                 />
               </CategorySection>
@@ -5380,6 +5366,12 @@ function CategoryRow({
     .map((v, i) => (v === null ? i + 1 : 0))
     .filter((m) => m > 0);
   const hasUnavailable = unavailableMonths.length > 0;
+  // Rental rows (days/trips and the per-trip averages) are unknown for every
+  // month a car had no verified Turo activity, so dashing the whole total
+  // whenever one month is unknown left it blank for nearly every car. They show
+  // the known months' total marked partial; it dashes only when none is known.
+  const showsPartialTotal =
+    rentalFields.length > 0 && hasUnavailable && unavailableMonths.length < values.length;
 
   const summedTotal = values.reduce<number>((sum, val, i) => {
     const numVal = typeof val === "number" && !isNaN(val) ? val : 0;
@@ -5643,6 +5635,14 @@ function CategoryRow({
         >
           {isLoading ? (
             "…"
+          ) : showsPartialTotal ? (
+            <span
+              title={`Partial total — ${unavailableMonths
+                .map((m) => MONTHS[m - 1])
+                .join(", ")} need${unavailableMonths.length === 1 ? "s" : ""} review and ${unavailableMonths.length === 1 ? "is" : "are"} not included.`}
+            >
+              {formatTotal()}*
+            </span>
           ) : hasUnavailable ? (
             <span
               className="text-muted-foreground"

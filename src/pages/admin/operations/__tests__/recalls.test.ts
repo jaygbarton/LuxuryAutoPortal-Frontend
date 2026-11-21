@@ -16,6 +16,7 @@ describe("recall helpers", () => {
 
   it("labels status and vehicle", () => {
     expect(recallStatusLabel("repair_completed")).toBe("Repair Completed");
+    expect(recallStatusLabel("repair_in_progress")).toBe("Repair in Progress");
     expect(recallVehicleName({ carName: null, vehicleLabel: "Toyota Sienna" })).toBe("Toyota Sienna");
   });
 });

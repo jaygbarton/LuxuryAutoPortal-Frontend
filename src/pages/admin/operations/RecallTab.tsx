@@ -72,8 +72,9 @@ export function RecallTab() {
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const openCount = rows.filter((r) => r.status === "new").length;
-  const scheduledCount = rows.filter((r) => r.status === "new" && r.scheduledRepairDate).length;
+  // Open = not yet completed; Repair in Progress is still an open recall.
+  const openCount = rows.filter((r) => r.status !== "repair_completed").length;
+  const scheduledCount = rows.filter((r) => r.status !== "repair_completed" && r.scheduledRepairDate).length;
   const completedCount = rows.filter((r) => r.status === "repair_completed").length;
 
   return (
@@ -123,7 +124,7 @@ export function RecallTab() {
               const statusControl = (
                 <Select value={r.status} onValueChange={(v) => patch.mutate({ id: r.id, body: { status: v as RecallStatus } })}>
                   <SelectTrigger aria-label={`Status for ${recallVehicleName(r)}`} className="bg-transparent border-0 p-0 h-auto w-auto shadow-none focus:ring-0">
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${done ? "bg-green-500/20 text-green-600" : "bg-red-500/20 text-red-600"}`}>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${done ? "bg-green-500/20 text-green-600" : r.status === "repair_in_progress" ? "bg-amber-500/20 text-amber-600" : "bg-red-500/20 text-red-600"}`}>
                       {recallStatusLabel(r.status)}
                     </span>
                   </SelectTrigger>

@@ -1,4 +1,4 @@
-import { rentalMetric, rentalMetricText, rentalMetricTotal } from "@/lib/rentalReportMetrics";
+import { rentalAveragePerKnownTrip, rentalMetric, rentalMetricKnownTotal, rentalMetricText } from "@/lib/rentalReportMetrics";
 import React, { useMemo } from "react";
 import {
   BarChart,
@@ -100,15 +100,24 @@ export function GraphsChartsReportSection({
         "Ave Per Rental": 0,
       }
     );
-    const days = rentalMetricTotal(monthlyData.map(row=>row['Days Rented']));
-    const trips = rentalMetricTotal(monthlyData.map(row=>row['Trips Taken']));
-    return {...totals,'Days Rented':days,'Trips Taken':trips,'Ave Per Rental':trips===null ? null : trips>0 ? totals['Rental Income']/trips : 0};
+    // Months with no verified Turo activity are unknown; total the known
+    // months and mark the figure partial rather than blanking the year.
+    const days = rentalMetricKnownTotal(monthlyData.map(row=>row['Days Rented']));
+    const trips = rentalMetricKnownTotal(monthlyData.map(row=>row['Trips Taken']));
+    const ave = rentalAveragePerKnownTrip(monthlyData.map(row=>row['Rental Income']), monthlyData.map(row=>row['Trips Taken']));
+    return {...totals,'Days Rented':days.total,'Trips Taken':trips.total,'Ave Per Rental':ave,daysMissing:days.missing,tripsMissing:trips.missing};
   }, [monthlyData]);
 
   const formatCurrency = (value: number | null): string => {
     if (value===null) return "—";
     return `$${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
+
+  // Yearly rental figure with "*" and a tooltip when some months are unknown.
+  const partialMark = (missing: number[]) =>
+    missing.length > 0 && missing.length < MONTHS.length ? (
+      <span title={`Partial — ${missing.map(i => MONTHS[i]).join(", ")} need${missing.length === 1 ? "s" : ""} review and ${missing.length === 1 ? "is" : "are"} not included.`}>*</span>
+    ) : null;
 
   const formatTooltip = (value: number, name: string) => {
     if (name.includes("Days") || name.includes("Trips")) {
@@ -254,8 +263,8 @@ export function GraphsChartsReportSection({
       <div className="bg-card border border-border rounded-lg p-6 mb-6">
         <h2 className="text-lg font-semibold text-muted-foreground mb-4">History</h2>
         <div className="mb-4 text-sm text-muted-foreground">
-          <div>Days Rented - Yearly Total: {rentalMetricText(yearlyTotals["Days Rented"]) }</div>
-          <div>Trips Taken - Yearly Total: {rentalMetricText(yearlyTotals["Trips Taken"]) }</div>
+          <div>Days Rented - Yearly Total: {rentalMetricText(yearlyTotals["Days Rented"]) }{partialMark(yearlyTotals.daysMissing)}</div>
+          <div>Trips Taken - Yearly Total: {rentalMetricText(yearlyTotals["Trips Taken"]) }{partialMark(yearlyTotals.tripsMissing)}</div>
         </div>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={monthlyData}>
@@ -281,8 +290,8 @@ export function GraphsChartsReportSection({
         <h2 className="text-lg font-semibold text-muted-foreground mb-4">CAR RENTAL VALUE PER MONTH</h2>
         <div className="mb-4 text-sm text-muted-foreground">
           <div>Total Car Rental Income - Yearly Total: {formatCurrency(yearlyTotals["Rental Income"])}</div>
-          <div>Trips Taken - Yearly Total: {rentalMetricText(yearlyTotals["Trips Taken"]) }</div>
-          <div>Ave Per Rental Per Trips Taken - Yearly Average: {formatCurrency(yearlyTotals["Ave Per Rental"])}</div>
+          <div>Trips Taken - Yearly Total: {rentalMetricText(yearlyTotals["Trips Taken"]) }{partialMark(yearlyTotals.tripsMissing)}</div>
+          <div>Ave Per Rental Per Trips Taken - Yearly Average: {formatCurrency(yearlyTotals["Ave Per Rental"])}{partialMark(yearlyTotals.tripsMissing)}</div>
         </div>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={monthlyData}>

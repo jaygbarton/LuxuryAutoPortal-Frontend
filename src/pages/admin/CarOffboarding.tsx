@@ -49,7 +49,7 @@ import { mtTodayKey } from "@/lib/mt-datetime";
 
 interface OffboardingCar {
   id: number;
-  createdAt: string;
+  createdAt: string | null;
   clientId: number | null;
   clientName: string | null;
   clientEmail: string | null;
@@ -351,11 +351,13 @@ export default function CarOffboarding() {
                             : "—"}
                         </TableCell>
                         <TableCell className="text-center px-2 sm:px-3 py-3 sm:py-4 text-muted-foreground text-xs sm:text-sm hidden lg:table-cell whitespace-nowrap">
-                          {new Date(car.createdAt).toLocaleDateString("en-US", {
-                            month: "2-digit",
-                            day: "2-digit",
-                            year: "numeric",
-                          })}
+                          {car.createdAt
+                            ? new Date(car.createdAt).toLocaleDateString("en-US", {
+                                month: "2-digit",
+                                day: "2-digit",
+                                year: "numeric",
+                              })
+                            : "—"}
                         </TableCell>
                         <TableCell className="text-center px-2 sm:px-3 py-3 sm:py-4 whitespace-nowrap">
                           <div className="flex items-center justify-center">

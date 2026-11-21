@@ -224,6 +224,16 @@ export function handoffTimezone(location?: string | null): string {
     : CAR_ONBOARDING_TIMEZONES.utah;
 }
 
+/** A car on/off-boarding instant as "MM/DD/YYYY, h:mm AM MST" in the handoff location's zone. */
+export function formatHandoffDateTime(iso: string | null | undefined, location?: string | null): string {
+  const date = iso ? new Date(iso) : null;
+  if (!date || isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: handoffTimezone(location), month: "2-digit", day: "2-digit", year: "numeric",
+    hour: "numeric", minute: "2-digit", timeZoneName: "short",
+  }).format(date);
+}
+
 /**
  * An inclusive `YYYY-MM-DD` day range as UTC instants in `tz`: the first
  * moment of `fromKey` to the last millisecond of `toKey`.

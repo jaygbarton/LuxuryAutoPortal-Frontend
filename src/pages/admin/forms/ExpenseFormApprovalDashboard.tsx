@@ -1161,7 +1161,7 @@ export default function ExpenseFormApprovalDashboard({
           <div className="relative col-span-1 sm:col-span-2 xl:col-span-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search employee, car, VIN..."
+              placeholder="Search employee, car, plate, VIN..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);

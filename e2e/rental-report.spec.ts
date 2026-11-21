@@ -28,7 +28,8 @@ for (const width of [390,1280]) test(`unknown rental quantities stay blank and r
   await expect(row).toBeVisible();
   await expect(row.locator('td').nth(1)).toHaveText('3');
   await expect(row.locator('td').nth(2)).toHaveText('—');
-  await expect(row.locator('td').last()).toHaveText('—');
+  // Partial total: the known months, marked so the unknown ones stay visible.
+  await expect(row.locator('td').last()).toHaveText('3*');
   await row.locator('td').nth(2).getByText('—',{exact:true}).click();
   const dialog=page.getByRole('dialog');
   await expect(dialog.getByRole('spinbutton')).toHaveValue('');

@@ -43,6 +43,7 @@ import {
   ArrowLeft,
   Loader2,
 } from "lucide-react";
+import { SpamFolderNotice } from "@/components/onboarding/SpamFolderNotice";
 import { authMeQueryFn, buildApiUrl, buildUploadApiUrl } from "@/lib/queryClient";
 import { wizardSteps } from "@/lib/onboardingSteps";
 import { ViewAsClientBanner } from "@/components/admin/ViewAsClientBanner";
@@ -468,6 +469,7 @@ function OnboardingApplication() {
                 <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   Your application is saved. Check your email to sign the agreement before GLA approval. After approval, we will email your client account instructions. Then complete the Car Onboarding Form when bringing your vehicle into GLA.
                 </p>
+                <SpamFolderNotice className="mb-8 max-w-md mx-auto" />
                 <Button
                   onClick={() => (window.location.href = "/fleet")}
                   data-testid="button-browse-fleet"

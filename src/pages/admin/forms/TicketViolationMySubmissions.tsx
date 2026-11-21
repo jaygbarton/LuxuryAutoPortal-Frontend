@@ -43,6 +43,7 @@ const STATUS_LABELS: Record<string, string> = {
   new: "New",
   charged_guest: "Charged the Guest",
   charged_cohost: "Charged the Co-Host (No trip)",
+  charged_owner: "Charged the Car Owner",
   paid: "Paid",
   disputed: "Disputed",
 };
@@ -79,6 +80,8 @@ function StatusBadge({ status }: { status: string }) {
       ? "bg-amber-100 text-amber-800 border-amber-200"
       : status === "charged_cohost"
       ? "bg-violet-100 text-violet-800 border-violet-200"
+      : status === "charged_owner"
+      ? "bg-sky-100 text-sky-800 border-sky-200"
       : "bg-blue-100 text-blue-800 border-blue-200";
   return <Badge className={cls}>{label}</Badge>;
 }

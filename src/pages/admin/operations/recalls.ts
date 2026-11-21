@@ -8,7 +8,7 @@
  */
 import { api } from "@/lib/api";
 
-export type RecallStatus = "new" | "repair_completed";
+export type RecallStatus = "new" | "repair_in_progress" | "repair_completed";
 
 export interface Recall {
   id: number;
@@ -51,13 +51,15 @@ export const RECALLS_PATH = "/api/operations/recalls";
 
 export const RECALL_STATUS_OPTIONS: { value: RecallStatus; label: string }[] = [
   { value: "new", label: "New" },
+  { value: "repair_in_progress", label: "Repair in Progress" },
   { value: "repair_completed", label: "Repair Completed" },
 ];
 
 export const recallStatusLabel = (status: string) =>
   RECALL_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status;
 
-export async function fetchRecalls(filters: { status?: RecallStatus; carId?: number } = {}): Promise<Recall[]> {
+/** `status: "open"` returns every recall not yet completed (New or Repair in Progress). */
+export async function fetchRecalls(filters: { status?: RecallStatus | "open"; carId?: number } = {}): Promise<Recall[]> {
   const body = await api.get<{ data: Recall[] }>(RECALLS_PATH, {
     query: { status: filters.status, carId: filters.carId },
     fallbackMessage: "Failed to load recalls",
