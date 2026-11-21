@@ -725,3 +725,14 @@ for (const width of [1280, 390]) test(`a last-minute Turo cancellation stays on 
   expect(state.writes).toEqual([]);
   expect(state.errors).toEqual([]);
 });
+
+test('a cancelled trip with no reason from Turo says "No reason provided"', async ({ page }) => {
+  await fixture(page, { rows: [
+    task(22970, 'turo:22970', { type: 'trip_start', category: 'Drop Off', car_name: 'Chevrolet Tahoe 2020', plate: 'T739CK', start_time: '20:00', status: 'cancelled', trip_cancelled: true,
+      cancellation_reason: null, assigned_to: null, assigned_to_id: null, extras: null, reservation_id: '63363113' }),
+  ], fleet: [{ carId: 867, carName: 'Chevrolet Tahoe 2020', plateNumber: 'T739CK', vinNumber: null, carStatus: 'available' }] });
+  const card = page.locator('[data-day-schedule-card][data-trip-cancelled]:visible');
+  await expect(card.locator('[data-cancellation-reason]')).toHaveText('No reason provided', { timeout: 15000 });
+  await card.click();
+  await expect(page.locator('[data-cancelled-notice]')).toContainText('Reason: No reason provided.');
+});

@@ -458,7 +458,7 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
               date must never turn an upcoming task into an overdue one. */}
           {pendingCarryover(event) && <span data-task-carryover className="rounded bg-red-600 px-2 py-0.5 text-[11px] font-semibold text-white">Carried over</span>}
         </span>
-        {cancelled && event.cancellation_reason && <span data-cancellation-reason className="block break-words text-xs font-medium text-red-900">{event.cancellation_reason}</span>}
+        {cancelled && <span data-cancellation-reason className="block break-words text-xs font-medium text-red-900">{event.cancellation_reason?.trim() || "No reason provided"}</span>}
         {event.vehicle_swap&&<span data-swapped-badge className="inline-block rounded bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-950">Swapped</span>}
         <TripChangeList changes={event.trip_changes} formatDateTime={fmtTripDateTime}/>
         {event.vehicle_swap_pending && <span role="status" data-vehicle-swap-pending className="block w-fit rounded border border-amber-400 bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-950">Vehicle swap confirmed — replacement needs verification</span>}
@@ -488,7 +488,7 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
         <TripChangeList changes={event.trip_changes} formatDateTime={fmtTripDateTime}/>
         {cancelled && <div role="status" data-cancelled-notice className="rounded-lg border-2 border-red-300 bg-red-50 p-4">
           <p className="text-2xl font-black uppercase tracking-wider text-red-700">Cancelled</p>
-          <p className="mt-1 text-sm text-red-900">This trip was cancelled on Turo{event.cancellation_reason ? `: ${event.cancellation_reason}` : "."} Nothing needs to be done for it. It stays here so the change is clear.</p>
+          <p className="mt-1 text-sm text-red-900">This trip was cancelled on Turo. Reason: {event.cancellation_reason?.trim() || "No reason provided"}. Nothing needs to be done for it. It stays here so the change is clear.</p>
         </div>}
         <ScheduleBookingContext.Provider value={popupContext}>
           {!cancelled && (canRefuel(event) || event.airport_parking_required) && <div className="flex flex-wrap gap-2" aria-label="Trip receipt actions">
