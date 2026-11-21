@@ -41,6 +41,9 @@ type DayEventType =
   | "trip_start" | "trip_end" | "task_timer";
 
 interface DayEvent {
+  /** The Turo trip was cancelled shortly before this time; shown as CANCELLED, read-only. */
+  trip_cancelled?: boolean;
+  cancellation_reason?: string | null;
   requires_driver?: boolean;
   carryover_note?: string | null;
   airport_parking_required?: boolean;
@@ -419,7 +422,8 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
       toast({title:'Trip refreshed', description:'The reservation and schedule were rechecked against their source emails.'});
     },
   });
-  const past = taskDeadlineHasPassed(event, props.date, timezone, context.now ?? Date.now());
+  const cancelled = event.trip_cancelled === true;
+  const past = !cancelled && taskDeadlineHasPassed(event, props.date, timezone, context.now ?? Date.now());
   const taskStatus = scheduleTaskStatus(event);
   const source = taskSource(event);
   const label = scheduleTaskLabel(event);
@@ -430,26 +434,31 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
     openFuelReceipt: (task: DayEvent) => { setOpen(false); context.openFuelReceipt?.(task); },
   };
   return <>
-    <button type="button" draggable onDragStart={(e) => setDragData(e, event)}
+    <button type="button" draggable={!cancelled} onDragStart={(e) => { if (cancelled) { e.preventDefault(); return; } setDragData(e, event); }}
       data-day-schedule-card data-booking-key={event.bookingKey} data-task-type={event.type} data-event-id={event.id}
+      data-trip-cancelled={cancelled || undefined}
       data-booking-selected={selected || undefined}
       data-task-past={past || undefined}
-      aria-label={`Task details for ${event.car_name || label}`} aria-haspopup="dialog" aria-expanded={open}
+      aria-label={`${cancelled ? "Cancelled: " : ""}Task details for ${event.car_name || label}`} aria-haspopup="dialog" aria-expanded={open}
       onClick={() => setOpen(true)}
-      className={`relative flex w-full min-w-0 items-start gap-3 overflow-hidden rounded-xl border ${past ? "bg-slate-100" : "bg-white"} p-4 text-left text-foreground transition-colors ${past ? "hover:bg-slate-200" : "hover:bg-muted/20"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${selected ? "ring-2 ring-primary" : "border-border"}`}>
-      <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1 ${colors.bg}`} />
+      className={`relative flex w-full min-w-0 items-start gap-3 overflow-hidden rounded-xl border ${cancelled ? "border-red-300 bg-red-50" : past ? "bg-slate-100" : "bg-white"} p-4 text-left text-foreground transition-colors ${past ? "hover:bg-slate-200" : "hover:bg-muted/20"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${selected ? "ring-2 ring-primary" : "border-border"}`}>
+      <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1 ${cancelled ? "bg-red-600" : colors.bg}`} />
       <span className="min-w-0 flex-1 space-y-2">
-        <span className="block text-xs font-medium">{event.start_time ? fmt12(event.start_time) : "Time not set"}</span>
+        {cancelled && <span data-cancelled-banner className="block text-2xl font-black uppercase leading-none tracking-wider text-red-700 sm:text-3xl">Cancelled</span>}
+        <span className={`block text-xs font-medium ${cancelled ? "text-red-900 line-through" : ""}`}>{event.start_time ? fmt12(event.start_time) : "Time not set"}</span>
         <span className="block break-words text-sm font-semibold sm:text-base">{event.car_name || label}</span>
         <span data-task-location className="flex items-start gap-1.5 text-xs text-muted-foreground"><MapPin aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0"/><span className="min-w-0 break-words [overflow-wrap:anywhere]">{event.location?.trim() || 'Location not set'}</span></span>
         <span className="flex flex-wrap gap-1.5">
           <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${colors.bg} ${colors.text}`}>{label}</span>
-          <span data-task-status className={`rounded border px-2 py-0.5 text-[11px] font-semibold capitalize ${taskStatus === "completed" ? "border-green-200 bg-green-50 text-green-800" : "border-slate-300 bg-white text-slate-700"}`}>{taskStatus}</span>
+          {cancelled
+            ? <span data-task-status className="rounded border border-red-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-red-700">Trip cancelled</span>
+            : <span data-task-status className={`rounded border px-2 py-0.5 text-[11px] font-semibold capitalize ${taskStatus === "completed" ? "border-green-200 bg-green-50 text-green-800" : "border-slate-300 bg-white text-slate-700"}`}>{taskStatus}</span>}
           {source && <span data-booking-source={source.label} className={`rounded px-2 py-0.5 text-[11px] font-semibold ${source.color}`}>{source.label}</span>}
           {/* The server checks the actual deadline against now. Browsing a later
               date must never turn an upcoming task into an overdue one. */}
           {pendingCarryover(event) && <span data-task-carryover className="rounded bg-red-600 px-2 py-0.5 text-[11px] font-semibold text-white">Carried over</span>}
         </span>
+        {cancelled && event.cancellation_reason && <span data-cancellation-reason className="block break-words text-xs font-medium text-red-900">{event.cancellation_reason}</span>}
         {event.vehicle_swap&&<span data-swapped-badge className="inline-block rounded bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-950">Swapped</span>}
         <TripChangeList changes={event.trip_changes} formatDateTime={fmtTripDateTime}/>
         {event.vehicle_swap_pending && <span role="status" data-vehicle-swap-pending className="block w-fit rounded border border-amber-400 bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-950">Vehicle swap confirmed — replacement needs verification</span>}
@@ -477,15 +486,19 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
         </div>}
         {(event.vehicle_swap||event.vehicle_swap_pending)&&context.canSelectSwapVehicle&&/^turo:[1-9]\d*$/.test(event.bookingKey||'')&&<SwapVehiclePicker tripId={Number(event.bookingKey!.split(':')[1])} revision={event.vehicle_revision??null} pending={!!event.vehicle_swap_pending}/>}
         <TripChangeList changes={event.trip_changes} formatDateTime={fmtTripDateTime}/>
+        {cancelled && <div role="status" data-cancelled-notice className="rounded-lg border-2 border-red-300 bg-red-50 p-4">
+          <p className="text-2xl font-black uppercase tracking-wider text-red-700">Cancelled</p>
+          <p className="mt-1 text-sm text-red-900">This trip was cancelled on Turo{event.cancellation_reason ? `: ${event.cancellation_reason}` : "."} Nothing needs to be done for it. It stays here so the change is clear.</p>
+        </div>}
         <ScheduleBookingContext.Provider value={popupContext}>
-          {(canRefuel(event) || event.airport_parking_required) && <div className="flex flex-wrap gap-2" aria-label="Trip receipt actions">
+          {!cancelled && (canRefuel(event) || event.airport_parking_required) && <div className="flex flex-wrap gap-2" aria-label="Trip receipt actions">
             {event.airport_parking_required && <Button type="button" variant="outline" className="h-11 min-w-0 flex-1 rounded-lg px-3 text-xs sm:flex-none" onClick={()=>popupContext.openAirportReceipt(event)}>Airport parking receipt</Button>}
             {canRefuel(event) && <Button type="button" className="h-11 min-w-0 flex-1 rounded-lg px-3 text-xs sm:flex-none" title="Upload a Gas Reimbursed receipt" onClick={()=>popupContext.openFuelReceipt(event)}>Refuel</Button>}
           </div>}
-          <EventControls {...props} onStatusChange={(type, id, status, completedDate) => {
+          {!cancelled && <EventControls {...props} onStatusChange={(type, id, status, completedDate) => {
             if (event.airport_parking_required && status === "completed") setOpen(false);
             props.onStatusChange(type, id, status, completedDate);
-          }} />
+          }} />}
           <TaskNoteEditor event={event} />
         </ScheduleBookingContext.Provider>
       </DialogContent>
@@ -978,7 +991,7 @@ function EmployeeSection({
 
 /** An unfinished drop-off, pick-up or cleaning tied to a Turo reservation. */
 function openTuroTripWork(event: DayEvent): boolean {
-  return /^turo:[1-9]\d*$/.test(event.bookingKey || '') && String(event.status || '').toLowerCase() !== 'completed'
+  return !event.trip_cancelled && /^turo:[1-9]\d*$/.test(event.bookingKey || '') && String(event.status || '').toLowerCase() !== 'completed'
     && ['delivery', 'pickup', 'cleaning', 'airport', 'trip_start', 'trip_end'].includes(event.type);
 }
 
@@ -1895,8 +1908,8 @@ export function DayScheduleTab() {
                       {oldNormalUnassignedCount} old
                     </Badge>
                   )}
-                  {unassigned.length > 0 && (
-                    <Badge variant="outline" className="border-primary/30 bg-primary/10 px-1.5 py-0 text-xs">{unassigned.length}</Badge>
+                  {unassigned.some(e => !e.trip_cancelled) && (
+                    <Badge variant="outline" className="border-primary/30 bg-primary/10 px-1.5 py-0 text-xs">{unassigned.filter(e => !e.trip_cancelled).length}</Badge>
                   )}
                   {canBulkCompleteOldTasks && oldNormalUnassignedCount > 0 && (
                     <DropdownMenu>

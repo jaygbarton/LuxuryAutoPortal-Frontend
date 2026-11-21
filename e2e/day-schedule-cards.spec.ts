@@ -744,3 +744,32 @@ for (const width of [1280, 390]) test(`a rental booked on our website carries th
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
   expect(state.errors).toEqual([]);
 });
+
+for (const width of [1280, 390]) test(`a last-minute Turo cancellation stays on its day as a big CANCELLED card with no work controls at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: width < 600 ? 844 : 1000 });
+  const state = await fixture(page, { rows: [
+    task(22970, 'turo:22970', { type: 'trip_start', category: 'Drop Off', car_name: 'Chevrolet Tahoe 2020', plate: 'T739CK', start_time: '20:00', status: 'cancelled', trip_cancelled: true,
+      cancellation_reason: 'Turo needed to cancel this trip because your vehicle is no longer available.', assigned_to: null, assigned_to_id: null, extras: null, reservation_id: '63470001' }),
+    task(22965, 'turo:22965', { type: 'delivery', category: 'Drop Off', car_name: 'Chevrolet Suburban 2020', plate: 'G283ZZ', start_time: '21:00', assigned_to: null, assigned_to_id: null }),
+  ], fleet: [
+    { carId: 867, carName: 'Chevrolet Tahoe 2020', plateNumber: 'T739CK', vinNumber: null, carStatus: 'available' },
+    { carId: 864, carName: 'Chevrolet Suburban 2020', plateNumber: 'G283ZZ', vinNumber: null, carStatus: 'available' },
+  ] });
+  const cancelled = page.locator('[data-day-schedule-card][data-trip-cancelled]:visible');
+  await expect(cancelled).toHaveCount(1, { timeout: 15000 });
+  await expect(cancelled.locator('[data-cancelled-banner]')).toHaveText(/cancelled/i);
+  await expect(cancelled.locator('[data-task-status]')).toHaveText('Trip cancelled');
+  await expect(cancelled.locator('[data-cancellation-reason]')).toContainText('no longer available');
+  await expect(cancelled.locator('[data-booking-source="Turo"]')).toBeVisible();
+  // The live booking next to it is unchanged.
+  await expect(page.locator('[data-day-schedule-card]:visible', { hasText: 'G283ZZ' }).locator('[data-task-status]')).toHaveText('new');
+  await cancelled.click();
+  const popup = page.locator('[data-day-schedule-controls]');
+  await expect(popup.locator('[data-cancelled-notice]')).toContainText('Nothing needs to be done');
+  await expect(popup.getByRole('combobox', { name: 'Task status' })).toHaveCount(0);
+  await expect(popup.getByRole('button', { name: 'Refuel' })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: `/tmp/claude-0/-home-user/c0da536b-8793-5de9-92b4-1770b7b2f8d5/scratchpad/cancelled-${width}.png` });
+  expect(state.writes).toEqual([]);
+  expect(state.errors).toEqual([]);
+});
