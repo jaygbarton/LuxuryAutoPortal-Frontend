@@ -153,71 +153,29 @@ test('future schedule browsing uses verified carryovers without inventing overdu
   expect(state.errors).toEqual([]);
 });
 
-async function mockTripForCleaning(page: Page, phase?: 'standard' | 'departure') {
-  await page.route(url => url.pathname === '/api/turo-trips', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({
-    data: [{ id: 208, reservationId: 'RES-208', carName: 'Return cleaning car', guestName: 'Test Guest', plateNumber: 'TEST123',
-      status: 'booked', tripStart: '2026-10-07T15:00:00Z', tripEnd: '2026-10-10T23:00:00Z', pickupLocation: 'Departure airport',
-      returnLocation: 'Return lot', deliveryLocation: 'Fallback lot', earnings: 300, cancelledEarnings: 0 }], total: 1,
-  }) }));
-  await page.route(url => url.pathname === '/api/operations/tasks' && (url.searchParams.has('turo_trip_id') || url.searchParams.has('turo_trip_ids')), route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({
-    data: [{ id: 700, turo_trip_id: 208, task_type: 'cleaning', task_phase: phase, status: 'completed',
-      assigned_to: 'Test Worker', assigned_to_id: 41, scheduled_date: '2026-10-07T15:00:00Z', due_date: '2026-10-07T15:00:00Z' }], total: 1,
-  }) }));
+// The Turo Trips Overview tab and its per-trip cleaning buttons were removed from Operations
+// (Day Schedule became the default page), so the task form is opened from No Car Issues > Add Task.
+async function openTaskForm(page: Page) {
+  await page.route(url => url.pathname === '/api/cars', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+    data: [{ id: 101, makeModel: 'Test vehicle', year: 2024, licensePlate: 'TEST123', vin: 'VIN101', status: 'ACTIVE' }] }) }));
+  await page.goto('/admin/operations?tab=completed');
+  await page.getByRole('button', { name: 'Add Task', exact: true }).click();
+  return page.getByRole('dialog', { name: 'Assign Task', exact: true });
 }
 
-test('assigning cleaning uses the return date and location despite completed departure history', async ({ page }) => {
-  const state = await fixture(page);
-  await mockTripForCleaning(page, 'departure');
-  await page.goto('/admin/operations');
-  await expect(page.getByText('Departure cleaning (history):', { exact: true })).toBeVisible({ timeout: 15000 });
-  await page.getByRole('button', { name: 'Assign Cleaning', exact: true }).click();
-  const modal = page.getByRole('dialog', { name: 'Assign Task', exact: true });
-  await expect(modal.getByLabel('Scheduled Date/Time')).toHaveValue('2026-10-10T17:00');
-  await expect(modal.getByLabel('Due Date', { exact: true })).toHaveValue('2026-10-10T17:00');
-  await modal.getByRole('combobox', { name: 'Task type', exact: true }).click();
-  await page.getByRole('option', { name: 'Drop Off', exact: true }).click();
-  await expect(modal.getByLabel('Scheduled Date/Time')).toHaveValue('2026-10-07T09:00');
-  await modal.getByRole('combobox', { name: 'Task type', exact: true }).click();
-  await page.getByRole('option', { name: 'Cleaning', exact: true }).click();
-  await expect(modal.getByLabel('Scheduled Date/Time')).toHaveValue('2026-10-10T17:00');
-  await expect(modal.getByLabel('Due Date', { exact: true })).toHaveValue('2026-10-10T17:00');
-  await modal.getByRole('combobox').filter({ hasText: 'Select an employee...' }).click();
-  await page.getByRole('option', { name: 'Test Worker', exact: true }).click();
-  await modal.getByRole('button', { name: 'Create Task', exact: true }).click();
-  await expect.poll(() => state.writes.find(write => write.path === '/api/operations/tasks')?.body).toMatchObject({
-    task_type: 'cleaning', turo_trip_id: 208, scheduled_date: '2026-10-10 23:00:00', due_date: '2026-10-10 23:00:00',
-    scheduled_location: 'Return lot', assigned_to_id: 41,
-  });
-  expect(state.errors).toEqual([]);
-});
-
-for (const phase of ['standard', undefined] as const) test(`existing ${phase || 'legacy'} cleaning prevents a second return cleaning`, async ({ page }) => {
-  const state = await fixture(page);
-  await mockTripForCleaning(page, phase);
-  await page.goto('/admin/operations');
-  await expect(page.getByRole('button', { name: 'Edit Cleaning Task', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Assign Cleaning', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Assign Drop Off', exact: true }).click();
-  const modal = page.getByRole('dialog', { name: 'Assign Task', exact: true });
-  await modal.getByRole('combobox', { name: 'Task type', exact: true }).click();
-  await page.getByRole('option', { name: 'Cleaning', exact: true }).click();
-  await modal.getByRole('combobox').filter({ hasText: 'Select an employee...' }).click();
-  await page.getByRole('option', { name: 'Test Worker', exact: true }).click();
-  await modal.getByRole('button', { name: 'Create Task', exact: true }).click();
-  await expect(page.getByText('A cleaning task already exists for this trip. Edit the existing one instead.', { exact: true })).toBeVisible();
-  expect(state.writes.filter(write => write.path === '/api/operations/tasks')).toEqual([]);
-  expect(state.errors).toEqual([]);
-});
-
  test('active fleet is selected by default and inactive vehicle records remain available explicitly', async ({ page }) => {
-  const rows = [task(81, 'turo:81', { type: 'pickup', category: 'Pick Up', car_name: 'Active vehicle' }), task(82, 'turo:82', { type: 'pickup', category: 'Pick Up', car_name: 'Retired vehicle', plate: 'RETIRED' })];
+  const rows = [task(81, 'turo:81', { type: 'pickup', category: 'Pick Up', car_name: 'Active vehicle' }), task(82, 'turo:82', { type: 'pickup', category: 'Pick Up', car_name: 'Retired vehicle', plate: 'RETIRED', status: 'completed' })];
+  // Open Turo work always shows (its car's fleet status can lag), so the retired car's record here is finished work.
   await fixture(page, { rows });
-  await expect(page.getByLabel('Operations fleet')).toHaveValue('active');
+  // The fleet filter is the shared searchable menu, backed by a hidden native select that holds the value.
+  const fleetMenu = page.getByRole('combobox', { name: 'Operations fleet' });
+  const chooseFleet = async (name: string) => { await fleetMenu.click(); await page.getByRole('option', { name, exact: true }).click(); };
+  await expect(page.locator('#operations-fleet-native')).toHaveValue('active');
   await expect(page.locator('[data-day-schedule-card]')).toHaveCount(1, { timeout: 15000 });
   await expect(page.locator('[data-day-schedule-card]')).toContainText('Active vehicle');
-  await page.getByLabel('Operations fleet').selectOption('all');
+  await chooseFleet('All vehicles / records');
   await expect(page.locator('[data-day-schedule-card]')).toHaveCount(2);
-  await page.getByLabel('Operations fleet').selectOption('inactive');
+  await chooseFleet('Inactive vehicles');
   await expect(page.locator('[data-day-schedule-card]')).toHaveCount(1);
   await expect(page.locator('[data-day-schedule-card]')).toContainText('Retired vehicle');
 });
@@ -244,10 +202,9 @@ for (const impersonated of [false, true]) test(`employee task form assigns self 
   await page.setViewportSize({ width: 390, height: 844 });
   const state = await fixture(page, { user: { id: 7, isAdmin: impersonated, isSuperAdmin: impersonated, isEmployee: true,
     ...(impersonated ? { viewAsEmployee: { employeeId: 41 }, impersonatorIsAdmin: true } : {}) } });
-  await mockTripForCleaning(page, 'departure');
-  await page.goto('/admin/operations');
-  await page.getByRole('button', { name: 'Assign Cleaning', exact: true }).click();
-  const modal = page.getByRole('dialog', { name: 'Assign Task', exact: true });
+  const modal = await openTaskForm(page);
+  await modal.getByRole('combobox').filter({ hasText: /Select a car|Search cars|Select car/ }).first().click();
+  await page.getByRole('option', { name: /Test vehicle 2024 - TEST123/ }).click();
   await expect(modal.getByRole('combobox').filter({ hasText: 'Select an employee...' })).toHaveCount(0);
   const self = modal.getByRole('button', { name: 'Assign to self', exact: true });
   await expect(self).toBeEnabled();
@@ -260,20 +217,14 @@ for (const impersonated of [false, true]) test(`employee task form assigns self 
 
 test('manager retains the employee picker on task forms', async ({ page }) => {
   await fixture(page, { user: { id: 7, isAdmin: false, isSuperAdmin: false, isEmployee: true }, manager: true });
-  await mockTripForCleaning(page, 'departure');
-  await page.goto('/admin/operations');
-  await page.getByRole('button', { name: 'Assign Cleaning', exact: true }).click();
-  const modal = page.getByRole('dialog', { name: 'Assign Task', exact: true });
+  const modal = await openTaskForm(page);
   await expect(modal.getByRole('combobox').filter({ hasText: 'Select an employee...' })).toBeVisible();
   await expect(modal.getByRole('button', { name: 'Assign to self', exact: true })).toHaveCount(0);
 });
 
 test('missing employee profile never falls back to an account ID or roster dropdown', async ({ page }) => {
   const state = await fixture(page, { user: { id: 7, isAdmin: false, isSuperAdmin: false, isEmployee: true }, missingEmployee: true });
-  await mockTripForCleaning(page, 'departure');
-  await page.goto('/admin/operations');
-  await page.getByRole('button', { name: 'Assign Cleaning', exact: true }).click();
-  const modal = page.getByRole('dialog', { name: 'Assign Task', exact: true });
+  const modal = await openTaskForm(page);
   await expect(modal.getByRole('button', { name: 'Assign to self', exact: true })).toBeDisabled();
   await expect(modal.getByRole('alert')).toContainText('employee profile could not be loaded');
   await expect(modal.getByRole('combobox').filter({ hasText: 'Select an employee...' })).toHaveCount(0);
@@ -328,7 +279,8 @@ test('Day Schedule exposes only New and Completed and preserves owner booking av
   await expect(cards.filter({ hasText: 'Vehicle task 203' }).locator('[data-task-status]')).toHaveText('completed');
   await cards.filter({ hasText: 'Vehicle task 204' }).click();
   await page.locator('[data-day-schedule-controls]').getByRole('combobox', { name: 'Task status' }).click();
-  await expect(page.getByRole('option')).toHaveText(['New', 'Completed']);
+  // The shared menu lists options alphabetically.
+  await expect(page.getByRole('option')).toHaveText(['Completed', 'New']);
   await page.getByRole('option', { name: 'Completed', exact: true }).click();
   await expect.poll(() => state.writes.find(w => w.path === '/api/operations/day-schedule/owner-task-status')?.body).toMatchObject({ type: 'owner_dropoff', eventId: 204, status: 'completed' });
   expect(state.writes.some(w => w.path.includes('/car-block-off'))).toBe(false);

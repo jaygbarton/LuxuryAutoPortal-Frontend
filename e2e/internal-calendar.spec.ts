@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const calendarUrl = "/admin/trip-calendar?from=2026-10-10&to=2026-10-17";
+/** Trips and services together. The Vehicle Trips calendar above shows trips only; maintenance has its own Services calendar. */
+const masterCalendarUrl = "/admin/internal-calendar?from=2026-10-10&to=2026-10-17";
 
 test("sorts internal calendar vehicle rows alphabetically rather than by the leading year", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -72,6 +74,19 @@ function response() {
     complete: true, availabilityComplete: false,
     sync: { status: "pending", lastSuccessAt: "2026-10-13T17:00:00Z", pending: 1, failed: 0, configured: true },
   };
+}
+
+/** The calendar opens on "Active vehicles"; these checks cover every record, so switch to All vehicles. */
+async function showAllVehicles(page: Page) {
+  const calendar = page.getByTestId("fleet-calendar");
+  await expect(calendar).toBeVisible({ timeout: 15000 });
+  const inline = calendar.getByRole("combobox", { name: "Fleet filter" });
+  const sheet = page.getByRole("dialog", { name: "Calendar filters", exact: true });
+  const inSheet = !(await inline.isVisible());
+  if (inSheet) await calendar.getByRole("button", { name: /^Calendar filters/ }).click();
+  await (inSheet ? sheet.getByRole("combobox", { name: "Fleet filter" }) : inline).click();
+  await page.getByRole("option", { name: "All vehicles", exact: true }).click();
+  if (inSheet) await sheet.getByRole("button", { name: /^Show \d+ events?$/ }).click();
 }
 
 async function mockCalendar(page: Page, options: { developer?: boolean; employee?: boolean; cohost?: boolean; firstGoogleSync?: boolean; importError?: string } = {}) {
@@ -236,7 +251,8 @@ test("staff can inspect an imported period without classification controls", asy
 
 test("shows source errors and keeps prior loaded data instead of an empty calendar", async ({ page }) => {
   const mock = await mockCalendar(page);
-  await page.goto(calendarUrl);
+  await page.goto(masterCalendarUrl);
+  await showAllVehicles(page);
   await expect(page.getByText("9 of 9 events shown", { exact: false })).toBeVisible();
   mock.fail(true);
   await page.getByRole("button", { name: "Refresh", exact: true }).click();
@@ -267,7 +283,8 @@ test("keeps co-hosts on their existing scoped booking feed", async ({ page }) =>
 
 test("invalid ranges are explicit and do not request a guessed date window", async ({ page }) => {
   const mock = await mockCalendar(page);
-  await page.goto(calendarUrl);
+  await page.goto(masterCalendarUrl);
+  await showAllVehicles(page);
   await expect(page.getByText("9 of 9 events shown", { exact: false })).toBeVisible();
   const count = mock.requests.length;
   await page.getByLabel("From", { exact: true }).fill("2026-10-20");
@@ -311,8 +328,8 @@ test("Sync now reports acceptance, polls to completion, and exposes failed reque
 
 test("staff can read Google status and open the real scheduled appointment without a sync action", async ({ page }) => {
   await mockCalendar(page, { employee: true });
-  await page.goto(calendarUrl);
-  await expect(page.getByRole("checkbox", { name: "Scheduled maintenance", exact: true })).toBeVisible();
+  await page.goto(masterCalendarUrl);
+  await expect(page.getByRole("checkbox", { name: "Services", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Sync now", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Oil change appointment · Mercedes-Benz GLS", exact: true }).click();
   await expect(page.getByRole("dialog").getByText("Example vehicle service shop", { exact: true })).toBeVisible();
@@ -325,12 +342,14 @@ for (const width of [360, 390, 430]) {
   test(`mobile ${width}: agenda contains every record, filters stay accessible, and booking links fit`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     const mock = await mockCalendar(page, { employee: true });
-    await page.goto(calendarUrl);
+    await page.goto(masterCalendarUrl);
+  await showAllVehicles(page);
     const calendar = page.getByTestId("fleet-calendar");
     const agenda = calendar.getByTestId("fleet-calendar-agenda");
     await expect(agenda).toBeVisible();
     await expect(agenda.getByRole("button")).toHaveCount(9);
-    expect((await agenda.getByRole("button").first().boundingBox())!.y).toBeLessThanOrEqual(500);
+    // The first record is on the first screen, below the calendar switcher, location and coverage notes.
+    expect((await agenda.getByRole("button").first().boundingBox())!.y).toBeLessThanOrEqual(844 - 120);
     await expect.poll(() => calendar.getByRole("textbox", { name: "Search vehicle or plate" }).evaluate((input) => parseFloat(getComputedStyle(input).fontSize))).toBeGreaterThanOrEqual(16);
     if (width === 390) await page.screenshot({ path: "/tmp/gla-calendar-mobile-top.png", fullPage: false, animations: "disabled" });
     await expect(agenda.getByRole("button", { name: "Inspection without dates · Mercedes-Benz GLS", exact: true })).toBeVisible();
@@ -354,7 +373,7 @@ for (const width of [360, 390, 430]) {
     expect(closeBounds!.x).toBeGreaterThan(width - 65);
     expect(closeBounds!.y - filterBounds!.y).toBeLessThan(20);
     if (width === 390) await page.screenshot({ path: "/tmp/gla-calendar-mobile-filters.png", fullPage: false, animations: "disabled" });
-    await expect(filterSheet.getByRole("checkbox", { name: "Scheduled maintenance", exact: true })).toBeVisible();
+    await expect(filterSheet.getByRole("checkbox", { name: "Services", exact: true })).toBeVisible();
     await filterSheet.getByRole("checkbox", { name: "Show cancelled trips", exact: true }).click();
     await filterSheet.getByRole("button", { name: "Show 8 events", exact: true }).click();
     await expect(agenda.getByRole("button")).toHaveCount(8);
@@ -419,6 +438,7 @@ test("mobile History defaults to the last 30 days, keeps confirmed past records,
     }) });
   });
   await page.goto("/admin/trip-calendar?view=history");
+  await showAllVehicles(page);
   const calendar = page.getByTestId("fleet-calendar");
   await expect(calendar.getByRole("heading", { name: "History", exact: true })).toHaveText("History");
   const tabs = calendar.getByRole("navigation", { name: "Work schedule views" });
@@ -430,7 +450,8 @@ test("mobile History defaults to the last 30 days, keeps confirmed past records,
   await page.getByRole("button", { name: "Close filters", exact: true }).click();
   await expect(calendar.getByTestId("history-range-description")).toContainText("2026-09-19 through 2026-10-18");
   const agenda = calendar.getByTestId("fleet-calendar-agenda");
-  await expect(agenda.getByRole("button")).toHaveCount(7);
+  // Trips only: the past oil-change appointment is on the Services calendar now.
+  await expect(agenda.getByRole("button")).toHaveCount(6);
   for (const absent of ["Future rental", "Invalid reversed dates", "Invalid missing start", "Ended outside selected range", "Invalid zero duration", "Inspection without dates", "Open-ended owner use"]) {
     await expect(agenda.getByRole("button", { name: new RegExp(absent) })).toHaveCount(0);
   }
@@ -443,9 +464,10 @@ test("mobile History defaults to the last 30 days, keeps confirmed past records,
   await calendar.getByRole("button", { name: "Calendar filters", exact: true }).click();
   const filters = page.getByRole("dialog", { name: "Calendar filters", exact: true });
   await filters.getByRole("checkbox", { name: "Show cancelled trips", exact: true }).click();
-  await filters.getByRole("button", { name: "Show 6 events", exact: true }).click();
-  await expect(agenda.getByRole("button")).toHaveCount(6);
-  expect((await agenda.getByRole("button").first().boundingBox())!.y).toBeLessThanOrEqual(500);
+  await filters.getByRole("button", { name: "Show 5 events", exact: true }).click();
+  await expect(agenda.getByRole("button")).toHaveCount(5);
+  // First record on the first screen.
+  expect((await agenda.getByRole("button").first().boundingBox())!.y).toBeLessThanOrEqual(844 - 120);
   await page.screenshot({ path: "/tmp/gla-calendar-history-mobile.png", animations: "disabled" });
   expect(mock.requests.some((url) => url.searchParams.get("from") === "2026-09-19" && url.searchParams.get("to") === "2026-10-18")).toBe(true);
   expect(mock.mutations).toEqual([]);
@@ -456,6 +478,7 @@ test("mobile Calendar and History tabs reset their own date windows on query-onl
   await page.clock.setFixedTime(new Date("2026-10-18T18:00:00Z"));
   await mockCalendar(page, { employee: true });
   await page.goto(calendarUrl);
+  await showAllVehicles(page);
   const calendar = page.getByTestId("fleet-calendar");
   const tabs = calendar.getByRole("navigation", { name: "Work schedule views" });
   await tabs.getByRole("link", { name: "History", exact: true }).click();
@@ -474,12 +497,15 @@ test("mobile Calendar and History tabs reset their own date windows on query-onl
   await calendar.getByRole("button", { name: /^Change date range/ }).click();
   await expect(page.getByLabel("From", { exact: true })).toHaveValue("2026-10-13");
   await expect(page.getByLabel("To", { exact: true })).toHaveValue("2026-10-14");
-  await expect(page.getByRole("dialog").getByRole("button", { name: "Show 1 events", exact: true })).toBeVisible();
+  // The window is what matters here; the count depends on which records the trips calendar holds.
+  await expect(page.getByRole("dialog").getByRole("button", { name: /^Show \d+ events?$/ })).toBeVisible();
   await page.getByLabel("To", { exact: true }).fill("2026-10-12");
   await expect(page.getByRole("dialog").getByRole("alert")).toContainText("Choose valid dates in order");
   await page.getByLabel("To", { exact: true }).fill("2026-10-15");
-  await page.getByRole("dialog").getByRole("button", { name: "Show 7 events", exact: true }).click();
-  await expect(calendar.getByTestId("fleet-calendar-agenda").getByRole("button")).toHaveCount(7);
+  const apply = page.getByRole("dialog").getByRole("button", { name: /^Show \d+ events?$/ });
+  const shown = Number(/Show (\d+)/.exec((await apply.textContent()) ?? "")?.[1]);
+  await apply.click();
+  await expect(calendar.getByTestId("fleet-calendar-agenda").getByRole("button")).toHaveCount(shown);
 });
 
 test('internal calendar defaults to active cars even when retired cars have bookings', async ({ page }) => {

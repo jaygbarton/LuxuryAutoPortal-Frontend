@@ -118,6 +118,8 @@ for (const { width, height } of [{ width: 360, height: 844 }, { width: 390, heig
     for (const name of ["Employee", "Receipt date", "Amount ($)"]) {
       expect(await dialog.getByLabel(name, { exact: true }).evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
     }
+    // Measure the sheet where it rests, not part-way through its opening slide.
+    await dialog.evaluate(async element => { await Promise.all(element.getAnimations().map(animation => animation.finished)); });
     const box = (await dialog.boundingBox())!;
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(width);
@@ -144,8 +146,9 @@ test("airport receipt is the only completion action and preserves zero status wr
   await controls.getByRole("button", { name: "Airport parking receipt", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Airport parking receipt" });
   await expect(dialog).toBeVisible(); expect(state.calls).toHaveLength(0);
-  await expect(dialog.getByLabel("Vehicle", { exact: true })).toHaveValue("101");
-  await expect(dialog.getByLabel("Employee", { exact: true })).toHaveValue("41");
+  // Vehicle and Employee are searchable menus; the hidden native selects hold the values that are submitted.
+  await expect(dialog.locator("#parking-car-native")).toHaveValue("101");
+  await expect(dialog.locator("#parking-employee-native")).toHaveValue("41");
   await expect(dialog.getByText(/Please double-check the amount, date/)).toBeVisible();
   await upload(page);
   await expect(dialog.getByLabel("Amount ($)", { exact: true })).toHaveValue("5.00");
@@ -242,7 +245,7 @@ for (const gas of [false, true]) test(`successful ${gas ? "gas" : "parking"} for
   await source.click();
   await page.locator("[data-day-schedule-controls]").getByRole("button", { name: gas ? "Refuel" : "Airport parking receipt", exact: true }).click();
   await expect(page.getByRole("dialog").getByText(/Submitting assigns this unassigned task/)).toBeVisible();
-  await page.getByLabel("Employee", { exact: true }).selectOption("42");
+  await page.locator("#parking-employee-native").selectOption("42") /* Employee is a searchable menu over this native select */;
   await upload(page);
   await expect(page.locator('[aria-label="Unassigned tasks"] [data-booking-key="turo:101"]')).toHaveCount(1); // Reading a photo alone must not assign it.
   await page.getByRole("button", { name: gas ? "Submit gas receipt" : "Submit receipt & complete pickup", exact: true }).click();
@@ -261,7 +264,7 @@ test("failed form save leaves the source task unassigned", async ({ page }) => {
   const source = region.locator('[data-booking-key="turo:101"]');
   await source.click();
   await page.locator("[data-day-schedule-controls]").getByRole("button", { name: "Airport parking receipt", exact: true }).click();
-  await page.getByLabel("Employee", { exact: true }).selectOption("42"); await upload(page);
+  await page.locator("#parking-employee-native").selectOption("42") /* Employee is a searchable menu over this native select */; await upload(page);
   await page.getByRole("button", { name: "Submit receipt & complete pickup" }).click();
   await expect(page.getByRole("dialog").getByRole("alert")).toContainText("Could not save receipt");
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
