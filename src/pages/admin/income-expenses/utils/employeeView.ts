@@ -31,7 +31,6 @@ export const EMPLOYEE_ALLOWED_ROW_LABELS = [
   // OPERATING EXPENSE (Direct Delivery)
   "Labor - Delivery",
   "Parking - Airport",
-  "Parking - Lot",
   "Uber/Lyft/Lime",
   // OPERATING EXPENSE (COGS - Per Vehicle)
   "Auto Body Shop / Wreck",

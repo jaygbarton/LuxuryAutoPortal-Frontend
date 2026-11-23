@@ -797,10 +797,15 @@ export default function TotalsPage() {
               title="OPERATING EXPENSES (Direct Delivery)"
               totalValue={totals?.operatingExpensesDirect?.total}
             >
-              <TotalRow label="Labor - Car Cleaning" value={totals?.operatingExpensesDirect?.laborCarCleaning} />
+              {/* Retired rows: listed only when the period has money on them. */}
+              {Number(totals?.operatingExpensesDirect?.laborCarCleaning) !== 0 && (
+                <TotalRow label="Labor - Car Cleaning" value={totals?.operatingExpensesDirect?.laborCarCleaning} />
+              )}
               <TotalRow label="Labor - Driver" value={totals?.operatingExpensesDirect?.laborDriver} />
               <TotalRow label="Parking - Airport" value={totals?.operatingExpensesDirect?.parkingAirport} />
-              <TotalRow label="Parking - Lot" value={totals?.operatingExpensesDirect?.parkingLot} />
+              {Number(totals?.operatingExpensesDirect?.parkingLot) !== 0 && (
+                <TotalRow label="Parking - Lot" value={totals?.operatingExpensesDirect?.parkingLot} />
+              )}
               <TotalRow label="Taxi/Uber/Lyft/Lime" value={totals?.operatingExpensesDirect?.taxiUberLyftLime} />
               <SubcategoryRows rows={totals?.operatingExpensesDirect?.subcategories} />
               <TotalRow label="Total Operating Expenses (Direct Delivery)" value={totals?.operatingExpensesDirect?.total} separator bold />
