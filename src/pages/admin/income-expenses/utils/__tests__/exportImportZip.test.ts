@@ -389,7 +389,7 @@ describe("buildIncomeExpenseCSV", () => {
   it("round-trips through parseImportedCSV successfully", () => {
     const result = parseImportedCSV(csv);
     expect(result.success).toBe(true);
-    expect(result.sections?.incomeExpenses?.length).toBe(13); // 11 income rows + Guest Cancellation + Gas Reimbursement Income
+    expect(result.sections?.incomeExpenses?.length).toBe(15); // 11 income rows + Guest Cancellation, Gas Reimbursement, On-Trip & Post-Trip Charging
     const rentalRow = result.sections?.incomeExpenses?.find(
       (r: any) => r.category === "Rental Income"
     );
@@ -930,6 +930,40 @@ describe("buildIncomeExpenseCSV — Gas Reimbursement Income", () => {
   it("adds the full amount to the Car Management (Co-Host) Split and Total Car Profit, owner unchanged", () => {
     const before = buildIncomeExpenseCSV(withGas(0), CAR_INFO, "2024", EMPTY_MONTH_MODES);
     const after = buildIncomeExpenseCSV(withGas(40), CAR_INFO, "2024", EMPTY_MONTH_MODES);
+    expect(janValue(after, "Co-Host Split") - janValue(before, "Co-Host Split")).toBeCloseTo(40, 2);
+    expect(janValue(after, "Car Owner Split")).toBeCloseTo(janValue(before, "Car Owner Split"), 2);
+    expect(janValue(after, "Total Car Profit") - janValue(before, "Total Car Profit")).toBeCloseTo(40, 2);
+  });
+});
+
+// ── On-Trip / Post-Trip Charging Income (100% Host Share) ───────────────────
+
+describe("buildIncomeExpenseCSV — On-Trip / Post-Trip Charging Income", () => {
+  const janValue = (csv: string, label: string): number => {
+    const line = csv.split("\n").find((l) => l.startsWith(`${label},`));
+    if (!line) throw new Error(`row not found: ${label}`);
+    return Number(line.split(",")[1].replace(/[$\s]|\(.*\)/g, ""));
+  };
+  const withCharging = (onTrip: number, postTrip: number) => {
+    const base = makeData();
+    return makeData({
+      incomeExpenses: [
+        { ...base.incomeExpenses[0], onTripChargingIncome: onTrip, postTripChargingIncome: postTrip } as any,
+      ],
+    });
+  };
+
+  it("exports both rows directly below Gas Reimbursement Income", () => {
+    const csv = buildIncomeExpenseCSV(withCharging(15, 25), CAR_INFO, "2024", EMPTY_MONTH_MODES);
+    const lines = csv.split("\n");
+    const gas = lines.findIndex((l) => l.startsWith("Gas Reimbursement Income,"));
+    expect(lines[gas + 1].startsWith("On-Trip Charging Income,$15.00")).toBe(true);
+    expect(lines[gas + 2].startsWith("Post-Trip Charging Income,$25.00")).toBe(true);
+  });
+
+  it("adds the full amounts to the Car Management (Co-Host) Split and Total Car Profit, owner unchanged", () => {
+    const before = buildIncomeExpenseCSV(withCharging(0, 0), CAR_INFO, "2024", EMPTY_MONTH_MODES);
+    const after = buildIncomeExpenseCSV(withCharging(15, 25), CAR_INFO, "2024", EMPTY_MONTH_MODES);
     expect(janValue(after, "Co-Host Split") - janValue(before, "Co-Host Split")).toBeCloseTo(40, 2);
     expect(janValue(after, "Car Owner Split")).toBeCloseTo(janValue(before, "Car Owner Split"), 2);
     expect(janValue(after, "Total Car Profit") - janValue(before, "Total Car Profit")).toBeCloseTo(40, 2);

@@ -285,7 +285,10 @@ export function buildIncomeExpenseCSV(
   const calculateCarManagementSplit = (month: number): number => {
     const split = calculateCarManagementSplitFormula(month);
     if (!(parseInt(year, 10) >= 2019)) return split;
-    return split + (Number(getMonthValue(data.incomeExpenses, month, "gasReimbursementIncome")) || 0);
+    // Gas Reimbursement + On-Trip + Post-Trip Charging Income: all 100% Host Share.
+    const hostShareAddOnIncome = (["gasReimbursementIncome", "onTripChargingIncome", "postTripChargingIncome"] as const)
+      .reduce((sum, field) => sum + (Number(getMonthValue(data.incomeExpenses, month, field)) || 0), 0);
+    return split + hostShareAddOnIncome;
   };
   
   // Calculate Car Owner Split - MUST match IncomeExpenseTable.tsx logic exactly
@@ -888,6 +891,8 @@ export function buildIncomeExpenseCSV(
     { field: 'otherIncome', label: 'Other Income' },
     { field: 'guestCancellationIncome', label: 'Guest Cancellation Income' },
     { field: 'gasReimbursementIncome', label: 'Gas Reimbursement Income' },
+    { field: 'onTripChargingIncome', label: 'On-Trip Charging Income' },
+    { field: 'postTripChargingIncome', label: 'Post-Trip Charging Income' },
   ];
   
   incomeFields.forEach(({ field, label }) => {
@@ -972,7 +977,11 @@ export function buildIncomeExpenseCSV(
     const guestCancellationIncome = Number(getMonthValue(data.incomeExpenses, monthNum, "guestCancellationIncome")) || 0;
     // Gas Reimbursement Income is not part of Rental Income either — added on top.
     const gasReimbursementIncome = Number(getMonthValue(data.incomeExpenses, monthNum, "gasReimbursementIncome")) || 0;
-    const value = rentalIncome + guestCancellationIncome + gasReimbursementIncome - totalExpenses;
+    // On-Trip / Post-Trip Charging Income: likewise outside Rental Income.
+    const chargingIncome =
+      (Number(getMonthValue(data.incomeExpenses, monthNum, "onTripChargingIncome")) || 0) +
+      (Number(getMonthValue(data.incomeExpenses, monthNum, "postTripChargingIncome")) || 0);
+    const value = rentalIncome + guestCancellationIncome + gasReimbursementIncome + chargingIncome - totalExpenses;
     csvContent += `$${value.toFixed(2)},`;
     totalProfitTotal += value;
   });

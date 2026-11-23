@@ -17,7 +17,9 @@ export type IncomeShareField =
   | "insuranceWreckIncome"
   | "otherIncome"
   | "guestCancellationIncome"
-  | "gasReimbursementIncome";
+  | "gasReimbursementIncome"
+  | "onTripChargingIncome"
+  | "postTripChargingIncome";
 
 const HOST = "100% Host Share";
 const OWNER = "100% Owner Share";
@@ -39,6 +41,9 @@ const NOTES_2026: Record<IncomeShareField, string> = {
   guestCancellationIncome: OWNER,
   // Not part of Rental Income; always added in full to the Car Management Split.
   gasReimbursementIncome: HOST,
+  // Same rule as Gas Reimbursement Income.
+  onTripChargingIncome: HOST,
+  postTripChargingIncome: HOST,
 };
 
 // 2019–2025, 50/50 mode: Smoking Fines go wholly to GLA, Miles wholly to the
@@ -58,6 +63,9 @@ const NOTES_LEGACY_50: Record<IncomeShareField, string> = {
   guestCancellationIncome: OWNER,
   // Not part of Rental Income; always added in full to the Car Management Split.
   gasReimbursementIncome: HOST,
+  // Same rule as Gas Reimbursement Income.
+  onTripChargingIncome: HOST,
+  postTripChargingIncome: HOST,
 };
 
 // 2019–2025, 70/30 mode: everything but Miles and the owner's 10% of Smoking
@@ -77,6 +85,9 @@ const NOTES_LEGACY_70: Record<IncomeShareField, string> = {
   guestCancellationIncome: OWNER,
   // Not part of Rental Income; always added in full to the Car Management Split.
   gasReimbursementIncome: HOST,
+  // Same rule as Gas Reimbursement Income.
+  onTripChargingIncome: HOST,
+  postTripChargingIncome: HOST,
 };
 
 /**

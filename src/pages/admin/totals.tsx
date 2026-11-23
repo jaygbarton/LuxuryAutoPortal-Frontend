@@ -782,6 +782,8 @@ export default function TotalsPage() {
               <TotalRow label="Other Income" value={totals?.income?.otherIncome} />
               <TotalRow label="Guest Cancellation Income" value={totals?.income?.guestCancellationIncome} />
               <TotalRow label="Gas Reimbursement Income" value={totals?.income?.gasReimbursementIncome} />
+              <TotalRow label="On-Trip Charging Income" value={totals?.income?.onTripChargingIncome} />
+              <TotalRow label="Post-Trip Charging Income" value={totals?.income?.postTripChargingIncome} />
               <TotalRow label="Negative Balance Carry Over" value={0} />
               <TotalRow label="Car Management Total Expenses" value={totals?.income?.carManagementTotalExpenses} separator bold />
               <TotalRow label="Car Owner Total Expenses" value={totals?.income?.carOwnerTotalExpenses} bold />

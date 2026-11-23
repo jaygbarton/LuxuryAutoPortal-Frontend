@@ -153,6 +153,8 @@ export default function ModalEditIncomeExpense() {
     otherIncome: "Other Income",
     guestCancellationIncome: "Guest Cancellation Income",
     gasReimbursementIncome: "Gas Reimbursement Income",
+    onTripChargingIncome: "On-Trip Charging Income",
+    postTripChargingIncome: "Post-Trip Charging Income",
     negativeBalanceCarryOver: "Negative Balance Carry Over",
     carPayment: "Car Payment",
     carManagementTotalExpenses: "Car Management Total Expenses",
@@ -204,6 +206,8 @@ export default function ModalEditIncomeExpense() {
     otherIncome: withForm("income", "otherIncome", getMonthValue(data.incomeExpenses, month, "otherIncome")),
     guestCancellationIncome: getMonthValue(data.incomeExpenses, month, "guestCancellationIncome"),
     gasReimbursementIncome: getMonthValue(data.incomeExpenses, month, "gasReimbursementIncome"),
+    onTripChargingIncome: getMonthValue(data.incomeExpenses, month, "onTripChargingIncome"),
+    postTripChargingIncome: getMonthValue(data.incomeExpenses, month, "postTripChargingIncome"),
   } : null;
 
   // Direct Delivery values
@@ -484,6 +488,14 @@ export default function ModalEditIncomeExpense() {
                     <div className="flex justify-between text-muted-foreground">
                       <span>Gas Reimbursement Income:</span>
                       <span>${incomeValues.gasReimbursementIncome.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>On-Trip Charging Income:</span>
+                      <span>${incomeValues.onTripChargingIncome.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Post-Trip Charging Income:</span>
+                      <span>${incomeValues.postTripChargingIncome.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

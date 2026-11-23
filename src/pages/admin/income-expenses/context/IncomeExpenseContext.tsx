@@ -100,6 +100,8 @@ function getEmptyData(): IncomeExpenseData {
       otherIncome: 0,
       guestCancellationIncome: 0,
       gasReimbursementIncome: 0,
+      onTripChargingIncome: 0,
+      postTripChargingIncome: 0,
       negativeBalanceCarryOver: 0,
       carPayment: 0,
       carManagementTotalExpenses: 0,

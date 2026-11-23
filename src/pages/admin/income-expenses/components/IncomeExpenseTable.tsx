@@ -1851,7 +1851,10 @@ lastSavedNote.current = coHostNote;
   const calculateCarManagementSplit = (month: number, percentOverride?: number): number => {
     const split = calculateCarManagementSplitFormula(month, percentOverride);
     if (!(parseInt(year, 10) >= 2019)) return split;
-    return split + (Number(getMonthValue(data.incomeExpenses, month, "gasReimbursementIncome")) || 0);
+    // Gas Reimbursement + On-Trip + Post-Trip Charging Income: all 100% Host Share.
+    const hostShareAddOnIncome = (["gasReimbursementIncome", "onTripChargingIncome", "postTripChargingIncome"] as const)
+      .reduce((sum, field) => sum + (Number(getMonthValue(data.incomeExpenses, month, field)) || 0), 0);
+    return split + hostShareAddOnIncome;
   };
 
   // Car Owner Split (no percent override) is computed server-side
@@ -2724,6 +2727,24 @@ lastSavedNote.current = coHostNote;
                 field="gasReimbursementIncome"
               />
               <CategoryRow
+                label="On-Trip Charging Income"
+                splitLabel={shareNote("onTripChargingIncome")}
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.incomeExpenses, i + 1, "onTripChargingIncome"),
+                )}
+                category="income"
+                field="onTripChargingIncome"
+              />
+              <CategoryRow
+                label="Post-Trip Charging Income"
+                splitLabel={shareNote("postTripChargingIncome")}
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.incomeExpenses, i + 1, "postTripChargingIncome"),
+                )}
+                category="income"
+                field="postTripChargingIncome"
+              />
+              <CategoryRow
                 label="Negative Balance Carry Over"
                 values={MONTHS.map((_, i) =>
                   calculateNegativeBalanceCarryOver(i + 1),
@@ -2843,7 +2864,11 @@ lastSavedNote.current = coHostNote;
                     monthNum,
                     "gasReimbursementIncome",
                   );
-                  return rentalIncome + guestCancellationIncome + gasReimbursementIncome - totalExpenses;
+                  // On-Trip / Post-Trip Charging Income: likewise outside Rental Income.
+                  const chargingIncome =
+                    getMonthValue(data.incomeExpenses, monthNum, "onTripChargingIncome") +
+                    getMonthValue(data.incomeExpenses, monthNum, "postTripChargingIncome");
+                  return rentalIncome + guestCancellationIncome + gasReimbursementIncome + chargingIncome - totalExpenses;
                 })}
                 isEditable={false}
               />

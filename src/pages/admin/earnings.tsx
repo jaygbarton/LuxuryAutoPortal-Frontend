@@ -925,7 +925,10 @@ export default function EarningsPage() {
   const calculateCarManagementSplit = (month: number): number => {
     const split = calculateCarManagementSplitFormula(month);
     if (!(parseInt(selectedYear, 10) >= 2019)) return split;
-    return split + (Number(getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "gasReimbursementIncome")) || 0);
+    // Gas Reimbursement + On-Trip + Post-Trip Charging Income: all 100% Host Share.
+    const hostShareAddOnIncome = (["gasReimbursementIncome", "onTripChargingIncome", "postTripChargingIncome"] as const)
+      .reduce((sum, field) => sum + (Number(getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, field)) || 0), 0);
+    return split + hostShareAddOnIncome;
   };
 
   // Calculate Car Owner Split (exact copy from IncomeExpenseTable)
@@ -1741,6 +1744,18 @@ export default function EarningsPage() {
                     splitLabel={shareNote("gasReimbursementIncome")}
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "gasReimbursementIncome"))}
                     category="income" field="gasReimbursementIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                  />
+                  <TableRow
+                    label="On-Trip Charging Income"
+                    splitLabel={shareNote("onTripChargingIncome")}
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "onTripChargingIncome"))}
+                    category="income" field="onTripChargingIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                  />
+                  <TableRow
+                    label="Post-Trip Charging Income"
+                    splitLabel={shareNote("postTripChargingIncome")}
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "postTripChargingIncome"))}
+                    category="income" field="postTripChargingIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Negative Balance Carry Over"
