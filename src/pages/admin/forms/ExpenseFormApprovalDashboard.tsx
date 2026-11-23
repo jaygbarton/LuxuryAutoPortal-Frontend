@@ -573,7 +573,8 @@ const ACTION_BADGE_CLASS: Record<AuditEntry["action"], string> = {
 const CATEGORY_FIELDS: Record<string, { value: string; label: string }[]> = {
   directDelivery: [
     { value: "laborDelivery", label: "Labor Delivery" },
-    { value: "parkingAirport", label: "Parking Airport" },
+    { value: "parkingAirport", label: "Parking Airport Reimbursed" },
+    { value: "parkingAirportNotReimbursed", label: "Parking Airport Not Reimbursed" },
     { value: "uberLyftLime", label: "Uber/Lyft/Lime" },
   ],
   cogs: [

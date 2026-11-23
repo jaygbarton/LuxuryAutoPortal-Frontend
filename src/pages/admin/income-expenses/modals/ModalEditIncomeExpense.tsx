@@ -215,6 +215,7 @@ export default function ModalEditIncomeExpense() {
     laborCarCleaning: withForm("directDelivery", "laborCarCleaning", getMonthValue(data.directDelivery, month, "laborCarCleaning")),
     laborDelivery: withForm("directDelivery", "laborDelivery", getMonthValue(data.directDelivery, month, "laborDelivery")),
     parkingAirport: withForm("directDelivery", "parkingAirport", getMonthValue(data.directDelivery, month, "parkingAirport")),
+    parkingAirportNotReimbursed: withForm("directDelivery", "parkingAirportNotReimbursed", getMonthValue(data.directDelivery, month, "parkingAirportNotReimbursed")),
     parkingLot: withForm("directDelivery", "parkingLot", getMonthValue(data.directDelivery, month, "parkingLot")),
     uberLyftLime: withForm("directDelivery", "uberLyftLime", getMonthValue(data.directDelivery, month, "uberLyftLime")),
   } : null;
@@ -513,8 +514,12 @@ export default function ModalEditIncomeExpense() {
                       <span>${directDeliveryValues.laborDelivery.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Parking - Airport:</span>
+                      <span>Parking Airport Reimbursed:</span>
                       <span>${directDeliveryValues.parkingAirport.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Parking Airport Not Reimbursed:</span>
+                      <span>${directDeliveryValues.parkingAirportNotReimbursed.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
                       <span>Parking - Lot:</span>

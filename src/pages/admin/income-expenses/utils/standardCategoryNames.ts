@@ -30,6 +30,9 @@ export const STANDARD_CATEGORY_NAMES: Record<string, string[]> = {
     "Labor - Cleaning",
     "Labor - Delivery",
     "Parking - Airport",
+    // Current names (2026-11); the old name above still matches.
+    "Parking Airport Reimbursed",
+    "Parking Airport Not Reimbursed",
     "Parking - Lot",
     "Uber/Lyft/Lime",
   ],

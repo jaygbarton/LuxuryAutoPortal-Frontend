@@ -802,7 +802,8 @@ export default function TotalsPage() {
                 <TotalRow label="Labor - Car Cleaning" value={totals?.operatingExpensesDirect?.laborCarCleaning} />
               )}
               <TotalRow label="Labor - Driver" value={totals?.operatingExpensesDirect?.laborDriver} />
-              <TotalRow label="Parking - Airport" value={totals?.operatingExpensesDirect?.parkingAirport} />
+              <TotalRow label="Parking Airport Reimbursed" value={totals?.operatingExpensesDirect?.parkingAirport} />
+              <TotalRow label="Parking Airport Not Reimbursed" value={totals?.operatingExpensesDirect?.parkingAirportNotReimbursed} />
               {Number(totals?.operatingExpensesDirect?.parkingLot) !== 0 && (
                 <TotalRow label="Parking - Lot" value={totals?.operatingExpensesDirect?.parkingLot} />
               )}

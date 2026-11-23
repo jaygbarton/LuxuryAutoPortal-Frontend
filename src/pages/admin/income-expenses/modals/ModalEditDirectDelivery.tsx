@@ -125,7 +125,8 @@ export default function ModalEditDirectDelivery() {
   const fieldNames: { [key: string]: string } = {
     laborCarCleaning: "Labor - Cleaning",
     laborDelivery: "Labor - Delivery",
-    parkingAirport: "Parking - Airport",
+    parkingAirport: "Parking Airport Reimbursed",
+    parkingAirportNotReimbursed: "Parking Airport Not Reimbursed",
     parkingLot: "Parking - Lot",
     uberLyftLime: "Uber/Lyft/Lime",
   };
