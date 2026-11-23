@@ -62,7 +62,8 @@ for (const width of [360, 390, 430]) test(`employee screens fit ${width}px with 
   if (width === 390) await page.screenshot({ path: "/tmp/gla-staff-time-mobile.png", fullPage: true });
   await page.getByRole("button", { name: "Clock out", exact: true }).click();
   await page.getByRole("button", { name: "End of shift", exact: true }).click();
-  const submit = page.getByRole("button", { name: "Submit & Clock out", exact: true });
+  // The final confirmation's button is "Clock out" (it was "Submit & Clock out").
+  const submit = page.getByRole("dialog").getByRole("button", { name: "Clock out", exact: true });
   await expect(submit).toBeDisabled();
   await page.getByLabel("I confirm that I have checked and do not have any company cards or car keys.", { exact: true }).check();
   await expect(submit).toBeEnabled(); await noOverflow(page);

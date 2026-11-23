@@ -38,7 +38,7 @@ export function DayScheduleDriverRankings({ selectedMonth, wide = false }: { sel
     </div>
     {query.isPending ? <p role="status" className="p-3 text-sm text-muted-foreground">Loading driver charts…</p> : query.isError ? <div role="alert" className="rounded-xl border p-4 text-sm">Driver charts could not be loaded. <Button variant="outline" className="mt-2 h-11" onClick={() => query.refetch()}>Retry driver charts</Button></div> : <>
       <Ranking title="Airport parking average" caption="Lowest average first · airport runs with included receipts" rows={query.data.parking} parking />
-      <Ranking title="Gas reimbursed" caption="Highest submitted reimbursement total first" rows={query.data.gas} />
+      <Ranking title="Gas – Charged to Guest" caption="Highest submitted reimbursement total first" rows={query.data.gas} />
       <p className={`px-1 text-xs text-muted-foreground ${wide ? 'lg:col-span-2' : ''}`}>$40+ parking tickets are excluded unless a manager includes them. Each included ticket’s full cost counts for both the receipt employee and the assigned driver. Airport-return links are required unless a manager force includes the entry; those overrides are labeled below.</p>
     </>}
   </aside>;

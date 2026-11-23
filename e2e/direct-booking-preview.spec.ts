@@ -63,7 +63,7 @@ test("direct return refuel preview reads the receipt without creating real expen
   await page.getByRole("button", { name: "Refuel", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Gas – Charged to Guest receipt" });
   await expect(dialog.getByText(/Direct booking preview only/)).toBeVisible();
-  await dialog.getByLabel("Employee", { exact: true }).selectOption("41");
+  await dialog.locator("#parking-employee-native").selectOption("41") /* Employee is a searchable menu over this native select */;
   await dialog.getByLabel("Receipt photo", { exact: true }).setInputFiles({ name: "test.png", mimeType: "image/png", buffer: Buffer.from("synthetic upload fixture") });
   await expect(dialog.getByLabel("Amount ($)", { exact: true })).toHaveValue("60.00");
   await dialog.getByRole("button", { name: "Finish receipt preview" }).click();
@@ -137,7 +137,7 @@ test("worker changes remain versioned private drafts with no live effects", asyn
   const mock = await fixture(page);
   await page.goto(`/admin/developer/direct-bookings?view=worker&booking=${encodeURIComponent(key)}`);
   await page.getByLabel("Staff notes & request").fill("Reviewed pickup preference");
-  await page.getByLabel("Preview status").selectOption("ready_for_review");
+  await page.locator("#worker-status-native").selectOption("ready_for_review") /* searchable menu over this native select */;
   await page.getByRole("button", { name: "Save preview changes", exact: true }).click();
   await expect.poll(() => mock.writes.length).toBe(1);
   expect(mock.writes[0].path).toBe(`${ROOT}/drafts/${id}`);

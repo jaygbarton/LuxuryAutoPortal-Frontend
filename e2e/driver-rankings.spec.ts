@@ -1,4 +1,9 @@
-import { expect,test,type Page } from '@playwright/test';
+import { expect,test,type Page,type Locator } from '@playwright/test';
+// Department and Job title are searchable menus over a hidden native select (id + "-native").
+async function nativeSelect(scope:Page|Locator,label:string){
+  const id=await scope.locator('label').filter({hasText:new RegExp(`^${label}$`)}).first().getAttribute('for');
+  return scope.locator(`[id="${id}-native"]`);
+}
 async function fixture(page:Page) {
   const reads:string[]=[],writes:any[]=[],errors:string[]=[];
   let roles=['Cleaner'];
@@ -45,7 +50,7 @@ for(const width of [390,1440])test.describe(`${width}px monthly charts`,()=>{
     await expect(parking.locator('[data-ranked-employee]').first()).toContainText('Cheapest Driver');
     await expect(parking).toContainText('$3.00');
     await expect(parking).toContainText('$12.00 ÷ 4 Airport runs');
-    const gas=page.getByRole('region',{name:'Gas reimbursed',exact:true});
+    const gas=page.getByRole('region',{name:'Gas – Charged to Guest',exact:true});
     await expect(gas.locator('[data-ranked-employee]').first()).toContainText('Second Driver');
     await expect(gas).toContainText('$200.00');
     await page.getByLabel('Month',{exact:true}).fill('2024-02');
@@ -75,19 +80,19 @@ for(const width of[390,1440])test(`employee departments and job titles support s
  await page.setViewportSize({width,height:844});const state=await fixture(page);
  const open=async()=>{await page.getByRole('button',{name:'Job and Pay',exact:true}).click();const info=page.getByText('Job Information',{exact:true}).locator('..').locator('..');await info.getByRole('button',{name:'Update',exact:true}).click();return page.getByRole('dialog',{name:'Update Job Information'});};
  await page.goto('/admin/hr/employees/view?employeeId=41');let dialog=await open();
- await expect(dialog.getByLabel('Department',{exact:true}).locator('option')).toHaveText(['Not set','Operations','Sales & Marketing','Administration','Custom…']);
- await expect(dialog.getByLabel('Job title',{exact:true}).locator('option')).toHaveText(['Not set','Car Driver','Car Cleaner','Mechanic','Custom…']);
- await dialog.getByLabel('Department',{exact:true}).selectOption('Sales & Marketing');await dialog.getByLabel('Job title',{exact:true}).selectOption('Car Cleaner');
+ await expect((await nativeSelect(dialog,'Department')).locator('option')).toHaveText(['Not set','Operations','Sales & Marketing','Administration','Custom…']);
+ await expect((await nativeSelect(dialog,'Job title')).locator('option')).toHaveText(['Not set','Car Driver','Car Cleaner','Mechanic','Custom…']);
+ await (await nativeSelect(dialog,'Department')).selectOption('Sales & Marketing');await (await nativeSelect(dialog,'Job title')).selectOption('Car Cleaner');
  await page.screenshot({path:`/workspace/artifacts/employee-job-classification-${width}.png`,fullPage:true,animations:'disabled'});
  await dialog.getByRole('button',{name:'Save',exact:true}).click();await expect(dialog).toHaveCount(0);
  expect(state.writes[0]).toMatchObject({path:'/api/employees/41/job-and-pay',body:{employee_job_pay_department_name:'Sales & Marketing',employee_job_pay_job_title_name:'Car Cleaner',employee_job_pay_work_email:'driver@example.test'}});
  const roleEditor=page.getByRole('region',{name:'Employee operational roles'});await expect(roleEditor.getByRole('checkbox',{name:'Cleaner',exact:true})).toBeChecked();await expect(roleEditor.getByRole('checkbox',{name:'Car Driver',exact:true})).not.toBeChecked();
- dialog=await open();await dialog.getByLabel('Department',{exact:true}).selectOption('__custom__');await dialog.getByLabel('Custom department',{exact:true}).fill('Customer Experience');
- await dialog.getByLabel('Job title',{exact:true}).selectOption('__custom__');await dialog.getByLabel('Custom job title',{exact:true}).fill('Vehicle Detail Lead');await dialog.getByRole('button',{name:'Save',exact:true}).click();await expect(dialog).toHaveCount(0);
+ dialog=await open();await (await nativeSelect(dialog,'Department')).selectOption('__custom__');await dialog.getByLabel('Custom department',{exact:true}).fill('Customer Experience');
+ await (await nativeSelect(dialog,'Job title')).selectOption('__custom__');await dialog.getByLabel('Custom job title',{exact:true}).fill('Vehicle Detail Lead');await dialog.getByRole('button',{name:'Save',exact:true}).click();await expect(dialog).toHaveCount(0);
  expect(state.writes[1]).toMatchObject({body:{employee_job_pay_department_name:'Customer Experience',employee_job_pay_job_title_name:'Vehicle Detail Lead'}});
  await page.reload();dialog=await open();await expect(dialog.getByLabel('Custom department',{exact:true})).toHaveValue('Customer Experience');await expect(dialog.getByLabel('Custom job title',{exact:true})).toHaveValue('Vehicle Detail Lead');
  const bounds=await dialog.boundingBox();expect(bounds!.width).toBeLessThanOrEqual(width);expect(bounds!.height).toBeLessThanOrEqual(844*.91);
- await dialog.getByLabel('Department',{exact:true}).selectOption('');await dialog.getByLabel('Job title',{exact:true}).selectOption('');await dialog.getByRole('button',{name:'Save',exact:true}).click();await expect(dialog).toHaveCount(0);
+ await (await nativeSelect(dialog,'Department')).selectOption('');await (await nativeSelect(dialog,'Job title')).selectOption('');await dialog.getByRole('button',{name:'Save',exact:true}).click();await expect(dialog).toHaveCount(0);
  expect(state.writes[2]).toMatchObject({body:{employee_job_pay_department_name:null,employee_job_pay_job_title_name:null}});
  expect(state.writes).toHaveLength(3);expect(state.writes.some(w=>w.path.endsWith('/operational-roles'))).toBe(false);expect(state.errors).toEqual([]);
 });
@@ -95,9 +100,9 @@ for(const width of[390,1440])test(`employee departments and job titles support s
 test('Add Employee offers the same department and job-title choices without submitting a new employee',async({page})=>{
  const state=await fixture(page);await page.goto('/admin/hr/employees');await page.getByRole('button',{name:'Add',exact:true}).click();
  const dialog=page.getByRole('dialog',{name:'Add New Employee'});
- await dialog.getByLabel('Department',{exact:true}).selectOption('Administration');await dialog.getByLabel('Job title',{exact:true}).selectOption('Mechanic');
- await expect(dialog.getByLabel('Job title',{exact:true}).locator('option')).toHaveText(['Not set','Car Driver','Car Cleaner','Mechanic','Custom…']);
- await dialog.getByLabel('Department',{exact:true}).selectOption('__custom__');await dialog.getByLabel('Custom department',{exact:true}).fill('Service Team');
+ await (await nativeSelect(dialog,'Department')).selectOption('Administration');await (await nativeSelect(dialog,'Job title')).selectOption('Mechanic');
+ await expect((await nativeSelect(dialog,'Job title')).locator('option')).toHaveText(['Not set','Car Driver','Car Cleaner','Mechanic','Custom…']);
+ await (await nativeSelect(dialog,'Department')).selectOption('__custom__');await dialog.getByLabel('Custom department',{exact:true}).fill('Service Team');
  await dialog.getByRole('button',{name:'Cancel',exact:true}).click();expect(state.writes).toEqual([]);expect(state.errors).toEqual([]);
 });
 
@@ -112,7 +117,7 @@ test('staff self-service uses the same choices without exposing employee-role or
  });
  await page.goto('/staff/my-info/job-and-pay');await page.getByRole('button',{name:'Edit',exact:true}).click();
  await expect(page.getByLabel('Custom department',{exact:true})).toHaveValue('Existing Department');await expect(page.getByLabel('Custom job title',{exact:true})).toHaveValue('Existing Title');
- await page.getByLabel('Department',{exact:true}).selectOption('Operations');await page.getByLabel('Job title',{exact:true}).selectOption('Car Driver');
+ await (await nativeSelect(page,'Department')).selectOption('Operations');await (await nativeSelect(page,'Job title')).selectOption('Car Driver');
  await page.getByRole('button',{name:'Save',exact:true}).click();await expect(page.getByRole('button',{name:'Edit',exact:true})).toBeVisible();
  expect(state.writes).toHaveLength(1);expect(state.writes[0]).toMatchObject({path:'/api/me/employee/job-pay',body:{employee_job_pay_department_name:'Operations',employee_job_pay_job_title_name:'Car Driver'}});
  expect(state.writes[0].body).not.toHaveProperty('roles');expect(state.writes[0].body).not.toHaveProperty('employee_job_pay_salary_rate');expect(state.writes[0].body).not.toHaveProperty('employee_job_pay_work_email');
