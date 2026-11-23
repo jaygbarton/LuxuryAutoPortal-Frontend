@@ -13,6 +13,7 @@ import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { api } from "@/lib/api";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import { cn } from "@/lib/utils";
+import { displaysAsZeroCurrency } from "@/lib/displaysAsZeroCurrency";
 
 interface CarDetail {
   id: number;
@@ -62,9 +63,19 @@ interface TotalRowProps {
   negative?: boolean;
 }
 
+/**
+ * Client users don't see income/expense line items whose total shows as $0.00
+ * (Jay, 2026-11). Section headers, the bold "Total …" rows and non-currency
+ * rows (days rented, trips) always show. Admins and staff see every row.
+ */
+const HideZeroRowsContext = React.createContext(false);
+
+
 function TotalRow({ label, value, isCurrency = true, bold, separator, indent, negative }: TotalRowProps) {
+  const hideZeroRows = React.useContext(HideZeroRowsContext);
   const num = typeof value === "string" ? parseFloat(value as string) : Number(value);
   const isNeg = negative || num < 0;
+  if (hideZeroRows && isCurrency && !bold && !separator && displaysAsZeroCurrency(value)) return null;
   return (
     <div className={cn(
       "flex items-center justify-between py-1.5 px-2 rounded-sm min-w-0",
@@ -754,6 +765,7 @@ export default function TotalsPage() {
           </div>
         )}
         {(totals || (!totalsLoading && !totalsFetching)) && (
+          <HideZeroRowsContext.Provider value={isClient}>
           <div className="space-y-2 pb-4">
             {/* 1. Car Management and Car Owner Split */}
             <Section
@@ -931,6 +943,7 @@ export default function TotalsPage() {
               <TotalRow label="Trips Taken" value={totals?.history?.tripsTaken} isCurrency={false} />
             </Section>
           </div>
+          </HideZeroRowsContext.Provider>
         )}
       </div>
       <ClientPageLinks />
