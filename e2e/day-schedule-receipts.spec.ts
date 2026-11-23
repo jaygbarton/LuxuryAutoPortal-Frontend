@@ -186,7 +186,7 @@ for (const owner of [false, true]) test(`gas return form supports manual fallbac
   const state = await mock(page, { unreadable: true, owner, nonAirport: !owner });
   await page.locator("[data-day-schedule-card]").first().click();
   await page.getByRole("button", { name: "Refuel", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "Gas reimbursed receipt" })).toBeVisible(); await upload(page);
+  await expect(page.getByRole("dialog", { name: "Gas – Charged to Guest receipt" })).toBeVisible(); await upload(page);
   await expect(page.getByRole("dialog").getByText(/Please manually enter/)).toBeVisible();
   await expect(page.getByRole("dialog").getByText(/Please double-check/)).toBeVisible();
   await page.getByLabel("Amount ($)", { exact: true }).fill("60.00");

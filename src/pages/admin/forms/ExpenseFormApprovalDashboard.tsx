@@ -604,8 +604,8 @@ const CATEGORY_FIELDS: Record<string, { value: string; label: string }[]> = {
   ],
   reimbursedBills: [
     { value: "electricNotReimbursed", label: "Electric Not Reimbursed" },
-    { value: "gasReimbursed", label: "Gas - Charged to Guest" },
-    { value: "gasNotReimbursed", label: "Gas - Not Charged to Guest" },
+    { value: "gasReimbursed", label: "Gas – Charged to Guest" },
+    { value: "gasNotReimbursed", label: "Gas – Not Charged to Guest" },
     { value: "gasServiceRun", label: "Gas Service Run" },
     { value: "parkingAirport", label: "Parking Airport" },
     {

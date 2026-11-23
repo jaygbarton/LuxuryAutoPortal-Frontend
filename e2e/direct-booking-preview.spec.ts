@@ -61,7 +61,7 @@ test("direct return refuel preview reads the receipt without creating real expen
   await page.goto(`/admin/developer/direct-bookings?view=day-schedule&booking=${encodeURIComponent(key)}`);
   await page.getByLabel("Schedule date", { exact: false }).fill("2026-10-16");
   await page.getByRole("button", { name: "Refuel", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Gas reimbursed receipt" });
+  const dialog = page.getByRole("dialog", { name: "Gas – Charged to Guest receipt" });
   await expect(dialog.getByText(/Direct booking preview only/)).toBeVisible();
   await dialog.getByLabel("Employee", { exact: true }).selectOption("41");
   await dialog.getByLabel("Receipt photo", { exact: true }).setInputFiles({ name: "test.png", mimeType: "image/png", buffer: Buffer.from("synthetic upload fixture") });

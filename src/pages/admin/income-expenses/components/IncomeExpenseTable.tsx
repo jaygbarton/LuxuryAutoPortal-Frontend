@@ -3643,7 +3643,7 @@ lastSavedNote.current = coHostNote;
                 )}
               />
               <CategoryRow
-                label="Gas - Charged to Guest"
+                label="Gas – Charged to Guest"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.reimbursedBills, i + 1, "gasReimbursed"),
                 )}
@@ -3652,11 +3652,11 @@ lastSavedNote.current = coHostNote;
                 {...rowActions(
                   "reimbursedBills",
                   "gasReimbursed",
-                  "Gas - Charged to Guest",
+                  "Gas – Charged to Guest",
                 )}
               />
               <CategoryRow
-                label="Gas - Not Charged to Guest"
+                label="Gas – Not Charged to Guest"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(
                     data.reimbursedBills,
@@ -3669,7 +3669,7 @@ lastSavedNote.current = coHostNote;
                 {...rowActions(
                   "reimbursedBills",
                   "gasNotReimbursed",
-                  "Gas - Not Charged to Guest",
+                  "Gas – Not Charged to Guest",
                 )}
               />
               <CategoryRow

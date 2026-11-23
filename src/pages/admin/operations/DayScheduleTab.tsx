@@ -493,7 +493,7 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
         <ScheduleBookingContext.Provider value={popupContext}>
           {!cancelled && (canRefuel(event) || event.airport_parking_required) && <div className="flex flex-wrap gap-2" aria-label="Trip receipt actions">
             {event.airport_parking_required && <Button type="button" variant="outline" className="h-11 min-w-0 flex-1 rounded-lg px-3 text-xs sm:flex-none" onClick={()=>popupContext.openAirportReceipt(event)}>Airport parking receipt</Button>}
-            {canRefuel(event) && <Button type="button" className="h-11 min-w-0 flex-1 rounded-lg px-3 text-xs sm:flex-none" title="Upload a Gas Reimbursed receipt" onClick={()=>popupContext.openFuelReceipt(event)}>Refuel</Button>}
+            {canRefuel(event) && <Button type="button" className="h-11 min-w-0 flex-1 rounded-lg px-3 text-xs sm:flex-none" title="Upload a Gas – Charged to Guest receipt" onClick={()=>popupContext.openFuelReceipt(event)}>Refuel</Button>}
           </div>}
           {!cancelled && <EventControls {...props} onStatusChange={(type, id, status, completedDate) => {
             if (event.airport_parking_required && status === "completed") setOpen(false);

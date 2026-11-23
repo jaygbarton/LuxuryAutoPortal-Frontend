@@ -69,8 +69,8 @@ export const STANDARD_CATEGORY_NAMES: Record<string, string[]> = {
     "Gas - Reimbursed",
     "Gas - Not Reimbursed",
     // Current names of the two rows above (renamed 2026-11); both match.
-    "Gas - Charged to Guest",
-    "Gas - Not Charged to Guest",
+    "Gas – Charged to Guest",
+    "Gas – Not Charged to Guest",
     "Gas - Service Run",
     "Parking Airport",
     "Uber/Lyft/Lime - Not Reimbursed",

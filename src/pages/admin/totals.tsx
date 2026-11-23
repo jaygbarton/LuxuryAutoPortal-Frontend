@@ -922,8 +922,8 @@ export default function TotalsPage() {
                 <TotalRow label="Electric - Reimbursed" value={totals?.reimbursedBills?.electricReimbursed} />
               )}
               <TotalRow label="Electric - Not Reimbursed" value={totals?.reimbursedBills?.electricNotReimbursed} />
-              <TotalRow label="Gas - Charged to Guest" value={totals?.reimbursedBills?.gasReimbursed} />
-              <TotalRow label="Gas - Not Charged to Guest" value={totals?.reimbursedBills?.gasNotReimbursed} />
+              <TotalRow label="Gas – Charged to Guest" value={totals?.reimbursedBills?.gasReimbursed} />
+              <TotalRow label="Gas – Not Charged to Guest" value={totals?.reimbursedBills?.gasNotReimbursed} />
               <TotalRow label="Gas - Service Run" value={totals?.reimbursedBills?.gasServiceRun} />
               <TotalRow label="Parking Airport" value={totals?.reimbursedBills?.parkingAirport} />
               <TotalRow label="Uber/Lyft/Lime - Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeReimbursed} />

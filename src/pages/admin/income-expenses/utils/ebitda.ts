@@ -5,7 +5,7 @@
  *   Total Income   = Rental Income + the additional income rows that sit
  *                    OUTSIDE Rental Income (Guest Cancellation, Gas
  *                    Reimbursement, On-/Post-Trip Charging). Their costs
- *                    (e.g. Gas - Charged to Guest) are already in expenses.
+ *                    (e.g. Gas – Charged to Guest) are already in expenses.
  *   Total Expenses = Car Management + Car Owner car expenses + Office Support
  *                    − Car Payment. A car payment is loan principal (not an
  *                    expense) plus loan interest, which EBITDA excludes; the

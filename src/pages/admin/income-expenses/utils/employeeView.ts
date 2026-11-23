@@ -52,8 +52,8 @@ export const EMPLOYEE_ALLOWED_ROW_LABELS = [
   "Mechanic",
   "License & Registration",
   // REIMBURSE AND NON-REIMBURSE BILLS
-  "Gas - Charged to Guest",
-  "Gas - Not Charged to Guest",
+  "Gas – Charged to Guest",
+  "Gas – Not Charged to Guest",
   "Gas - Service Run",
   "Parking Airport",
   // These two render with a "(added)" suffix in the fixed reimbursed-bills rows

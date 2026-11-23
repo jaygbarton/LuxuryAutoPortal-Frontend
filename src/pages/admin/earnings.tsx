@@ -2020,12 +2020,12 @@ export default function EarningsPage() {
                       category="reimbursedBills" field="electricNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
-                      label="Gas - Charged to Guest"
+                      label="Gas – Charged to Guest"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasReimbursed"))}
                       category="reimbursedBills" field="gasReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
-                      label="Gas - Not Charged to Guest"
+                      label="Gas – Not Charged to Guest"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasNotReimbursed"))}
                       category="reimbursedBills" field="gasNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />

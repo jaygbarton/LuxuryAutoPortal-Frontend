@@ -38,7 +38,7 @@ export function TripReceiptDialog({ taskId, bookingKey, scheduleDate, kind = "pa
   const isFuel = kind === "gas";
   const endpoint = isFuel ? `/api/operations/return-receipts/${encodeURIComponent(bookingKey || "")}` : `/api/operations/tasks/${taskId}/airport-parking`;
   const queryKey = ["trip-receipt", kind, taskId ?? bookingKey];
-  const title = isFuel ? "Gas reimbursed receipt" : "Airport parking receipt";
+  const title = isFuel ? "Gas – Charged to Guest receipt" : "Airport parking receipt";
   const [previewDone, setPreviewDone] = useState(false);
   const [carId, setCarId] = useState("");
   const [employeeId, setEmployeeId] = useState("");
@@ -139,12 +139,12 @@ export function TripReceiptDialog({ taskId, bookingKey, scheduleDate, kind = "pa
   const loadError = context.error || options.error;
   return <><Dialog open={!driverOpen} onOpenChange={(open) => { if (!open && !busy) onClose(); }}>
     <DialogContent className="top-auto bottom-0 max-h-[94dvh] w-full translate-y-0 gap-3 overflow-y-auto rounded-b-none rounded-t-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:bottom-auto sm:top-[50%] sm:max-h-[92dvh] sm:max-w-xl sm:translate-y-[-50%] sm:rounded-xl sm:p-6" onInteractOutside={(event) => event.preventDefault()}>
-      <DialogHeader className="text-left"><DialogTitle className="text-base sm:text-lg">{title}</DialogTitle><DialogDescription className="text-xs leading-relaxed sm:text-sm">{context.data?.preview ? "Try the receipt reader. No real expense or Refuel Run will be created." : isFuel ? "Upload your receipt to submit Gas Reimbursed and complete a Refuel Run. The expense stays pending approval." : "Upload your parking receipt, check the details, and complete this airport pickup."}</DialogDescription></DialogHeader>
+      <DialogHeader className="text-left"><DialogTitle className="text-base sm:text-lg">{title}</DialogTitle><DialogDescription className="text-xs leading-relaxed sm:text-sm">{context.data?.preview ? "Try the receipt reader. No real expense or Refuel Run will be created." : isFuel ? "Upload your receipt to submit Gas – Charged to Guest and complete a Refuel Run. The expense stays pending approval." : "Upload your parking receipt, check the details, and complete this airport pickup."}</DialogDescription></DialogHeader>
       {context.isLoading || options.isLoading ? <p role="status">Loading pickup details…</p> : loadError ? <div role="alert"><p>{loadError.message}</p><Button onClick={() => { void context.refetch(); void options.refetch(); }}>Retry</Button></div> : <form onSubmit={submit} className="space-y-4">
         {context.data?.preview && <p role="status" className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Direct booking preview only. This form does not create an expense or change a real booking.</p>}
         <p className="rounded-lg bg-muted/40 px-3 py-2 text-xs font-medium">{context.data?.carName}{context.data?.reservationId ? ` · Reservation ${context.data.reservationId}` : ""}</p>
         {submissionId ? <div role="status" className="rounded-md border p-3 text-sm">
-          {declined ? "This receipt was declined. Correct the existing submission in Forms → My submissions." : isFuel ? "The Gas Reimbursed receipt and completed Refuel Run are already saved for this return. Another expense or task will not be created." : "The receipt is saved for approval. Finish completing this pickup below; another expense will not be created."}
+          {declined ? "This receipt was declined. Correct the existing submission in Forms → My submissions." : isFuel ? "The Gas – Charged to Guest receipt and completed Refuel Run are already saved for this return. Another expense or task will not be created." : "The receipt is saved for approval. Finish completing this pickup below; another expense will not be created."}
         </div> : <>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="min-w-0"><Label htmlFor="parking-car" className="text-xs">Vehicle</Label><SearchableNativeSelect id="parking-car" className="mt-1 h-11 w-full min-w-0 rounded-lg border bg-background px-2 text-base sm:text-sm" value={carId} onChange={(e) => setCarId(e.target.value)} required disabled={!!busy || !!context.data?.carId}>
@@ -177,7 +177,7 @@ export function TripReceiptDialog({ taskId, bookingKey, scheduleDate, kind = "pa
             </div>
             {managerReviewRequested&&<div className="mt-2"><Label htmlFor="parking-manager-review-reason" className="text-xs">Reason for manager review</Label><textarea id="parking-manager-review-reason" required maxLength={1000} minLength={1} value={managerReviewReason} onChange={e=>setManagerReviewReason(e.target.value)} disabled={!!busy} className="mt-1 min-h-20 w-full rounded-lg border bg-background p-3 text-base sm:text-sm" placeholder="Explain what happened so the manager can review this ticket."/></div>}
           </section>}
-          {!parkingField && <p role="alert" className="text-sm text-destructive">{isFuel ? "Gas - Charged to Guest" : "Parking Airport"} is unavailable in your expense options. Contact an administrator.</p>}
+          {!parkingField && <p role="alert" className="text-sm text-destructive">{isFuel ? "Gas – Charged to Guest" : "Parking Airport"} is unavailable in your expense options. Contact an administrator.</p>}
         </>}
         {previewDone && <p role="status" className="text-sm text-emerald-800">Receipt preview checked. No expense was created.</p>}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}

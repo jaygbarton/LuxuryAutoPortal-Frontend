@@ -204,10 +204,10 @@ export default function ModalEditIncomeExpense() {
     coolersIncome: withForm("income", "coolersIncome", getMonthValue(data.incomeExpenses, month, "coolersIncome")),
     insuranceWreckIncome: withForm("income", "insuranceWreckIncome", getMonthValue(data.incomeExpenses, month, "insuranceWreckIncome")),
     otherIncome: withForm("income", "otherIncome", getMonthValue(data.incomeExpenses, month, "otherIncome")),
-    guestCancellationIncome: getMonthValue(data.incomeExpenses, month, "guestCancellationIncome"),
-    gasReimbursementIncome: getMonthValue(data.incomeExpenses, month, "gasReimbursementIncome"),
-    onTripChargingIncome: getMonthValue(data.incomeExpenses, month, "onTripChargingIncome"),
-    postTripChargingIncome: getMonthValue(data.incomeExpenses, month, "postTripChargingIncome"),
+    guestCancellationIncome: withForm("income", "guestCancellationIncome", getMonthValue(data.incomeExpenses, month, "guestCancellationIncome")),
+    gasReimbursementIncome: withForm("income", "gasReimbursementIncome", getMonthValue(data.incomeExpenses, month, "gasReimbursementIncome")),
+    onTripChargingIncome: withForm("income", "onTripChargingIncome", getMonthValue(data.incomeExpenses, month, "onTripChargingIncome")),
+    postTripChargingIncome: withForm("income", "postTripChargingIncome", getMonthValue(data.incomeExpenses, month, "postTripChargingIncome")),
   } : null;
 
   // Direct Delivery values
@@ -705,11 +705,11 @@ export default function ModalEditIncomeExpense() {
                       <span>${reimbursedBillsValues.electricNotReimbursed.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Gas - Charged to Guest:</span>
+                      <span>Gas – Charged to Guest:</span>
                       <span>${reimbursedBillsValues.gasReimbursed.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Gas - Not Charged to Guest:</span>
+                      <span>Gas – Not Charged to Guest:</span>
                       <span>${reimbursedBillsValues.gasNotReimbursed.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
