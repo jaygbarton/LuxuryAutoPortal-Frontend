@@ -36,6 +36,7 @@ import {
   findStandardCategoryMatch,
   normalizeName,
 } from "../utils/standardCategoryNames";
+import { ebitdaIncome, ebitdaExpenses } from "../utils/ebitda";
 import {
   useIsEmployeeView,
   isSectionAllowedForEmployee,
@@ -886,6 +887,20 @@ lastSavedNote.current = coHostNote;
       getMonthValue(data.officeSupport, month, "amortizationExpense")
     );
   };
+
+  // EBITDA (All Cars) — formula and reasoning in ../utils/ebitda.ts.
+  const monthRowOf = (rows: any[] | undefined, month: number) =>
+    (rows || []).find((r: any) => r && r.month === month);
+  const getEbitdaIncomeForMonth = (month: number): number =>
+    ebitdaIncome(monthRowOf(data.incomeExpenses, month));
+  const getEbitdaExpensesForMonth = (month: number): number =>
+    ebitdaExpenses(
+      monthRowOf(data.incomeExpenses, month),
+      monthRowOf(data.cogs, month),
+      getTotalOfficeSupportForMonth(month),
+    );
+  const getEbitdaForMonth = (month: number): number =>
+    getEbitdaIncomeForMonth(month) - getEbitdaExpensesForMonth(month);
 
   // Helper to get value from previous year data by month
   const getPrevYearValue = (
@@ -4291,38 +4306,13 @@ lastSavedNote.current = coHostNote;
                 onToggle={() => toggleSection("ebitda")}
               >
                 <CategoryRow
-                  label="Total Rental Income"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.incomeExpenses, i + 1, "rentalIncome"),
-                  )}
+                  label="Total Income"
+                  values={MONTHS.map((_, i) => getEbitdaIncomeForMonth(i + 1))}
                   isEditable={false}
                 />
                 <CategoryRow
-                  label="Total Expenses"
-                  values={MONTHS.map((_, i) => {
-                    const monthNum = i + 1;
-                    // Match the Total Expenses row in INCOME & EXPENSES SUMMARY:
-                    // Car Management Car Expenses + Car Owner Car Expenses +
-                    // Office Support. EBITDA items (Interest/Taxes/Depreciation/
-                    // Amortization) are shown as their own rows below and are
-                    // subtracted separately in the Net Income formula.
-                    const mgmtExpenses = getMonthValue(
-                      data.incomeExpenses,
-                      monthNum,
-                      "carManagementTotalExpenses",
-                    );
-                    const ownerExpenses = getMonthValue(
-                      data.incomeExpenses,
-                      monthNum,
-                      "carOwnerTotalExpenses",
-                    );
-                    const officeSupportTotal =
-                      getTotalOfficeSupportForMonth(monthNum);
-                    // No null guard here: this row is All-Cars-only and both
-                    // terms come from getMonthValue, which collapses a missing
-                    // value to 0 and never returns null.
-                    return mgmtExpenses + ownerExpenses + officeSupportTotal;
-                  })}
+                  label="Total Expenses (excl. Car Payment)"
+                  values={MONTHS.map((_, i) => getEbitdaExpensesForMonth(i + 1))}
                   isEditable={false}
                 />
                 {/* EBITDA manual entries — only in All Cars view.
@@ -4385,141 +4375,35 @@ lastSavedNote.current = coHostNote;
                 />
                 <CategoryRow
                   label="Net Income"
-                  values={MONTHS.map((_, i) => {
-                    const monthNum = i + 1;
-                    // Net Income = Total Rental Income - Total Expenses
-                    //            - (Interest + Taxes + Depreciation + Amortization).
-                    // Total Expenses mirrors the row above (operating expenses
-                    // only). The EBITDA add-backs are subtracted here so they
-                    // affect Net Income without being lumped into the shown
-                    // Total Expenses row.
-                    const rentalIncome = getMonthValue(
-                      data.incomeExpenses,
-                      monthNum,
-                      "rentalIncome",
-                    );
-                    const mgmtExpenses = getMonthValue(
-                      data.incomeExpenses,
-                      monthNum,
-                      "carManagementTotalExpenses",
-                    );
-                    const ownerExpenses = getMonthValue(
-                      data.incomeExpenses,
-                      monthNum,
-                      "carOwnerTotalExpenses",
-                    );
-                    const officeSupportTotal =
-                      getTotalOfficeSupportForMonth(monthNum);
-                    const addBacks = getEbitdaAddBacksForMonth(monthNum);
-                    return (
-                      rentalIncome -
-                      mgmtExpenses -
-                      ownerExpenses -
-                      officeSupportTotal -
-                      addBacks
-                    );
-                  })}
+                  // Net Income = EBITDA - (Interest + Taxes + Depreciation + Amortization).
+                  values={MONTHS.map((_, i) => getEbitdaForMonth(i + 1) - getEbitdaAddBacksForMonth(i + 1))}
                   isEditable={false}
                 />
                 <CategoryRow
                   label="EBITDA"
-                  values={MONTHS.map((_, i) => {
-                    const monthNum = i + 1;
-                    // EBITDA = Net Income + Interest + Taxes + Depreciation + Amortization
-                    //        = Rental Income - Total Expenses (operating expenses only).
-                    const rentalIncome = getMonthValue(
-                      data.incomeExpenses,
-                      monthNum,
-                      "rentalIncome",
-                    );
-                    const mgmtExpenses = getMonthValue(
-                      data.incomeExpenses,
-                      monthNum,
-                      "carManagementTotalExpenses",
-                    );
-                    const ownerExpenses = getMonthValue(
-                      data.incomeExpenses,
-                      monthNum,
-                      "carOwnerTotalExpenses",
-                    );
-                    const officeSupportTotal =
-                      getTotalOfficeSupportForMonth(monthNum);
-                    return (
-                      rentalIncome -
-                      mgmtExpenses -
-                      ownerExpenses -
-                      officeSupportTotal
-                    );
-                  })}
+                  // EBITDA = Total Income - Total Expenses (excl. Car Payment).
+                  values={MONTHS.map((_, i) => getEbitdaForMonth(i + 1))}
                   isEditable={false}
                 />
                 <CategoryRow
                   label="EBITDA Margin"
                   isPercentage
                   percentageDecimals={2}
+                  // EBITDA Margin = EBITDA / Total Income * 100.
                   values={MONTHS.map((_, i) => {
-                    const monthNum = i + 1;
-                    // EBITDA Margin = (EBITDA / Total Rental Income) * 100
-                    const rentalIncome = getMonthValue(
-                      data.incomeExpenses,
-                      monthNum,
-                      "rentalIncome",
-                    );
-                    if (rentalIncome === 0) return 0;
-                    const mgmtExpenses = getMonthValue(
-                      data.incomeExpenses,
-                      monthNum,
-                      "carManagementTotalExpenses",
-                    );
-                    const ownerExpenses = getMonthValue(
-                      data.incomeExpenses,
-                      monthNum,
-                      "carOwnerTotalExpenses",
-                    );
-                    const officeSupportTotal =
-                      getTotalOfficeSupportForMonth(monthNum);
-                    const ebitda =
-                      rentalIncome -
-                      mgmtExpenses -
-                      ownerExpenses -
-                      officeSupportTotal;
-                    return (ebitda / rentalIncome) * 100;
+                    const income = getEbitdaIncomeForMonth(i + 1);
+                    return income === 0 ? 0 : (getEbitdaForMonth(i + 1) / income) * 100;
                   })}
-                  // Annual EBITDA margin uses total EBITDA / total rental
-                  // income (not an average of monthly margins), matching how
-                  // EBITDA margin is normally reported on a P&L.
+                  // Annual margin uses total EBITDA / total income (not an
+                  // average of monthly margins), as reported on a P&L.
                   totalOverride={(() => {
                     let annualEbitda = 0;
-                    let annualRental = 0;
-                    for (let i = 0; i < 12; i++) {
-                      const monthNum = i + 1;
-                      const rentalIncome = getMonthValue(
-                        data.incomeExpenses,
-                        monthNum,
-                        "rentalIncome",
-                      );
-                      const mgmtExpenses = getMonthValue(
-                        data.incomeExpenses,
-                        monthNum,
-                        "carManagementTotalExpenses",
-                      );
-                      const ownerExpenses = getMonthValue(
-                        data.incomeExpenses,
-                        monthNum,
-                        "carOwnerTotalExpenses",
-                      );
-                      const officeSupportTotal =
-                        getTotalOfficeSupportForMonth(monthNum);
-                      annualEbitda +=
-                        rentalIncome -
-                        mgmtExpenses -
-                        ownerExpenses -
-                        officeSupportTotal;
-                      annualRental += rentalIncome;
+                    let annualIncome = 0;
+                    for (let m = 1; m <= 12; m++) {
+                      annualEbitda += getEbitdaForMonth(m);
+                      annualIncome += getEbitdaIncomeForMonth(m);
                     }
-                    return annualRental === 0
-                      ? 0
-                      : (annualEbitda / annualRental) * 100;
+                    return annualIncome === 0 ? 0 : (annualEbitda / annualIncome) * 100;
                   })()}
                   isEditable={false}
                 />
