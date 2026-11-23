@@ -152,6 +152,7 @@ export default function ModalEditIncomeExpense() {
     insuranceWreckIncome: "Income Insurance and Client Wrecks",
     otherIncome: "Other Income",
     guestCancellationIncome: "Guest Cancellation Income",
+    gasReimbursementIncome: "Gas Reimbursement Income",
     negativeBalanceCarryOver: "Negative Balance Carry Over",
     carPayment: "Car Payment",
     carManagementTotalExpenses: "Car Management Total Expenses",
@@ -202,6 +203,7 @@ export default function ModalEditIncomeExpense() {
     insuranceWreckIncome: withForm("income", "insuranceWreckIncome", getMonthValue(data.incomeExpenses, month, "insuranceWreckIncome")),
     otherIncome: withForm("income", "otherIncome", getMonthValue(data.incomeExpenses, month, "otherIncome")),
     guestCancellationIncome: getMonthValue(data.incomeExpenses, month, "guestCancellationIncome"),
+    gasReimbursementIncome: getMonthValue(data.incomeExpenses, month, "gasReimbursementIncome"),
   } : null;
 
   // Direct Delivery values
@@ -478,6 +480,10 @@ export default function ModalEditIncomeExpense() {
                     <div className="flex justify-between text-muted-foreground">
                       <span>Guest Cancellation Income:</span>
                       <span>${incomeValues.guestCancellationIncome.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Gas Reimbursement Income:</span>
+                      <span>${incomeValues.gasReimbursementIncome.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
