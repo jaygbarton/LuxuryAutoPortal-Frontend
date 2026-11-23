@@ -20,6 +20,10 @@ test("Cybercab page: US map, city status, membership benefits and the unchanged 
   await expect(map.locator('[data-status="cybercab"]')).toHaveCount(2);
   await expect(map.locator('[data-status="testing"][data-city="Salt Lake City, UT"] circle')).toHaveAttribute("fill", "none");
   await expect(map.locator('[data-status="soon"]')).toHaveCount(3);
+  await expect(map.locator('[data-status="testing"]')).toHaveCount(4);
+  await page.getByTestId("button-nav-pages").hover();
+  await expect(page.getByTestId("link-nav-pages-cybercab")).toHaveAttribute("href", "/salt-lake-city/cybercab");
+  await page.keyboard.press("Escape");
   await expect(map.locator('[data-status="soon"][data-city="Jacksonville, FL"]')).toHaveCount(1);
   await expect(page.locator("body")).not.toContainText("Turo program");
   await expect(page.locator("#reserve")).toContainText("newsletter and updates");

@@ -42,14 +42,17 @@ type MapCity = { city: string; status: "cybercab" | "robotaxi" | "testing" | "so
 const MAP_CITIES: MapCity[] = [
   { city: "Austin, TX", status: "cybercab", note: "Cybercab rides since September 2026. The only city with Cybercab deliveries listed for buyers (December 2026)." },
   { city: "Dallas, TX", status: "cybercab", note: "Cybercab rides since November 19, 2026." },
-  { city: "Houston, TX", status: "robotaxi", note: "Driverless Model Y" },
+  { city: "Houston, TX", status: "robotaxi", note: "Driverless Model Y. Cybercabs spotted in September 2026" },
   { city: "Fort Worth, TX", status: "robotaxi", note: "Driverless Model Y" },
   { city: "San Antonio, TX", status: "robotaxi", note: "Model Y" },
   { city: "Miami, FL", status: "robotaxi", note: "Driverless Model Y" },
   { city: "Orlando, FL", status: "robotaxi", note: "Driverless" },
   { city: "Tampa, FL", status: "robotaxi", note: "Driverless Model Y" },
   { city: "San Francisco Bay Area, CA", status: "robotaxi", note: "Model Y with a safety monitor on board" },
-  { city: "Salt Lake City, UT", status: "testing", note: "Cybercab testing and sightings. Where GLA's robotaxi program will launch." },
+  { city: "Salt Lake City, UT", status: "testing", note: "Cybercab testing and sightings, including Park City (September 2026). Where GLA's robotaxi program will launch." },
+  { city: "Philadelphia, PA", status: "testing", note: "Cybercabs seen at a Tesla location in the area, reportedly in training (September 2026)" },
+  { city: "Chicago, IL", status: "testing", note: "Reported sightings" },
+  { city: "Washington, DC", status: "testing", note: "Reported sightings" },
   { city: "Las Vegas, NV", status: "soon", note: "Named by Tesla as a next market" },
   { city: "Phoenix, AZ", status: "soon", note: "Named by Tesla as a next market" },
   { city: "Jacksonville, FL", status: "soon", note: "Coming soon" },
@@ -344,7 +347,8 @@ export default function CybercabPage() {
             <p className="mt-4 text-xs leading-5 text-[#9A8F7A]">
               As of {STATUS_AS_OF}. Tesla changes service areas often, and state laws often require a permit or registration. Sources:
               Not a Tesla App (Nov 5 and 14, 2026), Electrek (Nov 13, 2026), Teslarati (Nov 19, 2026), Elevation Proving Grounds
-              (July 20, 2026), DockDuty (Oct 29, 2026). This is general information, not legal advice.
+              (July 20, 2026), DockDuty (Oct 29, 2026). Sightings: TownLift (Sept 2026), The Philadelphia Inquirer (Sept 18, 2026),
+              Tesla Oracle (Sept 20, 2026), Basenor. This is general information, not legal advice.
             </p>
           </div>
         </section>

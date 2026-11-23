@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Car, Phone, FileText, Home, Sparkles, BadgePercent, BriefcaseBusiness, Star, PlusCircle, Navigation, ChevronDown, ShieldCheck, Handshake } from "lucide-react";
+import { Menu, X, Car, Phone, FileText, Home, Sparkles, BadgePercent, BriefcaseBusiness, Star, PlusCircle, Navigation, ChevronDown, ShieldCheck, Handshake, CarTaxiFront } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPreferredPublicLocation, withLocationPath } from "@/lib/location-config";
 import { UserAccountMenu } from "@/components/layout/user-account-menu";
@@ -19,6 +19,7 @@ const navLinks = [
   { href: "/onboarding", label: "List Your Car", icon: FileText },
   { href: CO_HOST_PROGRAM_PATH, label: "Co-Host Program", icon: Handshake },
   { href: "/chauffeur-services", label: "Chauffeur", icon: ShieldCheck },
+  { href: "/cybercab", label: "Cybercab", icon: CarTaxiFront },
   { href: "/suggested-cars", label: "Suggested Cars", icon: Car },
   { href: "/contact", label: "Contact", icon: Phone },
 ];
@@ -32,10 +33,13 @@ export function Navbar() {
   const hrefFor = (href: string) => href === CO_HOST_PROGRAM_PATH ? href : withLocationPath(href, publicLocation);
   // The Co-Host Program link appears only once that page is switched on.
   const coHostPageLive = usePublicPageStatus(CO_HOST_PROGRAM_PATH).data?.isPublic === true;
+  // Cybercab is a Salt Lake City page, listed under Pages once it is switched on.
+  const cybercabPageLive = usePublicPageStatus("/salt-lake-city/cybercab").data?.isPublic === true;
   const links = navLinks.filter((link) => {
     if (link.href === CO_HOST_PROGRAM_PATH && !coHostPageLive) return false;
     if (!publicLocation) return link.href === "/" || link.href === "/contact";
     if (publicLocation.comingSoon) return link.href === "/";
+    if (link.href === "/cybercab") return cybercabPageLive && publicLocation.id === "slc";
     if (link.href === "/chauffeur-services") return publicLocation.availablePages.chauffeur;
     if (link.href === "/detail-shop") return publicLocation.availablePages.detailShop;
     if (link.href === "/deals") return publicLocation.availablePages.deals;
