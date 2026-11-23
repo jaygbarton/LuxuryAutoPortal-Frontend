@@ -30,6 +30,8 @@ export interface IncomeExpenseMonth {
   otherIncome: number;
   guestCancellationIncome: number;
   gasReimbursementIncome: number;
+  onTripChargingIncome: number;
+  postTripChargingIncome: number;
   negativeBalanceCarryOver: number;
   carPayment: number;
   carManagementTotalExpenses: number;
