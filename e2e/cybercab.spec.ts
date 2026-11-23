@@ -18,7 +18,9 @@ test("Cybercab page: US map, city status, membership benefits and the unchanged 
   await expect(map.locator('path[data-state="Utah"]')).toHaveAttribute("data-friendly", "true");
   await expect(map.locator('path[data-state="New York"]')).not.toHaveAttribute("data-friendly", /.*/);
   await expect(map.locator('[data-status="cybercab"]')).toHaveCount(2);
-  await expect(map.locator('[data-status="soon"][data-city="Salt Lake City, UT"]')).toHaveCount(1);
+  await expect(map.locator('[data-status="testing"][data-city="Salt Lake City, UT"] circle')).toHaveAttribute("fill", "none");
+  await expect(map.locator('[data-status="soon"]')).toHaveCount(3);
+  await expect(map.locator('[data-status="soon"][data-city="Jacksonville, FL"]')).toHaveCount(1);
   await expect(page.locator("body")).not.toContainText("Turo program");
   await expect(page.locator("#reserve")).toContainText("newsletter and updates");
   await expect(page.locator("main")).toContainText("Each car we manage runs in one program at a time.");

@@ -38,7 +38,7 @@ const FSD_FRIENDLY_STATES = new Set([
   "Nebraska", "Nevada", "North Carolina", "North Dakota", "Oklahoma", "Pennsylvania", "South Dakota", "Tennessee", "Texas", "Utah", "West Virginia",
 ]);
 
-type MapCity = { city: string; status: "cybercab" | "robotaxi" | "soon"; note: string };
+type MapCity = { city: string; status: "cybercab" | "robotaxi" | "testing" | "soon"; note: string };
 const MAP_CITIES: MapCity[] = [
   { city: "Austin, TX", status: "cybercab", note: "Cybercab rides since September 2026. The only city with Cybercab deliveries listed for buyers (December 2026)." },
   { city: "Dallas, TX", status: "cybercab", note: "Cybercab rides since November 19, 2026." },
@@ -49,9 +49,10 @@ const MAP_CITIES: MapCity[] = [
   { city: "Orlando, FL", status: "robotaxi", note: "Driverless" },
   { city: "Tampa, FL", status: "robotaxi", note: "Driverless Model Y" },
   { city: "San Francisco Bay Area, CA", status: "robotaxi", note: "Model Y with a safety monitor on board" },
-  { city: "Salt Lake City, UT", status: "soon", note: "Where GLA's robotaxi program will launch" },
+  { city: "Salt Lake City, UT", status: "testing", note: "Cybercab testing and sightings. Where GLA's robotaxi program will launch." },
   { city: "Las Vegas, NV", status: "soon", note: "Named by Tesla as a next market" },
   { city: "Phoenix, AZ", status: "soon", note: "Named by Tesla as a next market" },
+  { city: "Jacksonville, FL", status: "soon", note: "Coming soon" },
 ];
 
 function CybercabMap() {
@@ -73,14 +74,18 @@ function CybercabMap() {
             const point = US_CITY_POINTS[city];
             if (!point) return null;
             const [x, y] = point;
-            const live = status !== "soon";
+            const live = status === "cybercab" || status === "robotaxi";
             const on = active === city;
             return (
               <g key={city} data-city={city} data-status={status} onMouseEnter={() => setActive(city)} onMouseLeave={() => setActive(null)}>
                 {status === "cybercab" && <circle cx={x} cy={y} r={on ? 19 : 16} fill="none" stroke="#96712D" strokeWidth={3} opacity={0.55} />}
+                {status === "testing" ? (
+                  <circle cx={x} cy={y} r={on ? 11 : 9} fill="none" stroke="#96712D" strokeWidth={3.5}><title>{city}</title></circle>
+                ) : (
                 <circle cx={x} cy={y} r={on ? 11 : 9} fill={live ? "#96712D" : "#9A9488"} stroke="#FFFFFF" strokeWidth={2.5}>
                   <title>{city}</title>
                 </circle>
+                )}
               </g>
             );
           })}
@@ -91,6 +96,7 @@ function CybercabMap() {
         <span className="flex items-center gap-2"><span aria-hidden="true" className="h-3 w-5 rounded-sm bg-[#E6E3DD]" />Not yet</span>
         <span className="flex items-center gap-2"><span aria-hidden="true" className="h-3 w-3 rounded-full bg-[#96712D] ring-2 ring-[#96712D]/40 ring-offset-1" />Cybercab rides</span>
         <span className="flex items-center gap-2"><span aria-hidden="true" className="h-3 w-3 rounded-full bg-[#96712D]" />Tesla Robotaxi</span>
+        <span className="flex items-center gap-2"><span aria-hidden="true" className="h-3 w-3 rounded-full border-2 border-[#96712D]" />Testing / sightings</span>
         <span className="flex items-center gap-2"><span aria-hidden="true" className="h-3 w-3 rounded-full bg-[#9A9488]" />Coming soon</span>
       </figcaption>
     </figure>
@@ -105,7 +111,7 @@ function CityGroup({ title, status }: { title: string; status: MapCity["status"]
       <ul className="mt-3 grid gap-2">
         {rows.map((c) => (
           <li key={c.city} className="flex gap-3 text-sm leading-6">
-            <span aria-hidden="true" className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full ${status === "soon" ? "bg-[#9A9488]" : "bg-[#96712D]"}`} />
+            <span aria-hidden="true" className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full ${status === "soon" ? "bg-[#9A9488]" : status === "testing" ? "border-2 border-[#96712D]" : "bg-[#96712D]"}`} />
             <span><strong className="font-semibold text-[#242019]">{c.city}</strong> <span className="text-[#625C50]">· {c.note}</span></span>
           </li>
         ))}
@@ -327,6 +333,7 @@ export default function CybercabPage() {
               <div className="grid gap-8">
                 <CityGroup title="Cybercab rides" status="cybercab" />
                 <CityGroup title="Tesla Robotaxi" status="robotaxi" />
+                <CityGroup title="Testing & sightings" status="testing" />
                 <CityGroup title="Coming soon" status="soon" />
               </div>
             </div>
