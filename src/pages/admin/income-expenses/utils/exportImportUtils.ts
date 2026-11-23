@@ -64,6 +64,7 @@ export function buildIncomeExpenseCSV(
       getMonthValue(data.directDelivery, month, "laborCarCleaning") +
       getMonthValue(data.directDelivery, month, "laborDelivery") +
       getMonthValue(data.directDelivery, month, "parkingAirport") +
+      getMonthValue(data.directDelivery, month, "parkingAirportNotReimbursed") +
       getMonthValue(data.directDelivery, month, "parkingLot") +
       getMonthValue(data.directDelivery, month, "uberLyftLime")
     );
@@ -439,6 +440,7 @@ export function buildIncomeExpenseCSV(
       getPrevYearValue(prevData.directDelivery || [], month, "laborCarCleaning") +
       getPrevYearValue(prevData.directDelivery || [], month, "laborDelivery") +
       getPrevYearValue(prevData.directDelivery || [], month, "parkingAirport") +
+      getPrevYearValue(prevData.directDelivery || [], month, "parkingAirportNotReimbursed") +
       getPrevYearValue(prevData.directDelivery || [], month, "parkingLot") +
       getPrevYearValue(prevData.directDelivery || [], month, "uberLyftLime")
     );
@@ -1001,7 +1003,8 @@ export function buildIncomeExpenseCSV(
   const directDeliveryFields = [
     { field: 'laborCarCleaning', label: 'Labor - Cleaning' },
     { field: 'laborDelivery', label: 'Labor - Delivery' },
-    { field: 'parkingAirport', label: 'Parking - Airport' },
+    { field: 'parkingAirport', label: 'Parking Airport Reimbursed' },
+    { field: 'parkingAirportNotReimbursed', label: 'Parking Airport Not Reimbursed' },
     { field: 'parkingLot', label: 'Parking - Lot' },
     { field: 'uberLyftLime', label: 'Uber/Lyft/Lime' },
   ];

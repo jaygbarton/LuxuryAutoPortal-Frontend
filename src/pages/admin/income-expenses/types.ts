@@ -69,6 +69,7 @@ export interface DirectDeliveryMonth {
   laborCarCleaning: number;
   laborDelivery: number;
   parkingAirport: number;
+  parkingAirportNotReimbursed: number;
   parkingLot: number;
   uberLyftLime: number;
 }

@@ -88,6 +88,7 @@ export default function ModalEditManagementSplit() {
     laborCarCleaning: getMonthValue(data.directDelivery, month, "laborCarCleaning"),
     laborDelivery: getMonthValue(data.directDelivery, month, "laborDelivery"),
     parkingAirport: getMonthValue(data.directDelivery, month, "parkingAirport"),
+    parkingAirportNotReimbursed: getMonthValue(data.directDelivery, month, "parkingAirportNotReimbursed"),
     parkingLot: getMonthValue(data.directDelivery, month, "parkingLot"),
     uberLyftLime: getMonthValue(data.directDelivery, month, "uberLyftLime"),
   };
@@ -342,8 +343,12 @@ export default function ModalEditManagementSplit() {
                   <span>${directDeliveryValues.laborDelivery.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Parking - Airport:</span>
+                  <span>Parking Airport Reimbursed:</span>
                   <span>${directDeliveryValues.parkingAirport.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Parking Airport Not Reimbursed:</span>
+                  <span>${directDeliveryValues.parkingAirportNotReimbursed.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Parking - Lot:</span>

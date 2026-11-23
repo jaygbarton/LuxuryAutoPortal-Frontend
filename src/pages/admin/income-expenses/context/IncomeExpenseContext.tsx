@@ -112,6 +112,7 @@ function getEmptyData(): IncomeExpenseData {
       laborCarCleaning: 0,
       laborDelivery: 0,
       parkingAirport: 0,
+      parkingAirportNotReimbursed: 0,
       parkingLot: 0,
       uberLyftLime: 0,
     })),

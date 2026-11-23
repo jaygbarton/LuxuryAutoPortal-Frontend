@@ -722,6 +722,7 @@ lastSavedNote.current = coHostNote;
       dd("laborCarCleaning") +
       dd("laborDelivery") +
       dd("parkingAirport") +
+      dd("parkingAirportNotReimbursed") +
       dd("parkingLot") +
       dd("uberLyftLime");
     const dynamicTotal = dynamicSubcategories.directDelivery.reduce(
@@ -910,6 +911,7 @@ lastSavedNote.current = coHostNote;
       getPrevYearValue(data.directDelivery || [], month, "laborCarCleaning") +
       getPrevYearValue(data.directDelivery || [], month, "laborDelivery") +
       getPrevYearValue(data.directDelivery || [], month, "parkingAirport") +
+      getPrevYearValue(data.directDelivery || [], month, "parkingAirportNotReimbursed") +
       getPrevYearValue(data.directDelivery || [], month, "parkingLot") +
       getPrevYearValue(data.directDelivery || [], month, "uberLyftLime");
     // Include dynamic subcategories from previous year (use fetched data or fallback to API response)
@@ -2932,7 +2934,7 @@ lastSavedNote.current = coHostNote;
                 )}
               />
               <CategoryRow
-                label="Parking - Airport"
+                label="Parking Airport Reimbursed"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.directDelivery, i + 1, "parkingAirport"),
                 )}
@@ -2941,7 +2943,20 @@ lastSavedNote.current = coHostNote;
                 {...rowActions(
                   "directDelivery",
                   "parkingAirport",
-                  "Parking - Airport",
+                  "Parking Airport Reimbursed",
+                )}
+              />
+              <CategoryRow
+                label="Parking Airport Not Reimbursed"
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.directDelivery, i + 1, "parkingAirportNotReimbursed"),
+                )}
+                category="directDelivery"
+                field="parkingAirportNotReimbursed"
+                {...rowActions(
+                  "directDelivery",
+                  "parkingAirportNotReimbursed",
+                  "Parking Airport Not Reimbursed",
                 )}
               />
               {MONTHS.some((_, i) =>
@@ -3051,6 +3066,7 @@ lastSavedNote.current = coHostNote;
                     dd("laborCarCleaning") +
                     dd("laborDelivery") +
                     dd("parkingAirport") +
+                    dd("parkingAirportNotReimbursed") +
                     dd("parkingLot") +
                     dd("uberLyftLime");
                   const dynamicTotal =

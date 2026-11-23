@@ -103,6 +103,8 @@ const ICON_BY_LABEL: Record<string, LucideIcon> = {
   laborcarcleaning: Sparkles,
   labordelivery: Car,
   parkingairport: PlaneTakeoff,
+  parkingairportreimbursed: PlaneTakeoff,
+  parkingairportnotreimbursed: PlaneTakeoff,
   parkinglot: ParkingSquare,
   uberlyftlime: CarTaxiFront,
 
