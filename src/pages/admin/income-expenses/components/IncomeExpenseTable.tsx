@@ -1378,11 +1378,10 @@ lastSavedNote.current = coHostNote;
         prevMonth,
         "otherIncome",
       );
-      prevGuestCancellationIncome = getMonthValue(
-        data.incomeExpenses,
-        prevMonth,
-        "guestCancellationIncome",
-      );
+      // Manual + approved form amount, as computeCarMonthSplits counts it.
+      prevGuestCancellationIncome =
+        getMonthValue(data.incomeExpenses, prevMonth, "guestCancellationIncome") +
+        getFormAmount("income", "guestCancellationIncome", prevMonth);
 
       // Use the calculated value from previous month (recursive call)
       prevNegativeBalanceCarryOver =
@@ -1853,7 +1852,14 @@ lastSavedNote.current = coHostNote;
     if (!(parseInt(year, 10) >= 2019)) return split;
     // Gas Reimbursement + On-Trip + Post-Trip Charging Income: all 100% Host Share.
     const hostShareAddOnIncome = (["gasReimbursementIncome", "onTripChargingIncome", "postTripChargingIncome"] as const)
-      .reduce((sum, field) => sum + (Number(getMonthValue(data.incomeExpenses, month, field)) || 0), 0);
+      .reduce(
+        (sum, field) =>
+          sum +
+          (Number(getMonthValue(data.incomeExpenses, month, field)) || 0) +
+          // Approved form amounts count too (as in computeCarMonthSplits).
+          getFormAmount("income", field, month),
+        0,
+      );
     return split + hostShareAddOnIncome;
   };
 
@@ -1979,11 +1985,10 @@ lastSavedNote.current = coHostNote;
       month,
       "otherIncome",
     );
-    const guestCancellationIncome = getMonthValue(
-      data.incomeExpenses,
-      month,
-      "guestCancellationIncome",
-    );
+    // Manual + approved form amount, as computeCarMonthSplits counts it.
+    const guestCancellationIncome =
+      getMonthValue(data.incomeExpenses, month, "guestCancellationIncome") +
+      getFormAmount("income", "guestCancellationIncome", month);
     // Use calculated Negative Balance Carry Over (January 2019 will be 0, other Januaries use previous year's December)
     const negativeBalanceCarryOver = calculateNegativeBalanceCarryOver(month);
     const totalDirectDelivery = getTotalDirectDeliveryForMonth(month);
@@ -2868,7 +2873,14 @@ lastSavedNote.current = coHostNote;
                   const chargingIncome =
                     getMonthValue(data.incomeExpenses, monthNum, "onTripChargingIncome") +
                     getMonthValue(data.incomeExpenses, monthNum, "postTripChargingIncome");
-                  return rentalIncome + guestCancellationIncome + gasReimbursementIncome + chargingIncome - totalExpenses;
+                  // Approved form amounts for these four rows count too (as
+                  // in computeCarMonthSplits); the All Cars rows already
+                  // include them.
+                  const formIncome = isAllCarsView
+                    ? 0
+                    : (["guestCancellationIncome", "gasReimbursementIncome", "onTripChargingIncome", "postTripChargingIncome"] as const)
+                        .reduce((sum, field) => sum + getFormAmount("income", field, monthNum), 0);
+                  return rentalIncome + guestCancellationIncome + gasReimbursementIncome + chargingIncome + formIncome - totalExpenses;
                 })}
                 isEditable={false}
               />

@@ -686,7 +686,8 @@ export default function EarningsPage() {
       prevCoolersIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "coolersIncome");
       prevInsuranceWreckIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "insuranceWreckIncome");
       prevOtherIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "otherIncome");
-      prevGuestCancellationIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "guestCancellationIncome");
+      prevGuestCancellationIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "guestCancellationIncome") +
+        getFormAmount("income", "guestCancellationIncome", prevMonth);
       
       // Use the calculated value from previous month (recursive call)
       prevNegativeBalanceCarryOver = calculateNegativeBalanceCarryOver(prevMonth);
@@ -927,7 +928,13 @@ export default function EarningsPage() {
     if (!(parseInt(selectedYear, 10) >= 2019)) return split;
     // Gas Reimbursement + On-Trip + Post-Trip Charging Income: all 100% Host Share.
     const hostShareAddOnIncome = (["gasReimbursementIncome", "onTripChargingIncome", "postTripChargingIncome"] as const)
-      .reduce((sum, field) => sum + (Number(getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, field)) || 0), 0);
+      .reduce(
+        (sum, field) =>
+          sum +
+          (Number(getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, field)) || 0) +
+          getFormAmount("income", field, month),
+        0,
+      );
     return split + hostShareAddOnIncome;
   };
 
@@ -956,7 +963,8 @@ export default function EarningsPage() {
     const insuranceWreckIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "insuranceWreckIncome");
     const otherIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "otherIncome");
     // 100% owner and NOT part of Rental Income: added on top, never pooled.
-    const guestCancellationIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "guestCancellationIncome");
+    const guestCancellationIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "guestCancellationIncome") +
+      getFormAmount("income", "guestCancellationIncome", month);
     // Use calculated Negative Balance Carry Over (January 2019 will be 0, other Januaries use previous year's December)
     const negativeBalanceCarryOver = calculateNegativeBalanceCarryOver(month);
     const totalDirectDelivery = getTotalDirectDeliveryForMonth(month);
