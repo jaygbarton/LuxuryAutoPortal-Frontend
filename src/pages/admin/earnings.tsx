@@ -1781,11 +1781,17 @@ export default function EarningsPage() {
                   onToggle={() => toggleSection("directDelivery")}
                   hideZeroSubcategories={isClient}
                 >
+                  {/* Retired row: shown only when it already holds money. */}
+                  {MONTHS.some((_, i) =>
+                    getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "laborCarCleaning") !== 0 ||
+                    getFormAmount("directDelivery", "laborCarCleaning", i + 1) !== 0,
+                  ) && (
                   <TableRow
                     label="Labor - Cleaning"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "laborCarCleaning"))}
                     category="directDelivery" field="laborCarCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
+                  )}
                   <TableRow
                     label="Labor - Delivery"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "laborDelivery"))}
@@ -1796,11 +1802,17 @@ export default function EarningsPage() {
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "parkingAirport"))}
                     category="directDelivery" field="parkingAirport" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
+                  {/* Retired row: shown only when it already holds money. */}
+                  {MONTHS.some((_, i) =>
+                    getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "parkingLot") !== 0 ||
+                    getFormAmount("directDelivery", "parkingLot", i + 1) !== 0,
+                  ) && (
                   <TableRow
                     label="Parking - Lot"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "parkingLot"))}
                     category="directDelivery" field="parkingLot" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
+                  )}
                   <TableRow
                     label="Uber/Lyft/Lime"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "uberLyftLime"))}

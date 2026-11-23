@@ -2892,6 +2892,14 @@ lastSavedNote.current = coHostNote;
               isExpanded={expandedSections.directDelivery}
               onToggle={() => toggleSection("directDelivery")}
             >
+              {/* Labor - Cleaning and Parking - Lot are retired (Jay, 2026-11):
+                  shown only when this car/year already has money on them, so
+                  recorded amounts never vanish. They still count in every
+                  total either way. */}
+              {MONTHS.some((_, i) =>
+                getMonthValue(data.directDelivery, i + 1, "laborCarCleaning") !== 0 ||
+                getFormAmount("directDelivery", "laborCarCleaning", i + 1) !== 0,
+              ) && (
               <CategoryRow
                 label="Labor - Cleaning"
                 values={MONTHS.map((_, i) =>
@@ -2909,6 +2917,7 @@ lastSavedNote.current = coHostNote;
                   "Labor - Cleaning",
                 )}
               />
+              )}
               <CategoryRow
                 label="Labor - Delivery"
                 values={MONTHS.map((_, i) =>
@@ -2935,6 +2944,10 @@ lastSavedNote.current = coHostNote;
                   "Parking - Airport",
                 )}
               />
+              {MONTHS.some((_, i) =>
+                getMonthValue(data.directDelivery, i + 1, "parkingLot") !== 0 ||
+                getFormAmount("directDelivery", "parkingLot", i + 1) !== 0,
+              ) && (
               <CategoryRow
                 label="Parking - Lot"
                 values={MONTHS.map((_, i) =>
@@ -2944,6 +2957,7 @@ lastSavedNote.current = coHostNote;
                 field="parkingLot"
                 {...rowActions("directDelivery", "parkingLot", "Parking - Lot")}
               />
+              )}
               <CategoryRow
                 label="Uber/Lyft/Lime"
                 values={MONTHS.map((_, i) =>
