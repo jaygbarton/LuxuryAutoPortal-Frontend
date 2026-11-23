@@ -1203,8 +1203,8 @@ export function buildIncomeExpenseCSV(
   const reimbursedFields = [
     { field: 'electricReimbursed', label: 'Electric - Reimbursed' },
     { field: 'electricNotReimbursed', label: 'Electric - Not Reimbursed' },
-    { field: 'gasReimbursed', label: 'Gas - Reimbursed' },
-    { field: 'gasNotReimbursed', label: 'Gas - Not Reimbursed' },
+    { field: 'gasReimbursed', label: 'Gas - Charged to Guest' },
+    { field: 'gasNotReimbursed', label: 'Gas - Not Charged to Guest' },
     { field: 'gasServiceRun', label: 'Gas - Service Run' },
     { field: 'parkingAirport', label: 'Parking Airport' },
     { field: 'uberLyftLimeNotReimbursed', label: 'Uber/Lyft/Lime - Not Reimbursed' },
