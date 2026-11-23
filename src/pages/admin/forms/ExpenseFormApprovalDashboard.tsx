@@ -628,6 +628,10 @@ const CATEGORY_FIELDS: Record<string, { value: string; label: string }[]> = {
     { value: "coolersIncome", label: "Coolers Income" },
     { value: "insuranceWreckIncome", label: "Insurance Wreck Income" },
     { value: "otherIncome", label: "Other Income" },
+    { value: "guestCancellationIncome", label: "Guest Cancellation" },
+    { value: "gasReimbursementIncome", label: "Gas Reimbursement" },
+    { value: "onTripChargingIncome", label: "On-Trip Charging" },
+    { value: "postTripChargingIncome", label: "Post-Trip Charging" },
   ],
 };
 
