@@ -917,6 +917,7 @@ export default function TotalsPage() {
               <TotalRow label="Uber/Lyft/Lime - Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeReimbursed} />
               <TotalRow label="Uber/Lyft/Lime - Not Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeNotReimbursed} />
               <SubcategoryRows rows={totals?.reimbursedBills?.subcategories} />
+              <TotalRow label="Total Reimbursed & Non-Reimbursed Bills" value={totals?.reimbursedBills?.total} separator bold />
             </Section>
             )}
 
