@@ -140,7 +140,7 @@ export function buildIncomeExpenseCSV(
   };
   
   // Calculate Car Management Split - MUST match IncomeExpenseTable.tsx logic exactly
-  const calculateCarManagementSplit = (month: number): number => {
+  const calculateCarManagementSplitFormula = (month: number): number => {
     const storedPercent = resolveMgmtSplitPercent(data, month);
     const mgmtPercent = storedPercent / 100;
     
@@ -276,6 +276,16 @@ export function buildIncomeExpenseCSV(
     
     // Default (should not reach here, but return 0 for safety)
     return 0;
+  };
+
+  // Gas Reimbursement Income — 100% Host Share, NOT part of Rental Income. The
+  // full amount is ADDED to the Car Management Split after the formula's $0
+  // floor (2019+, where a split formula exists) and never pooled, so the Car
+  // Owner Split does not move. Mirrors computeCarMonthSplits in the backend.
+  const calculateCarManagementSplit = (month: number): number => {
+    const split = calculateCarManagementSplitFormula(month);
+    if (!(parseInt(year, 10) >= 2019)) return split;
+    return split + (Number(getMonthValue(data.incomeExpenses, month, "gasReimbursementIncome")) || 0);
   };
   
   // Calculate Car Owner Split - MUST match IncomeExpenseTable.tsx logic exactly
@@ -877,6 +887,7 @@ export function buildIncomeExpenseCSV(
     { field: 'insuranceWreckIncome', label: 'Income insurance and Client Wrecks' },
     { field: 'otherIncome', label: 'Other Income' },
     { field: 'guestCancellationIncome', label: 'Guest Cancellation Income' },
+    { field: 'gasReimbursementIncome', label: 'Gas Reimbursement Income' },
   ];
   
   incomeFields.forEach(({ field, label }) => {
@@ -959,7 +970,9 @@ export function buildIncomeExpenseCSV(
     const totalExpenses = mgmt + owner;
     // Guest Cancellation Income is not part of Rental Income — added on top.
     const guestCancellationIncome = Number(getMonthValue(data.incomeExpenses, monthNum, "guestCancellationIncome")) || 0;
-    const value = rentalIncome + guestCancellationIncome - totalExpenses;
+    // Gas Reimbursement Income is not part of Rental Income either — added on top.
+    const gasReimbursementIncome = Number(getMonthValue(data.incomeExpenses, monthNum, "gasReimbursementIncome")) || 0;
+    const value = rentalIncome + guestCancellationIncome + gasReimbursementIncome - totalExpenses;
     csvContent += `$${value.toFixed(2)},`;
     totalProfitTotal += value;
   });

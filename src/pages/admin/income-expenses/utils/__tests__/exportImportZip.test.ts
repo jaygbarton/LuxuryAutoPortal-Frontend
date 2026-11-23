@@ -389,7 +389,7 @@ describe("buildIncomeExpenseCSV", () => {
   it("round-trips through parseImportedCSV successfully", () => {
     const result = parseImportedCSV(csv);
     expect(result.success).toBe(true);
-    expect(result.sections?.incomeExpenses?.length).toBe(12); // 11 income rows + Guest Cancellation Income
+    expect(result.sections?.incomeExpenses?.length).toBe(13); // 11 income rows + Guest Cancellation + Gas Reimbursement Income
     const rentalRow = result.sections?.incomeExpenses?.find(
       (r: any) => r.category === "Rental Income"
     );
@@ -902,5 +902,36 @@ describe("importFromFileWithReceipts", () => {
       expect(result.csvImported).toBe(true);
       expect(result.receiptCount).toBe(0);
     });
+  });
+});
+
+// ── Gas Reimbursement Income (100% Host Share) ──────────────────────────────
+
+describe("buildIncomeExpenseCSV — Gas Reimbursement Income", () => {
+  const janValue = (csv: string, label: string): number => {
+    const line = csv.split("\n").find((l) => l.startsWith(`${label},`));
+    if (!line) throw new Error(`row not found: ${label}`);
+    return Number(line.split(",")[1].replace(/[$\s]|\(.*\)/g, ""));
+  };
+  const withGas = (amount: number) => {
+    const base = makeData();
+    return makeData({
+      incomeExpenses: [{ ...base.incomeExpenses[0], gasReimbursementIncome: amount } as any],
+    });
+  };
+
+  it("exports the row below Guest Cancellation Income", () => {
+    const csv = buildIncomeExpenseCSV(withGas(40), CAR_INFO, "2024", EMPTY_MONTH_MODES);
+    const lines = csv.split("\n");
+    const gci = lines.findIndex((l) => l.startsWith("Guest Cancellation Income,"));
+    expect(lines[gci + 1].startsWith("Gas Reimbursement Income,$40.00")).toBe(true);
+  });
+
+  it("adds the full amount to the Car Management (Co-Host) Split and Total Car Profit, owner unchanged", () => {
+    const before = buildIncomeExpenseCSV(withGas(0), CAR_INFO, "2024", EMPTY_MONTH_MODES);
+    const after = buildIncomeExpenseCSV(withGas(40), CAR_INFO, "2024", EMPTY_MONTH_MODES);
+    expect(janValue(after, "Co-Host Split") - janValue(before, "Co-Host Split")).toBeCloseTo(40, 2);
+    expect(janValue(after, "Car Owner Split")).toBeCloseTo(janValue(before, "Car Owner Split"), 2);
+    expect(janValue(after, "Total Car Profit") - janValue(before, "Total Car Profit")).toBeCloseTo(40, 2);
   });
 });

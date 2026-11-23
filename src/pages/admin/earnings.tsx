@@ -768,7 +768,7 @@ export default function EarningsPage() {
   };
 
   // Calculate Car Management Split (exact copy from IncomeExpenseTable)
-  const calculateCarManagementSplit = (month: number): number => {
+  const calculateCarManagementSplitFormula = (month: number): number => {
     // Fall back to the car's configured default (NOT 0) when the percent is
     // unset — matches computeCarMonthSplits and IncomeExpenseTable. A month
     // synthesized by ensureAllMonths has no carManagementSplit field at all,
@@ -916,6 +916,16 @@ export default function EarningsPage() {
     
     // Default (should not reach here, but return 0 for safety)
     return 0;
+  };
+
+  // Gas Reimbursement Income — 100% Host Share, NOT part of Rental Income. The
+  // full amount is ADDED to the Car Management Split after the formula's $0
+  // floor (2019+, where a split formula exists) and never pooled, so the Car
+  // Owner Split does not move. Mirrors computeCarMonthSplits in the backend.
+  const calculateCarManagementSplit = (month: number): number => {
+    const split = calculateCarManagementSplitFormula(month);
+    if (!(parseInt(selectedYear, 10) >= 2019)) return split;
+    return split + (Number(getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "gasReimbursementIncome")) || 0);
   };
 
   // Calculate Car Owner Split (exact copy from IncomeExpenseTable)
@@ -1725,6 +1735,12 @@ export default function EarningsPage() {
                     splitLabel={shareNote("guestCancellationIncome")}
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "guestCancellationIncome"))}
                     category="income" field="guestCancellationIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                  />
+                  <TableRow
+                    label="Gas Reimbursement Income"
+                    splitLabel={shareNote("gasReimbursementIncome")}
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "gasReimbursementIncome"))}
+                    category="income" field="gasReimbursementIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Negative Balance Carry Over"

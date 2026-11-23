@@ -78,6 +78,7 @@ export default function ModalEditManagementSplit() {
     insuranceWreckIncome: getMonthValue(data.incomeExpenses, month, "insuranceWreckIncome"),
     otherIncome: getMonthValue(data.incomeExpenses, month, "otherIncome"),
     guestCancellationIncome: getMonthValue(data.incomeExpenses, month, "guestCancellationIncome"),
+    gasReimbursementIncome: getMonthValue(data.incomeExpenses, month, "gasReimbursementIncome"),
   };
   
   // Direct Delivery values
@@ -310,6 +311,10 @@ export default function ModalEditManagementSplit() {
                 <div className="flex justify-between text-muted-foreground">
                   <span>Guest Cancellation Income:</span>
                   <span>${incomeValues.guestCancellationIncome.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Gas Reimbursement Income:</span>
+                  <span>${incomeValues.gasReimbursementIncome.toFixed(2)}</span>
                 </div>
               </div>
             </div>

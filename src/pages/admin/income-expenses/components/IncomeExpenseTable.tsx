@@ -1503,7 +1503,7 @@ lastSavedNote.current = coHostNote;
   // isStandardRowHidden / car_hidden_ie_rows and the server has no equivalent,
   // so server-sourced figures would silently diverge the moment an admin hides
   // a row holding a nonzero value. See the memory note on that gate.
-  const calculateCarManagementSplit = (month: number, percentOverride?: number): number => {
+  const calculateCarManagementSplitFormula = (month: number, percentOverride?: number): number => {
     // Use stored per-month %, fall back to the car's formulaSetting default
     const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
     const rawStored = monthRow?.carManagementSplit;
@@ -1842,6 +1842,16 @@ lastSavedNote.current = coHostNote;
 
     // Default (should not reach here, but return 0 for safety)
     return 0;
+  };
+
+  // Gas Reimbursement Income — 100% Host Share, NOT part of Rental Income. The
+  // full amount is ADDED to the Car Management Split after the formula's $0
+  // floor (2019+, where a split formula exists) and never pooled, so the Car
+  // Owner Split does not move. Mirrors computeCarMonthSplits in the backend.
+  const calculateCarManagementSplit = (month: number, percentOverride?: number): number => {
+    const split = calculateCarManagementSplitFormula(month, percentOverride);
+    if (!(parseInt(year, 10) >= 2019)) return split;
+    return split + (Number(getMonthValue(data.incomeExpenses, month, "gasReimbursementIncome")) || 0);
   };
 
   // Car Owner Split (no percent override) is computed server-side
@@ -2705,6 +2715,15 @@ lastSavedNote.current = coHostNote;
                 field="guestCancellationIncome"
               />
               <CategoryRow
+                label="Gas Reimbursement Income"
+                splitLabel={shareNote("gasReimbursementIncome")}
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.incomeExpenses, i + 1, "gasReimbursementIncome"),
+                )}
+                category="income"
+                field="gasReimbursementIncome"
+              />
+              <CategoryRow
                 label="Negative Balance Carry Over"
                 values={MONTHS.map((_, i) =>
                   calculateNegativeBalanceCarryOver(i + 1),
@@ -2817,7 +2836,14 @@ lastSavedNote.current = coHostNote;
                     monthNum,
                     "guestCancellationIncome",
                   );
-                  return rentalIncome + guestCancellationIncome - totalExpenses;
+                  // Gas Reimbursement Income is not part of Rental Income
+                  // either, so it is added on top as well.
+                  const gasReimbursementIncome = getMonthValue(
+                    data.incomeExpenses,
+                    monthNum,
+                    "gasReimbursementIncome",
+                  );
+                  return rentalIncome + guestCancellationIncome + gasReimbursementIncome - totalExpenses;
                 })}
                 isEditable={false}
               />
