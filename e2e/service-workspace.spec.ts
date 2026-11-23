@@ -272,3 +272,18 @@ for (const width of [360,1280]) test(`spreadsheet receipt link opens a staff rec
   await dialog.getByRole('button',{ name: 'Close',exact: true }).click();
   expect(new URL(page.url()).searchParams.has('receipt')).toBe(false);
 });
+
+test('an oil change from a receipt awaiting approval shows the reset date marked Under approval', async ({ page }) => {
+  await fixture(page);
+  const pending = { ...car(31, 'Pending Tahoe', 87), last_any_service: '2026-10-16' };
+  pending.services = [{ ...service('31:oil_change', 'oil_change', 87), lastServiced: '2026-10-16', dueDate: '2027-01-14', pendingApproval: true }, service('31:tires', 'tires', 267)];
+  await page.route('**/api/service-workspace', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, canOpenCarFiles: true, today: '2026-10-19', cars: [pending], rules: [{ kind: 'oil_change', label: 'Oil change', interval: 90 }, { kind: 'tires', label: 'Tires', interval: null }] }) }));
+  await page.goto('/admin/operations?tab=service-due');
+  const workspace = page.getByTestId('service-due-workspace');
+  await workspace.locator('article').first().getByRole('button').first().click();
+  await expect(workspace.locator('[data-pending-approval]').first()).toHaveText('Under approval');
+  await workspace.getByRole('button', { name: 'By service', exact: true }).click();
+  const row = workspace.getByRole('table', { name: 'Service due spreadsheet' }).locator('tr[data-service-row]').filter({ hasText: 'Oil change' });
+  await expect(row.locator('[data-pending-approval]')).toHaveText('Under approval');
+  await expect(workspace.getByRole('table', { name: 'Service due spreadsheet' }).locator('tr[data-service-row]').filter({ hasText: 'Tires' }).locator('[data-pending-approval]')).toHaveCount(0);
+});

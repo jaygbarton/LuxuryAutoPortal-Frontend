@@ -1,6 +1,8 @@
 import type { CarServiceDue } from '@/pages/admin/operations/types';
 export interface ServiceItem {
   id: string; kind: string; label: string; lastServiced: string | null;
+  /** Last serviced comes from a submitted receipt that is not approved yet. */
+  pendingApproval?: boolean;
   lastServicedSource?: "maintenance" | "record" | "legacy"; maintenanceId?: number; milesUntilNext?: number | null; odometerAtService?: number | null; nextServiceOdometer?: number | null; milesRemaining?: number | null; mileageWarning?: string | null; mileageOverdue?: boolean; mileageDueNow?: boolean;
   dueDate: string | null; daysUntil: number | null;
   status: 'overdue' | 'due_today' | 'due_soon' | 'upcoming' | 'no_data' | 'as_needed' | 'not_applicable';

@@ -25,7 +25,9 @@ async function request<T>(path: string, method = 'GET'): Promise<T> {
 }
 function Status({ service }: { service: ServiceItem }) {
   const colors = service.status === 'overdue' ? 'border-red-200 bg-red-50 text-red-800' : ['due_today', 'due_soon'].includes(service.status) ? 'border-amber-200 bg-amber-50 text-amber-900' : service.status === 'no_data' ? 'border-border bg-muted text-muted-foreground' : 'border-primary/30 bg-primary/10 text-foreground';
-  return <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${colors}`}>{serviceLabel(service)}</span>;
+  const pill = <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${colors}`}>{serviceLabel(service)}</span>;
+  if (!service.pendingApproval) return pill;
+  return <span className="inline-flex flex-wrap items-center gap-1">{pill}<span data-pending-approval title="Reset from a submitted receipt that has not been approved yet" className="inline-flex rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900">Under approval</span></span>;
 }
 function History({ carId, filter }: { carId: number; filter?: string }) {
   const { data, isPending, isError, refetch } = useQuery({ queryKey: ['/api/service-workspace/cars', carId, 'history'], queryFn: () => request<{ history: ServiceHistory[] }>(`/api/service-workspace/cars/${carId}/history`) });
