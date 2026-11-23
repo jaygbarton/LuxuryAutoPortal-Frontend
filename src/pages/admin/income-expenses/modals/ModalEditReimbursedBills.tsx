@@ -125,8 +125,8 @@ export default function ModalEditReimbursedBills() {
   const fieldNames: { [key: string]: string } = {
     electricReimbursed: "Electric - Reimbursed",
     electricNotReimbursed: "Electric - Not Reimbursed",
-    gasReimbursed: "Gas - Reimbursed",
-    gasNotReimbursed: "Gas - Not Reimbursed",
+    gasReimbursed: "Gas - Charged to Guest",
+    gasNotReimbursed: "Gas - Not Charged to Guest",
     gasServiceRun: "Gas - Service Run",
     parkingAirport: "Parking Airport",
     uberLyftLimeNotReimbursed: "Uber/Lyft/Lime - Not Reimbursed (added)",

@@ -65,7 +65,7 @@ export function TripReceiptDialog({ taskId, bookingKey, scheduleDate, kind = "pa
     queryFn: async () => responseJson<Options>(await fetch(buildApiUrl("/api/expense-form-submissions/options"), { credentials: "include" })),
   });
   const fields = options.data?.data.categoryFields?.reimbursedBills ?? [];
-  const fieldLabel = isFuel ? /^gas\s*[-–]?\s*reimbursed$/i : /^parking\s*[-–]?\s*airport$/i;
+  const fieldLabel = isFuel ? /^gas\s*[-–]?\s*(reimbursed|charged\s+to\s+guest)$/i : /^parking\s*[-–]?\s*airport$/i;
   const parkingField = fields.find((f) => fieldLabel.test(f.label.trim()))?.value;
   const employees = options.data?.data.employees ?? [], cars = options.data?.data.cars ?? [];
   useEffect(() => {
@@ -177,7 +177,7 @@ export function TripReceiptDialog({ taskId, bookingKey, scheduleDate, kind = "pa
             </div>
             {managerReviewRequested&&<div className="mt-2"><Label htmlFor="parking-manager-review-reason" className="text-xs">Reason for manager review</Label><textarea id="parking-manager-review-reason" required maxLength={1000} minLength={1} value={managerReviewReason} onChange={e=>setManagerReviewReason(e.target.value)} disabled={!!busy} className="mt-1 min-h-20 w-full rounded-lg border bg-background p-3 text-base sm:text-sm" placeholder="Explain what happened so the manager can review this ticket."/></div>}
           </section>}
-          {!parkingField && <p role="alert" className="text-sm text-destructive">{isFuel ? "Gas Reimbursed" : "Parking Airport"} is unavailable in your expense options. Contact an administrator.</p>}
+          {!parkingField && <p role="alert" className="text-sm text-destructive">{isFuel ? "Gas - Charged to Guest" : "Parking Airport"} is unavailable in your expense options. Contact an administrator.</p>}
         </>}
         {previewDone && <p role="status" className="text-sm text-emerald-800">Receipt preview checked. No expense was created.</p>}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}

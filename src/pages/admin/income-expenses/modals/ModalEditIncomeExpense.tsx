@@ -700,11 +700,11 @@ export default function ModalEditIncomeExpense() {
                       <span>${reimbursedBillsValues.electricNotReimbursed.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Gas - Reimbursed:</span>
+                      <span>Gas - Charged to Guest:</span>
                       <span>${reimbursedBillsValues.gasReimbursed.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Gas - Not Reimbursed:</span>
+                      <span>Gas - Not Charged to Guest:</span>
                       <span>${reimbursedBillsValues.gasNotReimbursed.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">

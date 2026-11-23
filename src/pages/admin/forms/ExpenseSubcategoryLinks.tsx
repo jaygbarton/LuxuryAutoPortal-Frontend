@@ -138,6 +138,8 @@ const ICON_BY_LABEL: Record<string, LucideIcon> = {
   electricnotreimbursed: Zap,
   gasreimbursed: Fuel,
   gasnotreimbursed: Fuel,
+  gaschargedtoguest: Fuel,
+  gasnotchargedtoguest: Fuel,
   gasservicerun: Route,
   uberlyftlimenotreimbursed: CarTaxiFront,
   uberlyftlimereimbursed: CarTaxiFront,

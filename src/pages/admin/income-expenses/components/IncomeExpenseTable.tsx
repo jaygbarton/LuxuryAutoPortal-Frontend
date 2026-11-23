@@ -3554,6 +3554,14 @@ lastSavedNote.current = coHostNote;
               isExpanded={expandedSections.reimbursedBills}
               onToggle={() => toggleSection("reimbursedBills")}
             >
+              {/* Electric - Reimbursed is retired (Jay, 2026-11): shown only
+                  when this car/year already has money on it, so recorded
+                  amounts never vanish from the section. It still counts in
+                  every total either way. */}
+              {MONTHS.some((_, i) =>
+                getMonthValue(data.reimbursedBills, i + 1, "electricReimbursed") !== 0 ||
+                getFormAmount("reimbursedBills", "electricReimbursed", i + 1) !== 0,
+              ) && (
               <CategoryRow
                 label="Electric - Reimbursed"
                 values={MONTHS.map((_, i) =>
@@ -3571,6 +3579,7 @@ lastSavedNote.current = coHostNote;
                   "Electric - Reimbursed",
                 )}
               />
+              )}
               <CategoryRow
                 label="Electric - Not Reimbursed"
                 values={MONTHS.map((_, i) =>
@@ -3589,7 +3598,7 @@ lastSavedNote.current = coHostNote;
                 )}
               />
               <CategoryRow
-                label="Gas - Reimbursed"
+                label="Gas - Charged to Guest"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.reimbursedBills, i + 1, "gasReimbursed"),
                 )}
@@ -3598,11 +3607,11 @@ lastSavedNote.current = coHostNote;
                 {...rowActions(
                   "reimbursedBills",
                   "gasReimbursed",
-                  "Gas - Reimbursed",
+                  "Gas - Charged to Guest",
                 )}
               />
               <CategoryRow
-                label="Gas - Not Reimbursed"
+                label="Gas - Not Charged to Guest"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(
                     data.reimbursedBills,
@@ -3615,7 +3624,7 @@ lastSavedNote.current = coHostNote;
                 {...rowActions(
                   "reimbursedBills",
                   "gasNotReimbursed",
-                  "Gas - Not Reimbursed",
+                  "Gas - Not Charged to Guest",
                 )}
               />
               <CategoryRow
