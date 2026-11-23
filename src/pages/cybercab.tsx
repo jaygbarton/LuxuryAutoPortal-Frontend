@@ -1,56 +1,157 @@
-import { useState, type FormEvent } from "react";
-import {
-  ArrowRight,
-  BatteryCharging,
-  CarFront,
-  Check,
-  Clock,
-  Handshake,
-  Landmark,
-  Loader2,
-  ShieldAlert,
-  ShieldCheck,
-  Sparkles,
-  Wrench,
-} from "lucide-react";
+import { useState, type FormEvent, type ReactNode } from "react";
+import { ArrowRight, BatteryCharging, Check, Clock, Landmark, Loader2, ShieldCheck, Sparkles, Wrench } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { SiteStatsStrip } from "@/components/layout/site-stats-strip";
 import { ScrollReveal, StaggeredReveal, StaggeredRevealItem } from "@/components/animations/ScrollReveal";
 import { buildApiUrl } from "@/lib/queryClient";
+import { US_CITY_POINTS, US_MAP_VIEWBOX, US_STATE_PATHS } from "@/lib/us-map";
 
 /*
- * Cybercab owner program. Content follows GLA's "Robotaxi ownership" deck
- * (Nov 2026). Every figure is illustrative or sourced as dated below; the
- * program is not active until Salt Lake City opens to Cybercab fleets.
+ * GLA's robotaxi program (Tesla Cybercab), Salt Lake City. The program is not
+ * active until Salt Lake City opens to Cybercab fleets. City status and
+ * vehicle facts are from public reporting dated below; update CITY_STATUS and
+ * STATUS_AS_OF together.
  */
 
-const DEPOSIT = "$5,000"; // the program membership
+const MEMBERSHIP = "$5,000";
+const STATUS_AS_OF = "November 23, 2026";
 
-const operatorServices = [
-  { icon: BatteryCharging, title: "Charging", text: "Depot access and keeping the car charged and back on the road." },
-  { icon: Sparkles, title: "Cleaning", text: "Fast cabin resets between rides, photo-documented." },
-  { icon: Wrench, title: "Care", text: "Maintenance, inspections and repairs, tracked." },
-  { icon: ShieldCheck, title: "Insurance", text: "Helping you find and manage coverage as products appear." },
-  { icon: Clock, title: "Response", text: "Someone local who goes when a car needs help, 24/7." },
-  { icon: Landmark, title: "Financing", text: "Help with the first car, the hardest one to buy alone." },
+const GLA_RECORD = [
+  { value: "9 years", label: "of hosting experience" },
+  { value: "25,000+", label: "trips completed" },
+  { value: "Up to 176", label: "vehicles managed" },
+  { value: "2,815", label: "5-star Google reviews" },
 ];
 
-const scenarios = [
+/*
+ * States whose laws allow fully driverless operation (no human in the car),
+ * permits aside: the 21 "fully legalized" states in Elevation Proving
+ * Grounds' state-by-state review (updated July 20, 2026) plus Colorado, whose
+ * statute that review describes as authorizing driverless operation and
+ * which DockDuty (Oct 29, 2026) lists as driverless.
+ */
+const FSD_FRIENDLY_STATES = new Set([
+  "Alabama", "Arizona", "California", "Colorado", "Florida", "Georgia", "Iowa", "Kansas", "Louisiana", "Michigan", "Mississippi",
+  "Nebraska", "Nevada", "North Carolina", "North Dakota", "Oklahoma", "Pennsylvania", "South Dakota", "Tennessee", "Texas", "Utah", "West Virginia",
+]);
+
+type MapCity = { city: string; status: "cybercab" | "robotaxi" | "soon"; note: string };
+const MAP_CITIES: MapCity[] = [
+  { city: "Austin, TX", status: "cybercab", note: "Cybercab rides since September 2026. The only city with Cybercab deliveries listed for buyers (December 2026)." },
+  { city: "Dallas, TX", status: "cybercab", note: "Cybercab rides since November 19, 2026." },
+  { city: "Houston, TX", status: "robotaxi", note: "Driverless Model Y" },
+  { city: "Fort Worth, TX", status: "robotaxi", note: "Driverless Model Y" },
+  { city: "San Antonio, TX", status: "robotaxi", note: "Model Y" },
+  { city: "Miami, FL", status: "robotaxi", note: "Driverless Model Y" },
+  { city: "Orlando, FL", status: "robotaxi", note: "Driverless" },
+  { city: "Tampa, FL", status: "robotaxi", note: "Driverless Model Y" },
+  { city: "San Francisco Bay Area, CA", status: "robotaxi", note: "Model Y with a safety monitor on board" },
+  { city: "Salt Lake City, UT", status: "soon", note: "Where GLA's robotaxi program will launch" },
+  { city: "Las Vegas, NV", status: "soon", note: "Named by Tesla as a next market" },
+  { city: "Phoenix, AZ", status: "soon", note: "Named by Tesla as a next market" },
+];
+
+function CybercabMap() {
+  const [active, setActive] = useState<string | null>(null);
+  return (
+    <figure className="m-0">
+      <svg viewBox={US_MAP_VIEWBOX} role="img" aria-labelledby="cybercab-map-title" className="h-auto w-full" data-testid="cybercab-us-map">
+        <title id="cybercab-map-title">Map of US states with driverless-friendly laws and cities with Tesla robotaxi service</title>
+        <g>
+          {US_STATE_PATHS.map((state) => (
+            <path key={state.name} d={state.d} data-state={state.name} data-friendly={FSD_FRIENDLY_STATES.has(state.name) || undefined}
+              fill={FSD_FRIENDLY_STATES.has(state.name) ? "#EADBB8" : "#E6E3DD"} stroke="#FFFFFF" strokeWidth={1.2} strokeLinejoin="round">
+              <title>{state.name}{FSD_FRIENDLY_STATES.has(state.name) ? ": driverless-friendly law" : ""}</title>
+            </path>
+          ))}
+        </g>
+        <g>
+          {MAP_CITIES.map(({ city, status }) => {
+            const point = US_CITY_POINTS[city];
+            if (!point) return null;
+            const [x, y] = point;
+            const live = status !== "soon";
+            const on = active === city;
+            return (
+              <g key={city} data-city={city} data-status={status} onMouseEnter={() => setActive(city)} onMouseLeave={() => setActive(null)}>
+                {status === "cybercab" && <circle cx={x} cy={y} r={on ? 19 : 16} fill="none" stroke="#96712D" strokeWidth={3} opacity={0.55} />}
+                <circle cx={x} cy={y} r={on ? 11 : 9} fill={live ? "#96712D" : "#9A9488"} stroke="#FFFFFF" strokeWidth={2.5}>
+                  <title>{city}</title>
+                </circle>
+              </g>
+            );
+          })}
+        </g>
+      </svg>
+      <figcaption className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-xs text-[#625C50]">
+        <span className="flex items-center gap-2"><span aria-hidden="true" className="h-3 w-5 rounded-sm bg-[#EADBB8]" />State law allows driverless cars</span>
+        <span className="flex items-center gap-2"><span aria-hidden="true" className="h-3 w-5 rounded-sm bg-[#E6E3DD]" />Not yet</span>
+        <span className="flex items-center gap-2"><span aria-hidden="true" className="h-3 w-3 rounded-full bg-[#96712D] ring-2 ring-[#96712D]/40 ring-offset-1" />Cybercab rides</span>
+        <span className="flex items-center gap-2"><span aria-hidden="true" className="h-3 w-3 rounded-full bg-[#96712D]" />Tesla Robotaxi</span>
+        <span className="flex items-center gap-2"><span aria-hidden="true" className="h-3 w-3 rounded-full bg-[#9A9488]" />Coming soon</span>
+      </figcaption>
+    </figure>
+  );
+}
+
+function CityGroup({ title, status }: { title: string; status: MapCity["status"] }) {
+  const rows = MAP_CITIES.filter((c) => c.status === status);
+  return (
+    <div>
+      <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-[#795B26]">{title}</h3>
+      <ul className="mt-3 grid gap-2">
+        {rows.map((c) => (
+          <li key={c.city} className="flex gap-3 text-sm leading-6">
+            <span aria-hidden="true" className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full ${status === "soon" ? "bg-[#9A9488]" : "bg-[#96712D]"}`} />
+            <span><strong className="font-semibold text-[#242019]">{c.city}</strong> <span className="text-[#625C50]">· {c.note}</span></span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+const OPERATOR_SERVICES = [
+  { icon: BatteryCharging, title: "Charging", text: "Keeping your car charged and back in service between rides." },
+  { icon: Sparkles, title: "Cleaning", text: "Cabin resets between riders, photographed so you can see the condition." },
+  { icon: Wrench, title: "Maintenance", text: "Inspections, tires and repairs, scheduled and tracked." },
+  { icon: ShieldCheck, title: "Insurance", text: "Finding and managing coverage as policies for these cars become available." },
+  { icon: Clock, title: "Local response", text: "A person nearby who goes to the car when it needs help, day or night." },
+  { icon: Landmark, title: "Financing help", text: "Support getting your first car funded." },
+];
+
+const SCENARIOS = [
   { label: "Gross fares", low: "$3,300", base: "$9,333", up: "$17,500" },
   { label: "Network share (25% assumed)", low: "−$825", base: "−$2,333", up: "−$4,375" },
   { label: "Running costs", low: "−$1,087", base: "−$1,298", up: "−$1,572" },
   { label: "Loan payment ($30k, 10%, 60 mo)", low: "−$510", base: "−$510", up: "−$510" },
-  { label: "Cash after the loan", low: "$878", base: "$5,192", up: "$11,043", strong: true },
+  { label: "Left after the loan", low: "$878", base: "$5,192", up: "$11,043", strong: true },
 ];
 
-const unknowns = [
-  { title: "Tesla controls dispatch", text: "Tesla decides which cars get rides, who can join and the revenue split. Owner terms aren't published." },
-  { title: "Regulation", text: "Federal regulators are reviewing the no-pedal design, and each city still has to approve service." },
-  { title: "Insurance", text: "No policy yet covers a privately owned driverless car on a ride network." },
+const OPEN_QUESTIONS = [
+  { title: "Owner terms", text: "Tesla controls dispatch, who can join its ride network and the revenue split. It hasn't published terms for privately owned cars." },
+  { title: "Approval", text: "Federal regulators are still reviewing the no-pedal design, and each city has to approve service." },
+  { title: "Insurance", text: "There isn't yet a standard policy for a privately owned driverless car on a ride network." },
 ];
+
+const MEMBER_BENEFITS = [
+  "Your place in line for a Cybercab, held in the order memberships are received.",
+  "Early access through an established company. We work to get members' cars ordered and into service sooner than they could on their own.",
+  "Our member newsletter and updates on Cybercab, Tesla's plans and the Salt Lake City launch.",
+  "Access to GLA's owner software.",
+  "No monthly management fee until we're running your car.",
+];
+
+function Eyebrow({ children, tone = "light" }: { children: ReactNode; tone?: "light" | "dark" }) {
+  return (
+    <p className={`mb-4 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] ${tone === "dark" ? "text-[#E0C791]" : "text-[#795B26]"}`}>
+      <span aria-hidden="true" className={`h-px w-9 ${tone === "dark" ? "bg-[#D3BC8D]" : "bg-[#B19052]"}`} />{children}
+    </p>
+  );
+}
 
 type FormState = { name: string; email: string; phone: string; city: "Salt Lake City" | "Wilmington, NC" | "Other"; cars: string; notes: string; accepts: boolean };
 const emptyForm: FormState = { name: "", email: "", phone: "", city: "Salt Lake City", cars: "1", notes: "", accepts: false };
@@ -64,7 +165,7 @@ function ReservationForm() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError("");
-    if (!form.accepts) { setError(`Please confirm you understand the ${DEPOSIT} membership is non-refundable.`); return; }
+    if (!form.accepts) { setError(`Please confirm you understand the ${MEMBERSHIP} membership is non-refundable.`); return; }
     setStatus("sending");
     try {
       const response = await fetch(buildApiUrl("/api/cybercab/reservations"), {
@@ -74,23 +175,22 @@ function ReservationForm() {
           cars: Number(form.cars), notes: form.notes, acceptsNonRefundableDeposit: true }),
       });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.error || "Your reservation could not be sent. Please retry.");
+      if (!response.ok) throw new Error(body.error || "Your request could not be sent. Please try again.");
       setStatus("done");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Your reservation could not be sent. Please retry.");
+      setError(e instanceof Error ? e.message : "Your request could not be sent. Please try again.");
       setStatus("idle");
     }
   }
 
   if (status === "done") {
     return (
-      <div role="status" className="rounded-md border border-[#D3BC8D]/50 bg-white/6 p-6">
-        <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-md bg-[#D3BC8D] text-[#15110A]"><Check className="h-5 w-5" /></div>
-        <h3 className="text-xl font-semibold text-white">Reservation received</h3>
+      <div role="status" className="rounded-2xl border border-[#D3BC8D]/50 bg-white/[0.06] p-6">
+        <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-[#D3BC8D] text-[#15110A]"><Check className="h-5 w-5" /></div>
+        <h3 className="text-xl font-semibold text-white">Request received</h3>
         <p className="mt-2 text-sm leading-6 text-white/75">
-          Thank you, {form.name.split(" ")[0] || "and welcome"}. Our team will contact you at {form.email} with payment
-          instructions for the {DEPOSIT} membership. Your spot is held once payment is received, and you'll start getting our
-          Cybercab updates.
+          Thank you, {form.name.split(" ")[0] || "and welcome"}. We'll email {form.email} with payment instructions for the {MEMBERSHIP} membership.
+          Your place is held once payment arrives, and you'll start receiving our member newsletter and updates.
         </p>
       </div>
     );
@@ -98,7 +198,7 @@ function ReservationForm() {
 
   const field = "h-11 bg-white text-[#171717]";
   return (
-    <form onSubmit={submit} className="grid gap-4 rounded-md border border-white/14 bg-white/6 p-5 sm:grid-cols-2 sm:p-6" noValidate={false}>
+    <form onSubmit={submit} className="grid gap-4 rounded-2xl border border-white/15 bg-white/[0.06] p-5 sm:grid-cols-2 sm:p-6">
       <label className="text-sm text-white/80 sm:col-span-2">Full name
         <Input required minLength={2} maxLength={120} autoComplete="name" value={form.name} onChange={(e) => set("name", e.target.value)} className={`mt-1 ${field}`} />
       </label>
@@ -113,23 +213,22 @@ function ReservationForm() {
           <option>Salt Lake City</option><option>Wilmington, NC</option><option>Other</option>
         </select>
       </label>
-      <label className="text-sm text-white/80">Cybercabs you'd like
+      <label className="text-sm text-white/80">How many Cybercabs
         <Input required type="number" min={1} max={50} inputMode="numeric" value={form.cars} onChange={(e) => set("cars", e.target.value)} className={`mt-1 ${field}`} />
       </label>
       <label className="text-sm text-white/80 sm:col-span-2">Questions or notes (optional)
         <Textarea maxLength={2000} value={form.notes} onChange={(e) => set("notes", e.target.value)} className="mt-1 min-h-20 bg-white text-[#171717]" />
       </label>
-      <label className="flex items-start gap-3 rounded-md border border-[#D3BC8D]/40 bg-[#D3BC8D]/10 p-4 text-sm leading-6 text-white/85 sm:col-span-2">
+      <label className="flex items-start gap-3 rounded-lg border border-[#D3BC8D]/40 bg-[#D3BC8D]/10 p-4 text-sm leading-6 text-white/85 sm:col-span-2">
         <input type="checkbox" checked={form.accepts} onChange={(e) => set("accepts", e.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-[#D3BC8D]" />
-        <span>I understand the <strong>{DEPOSIT} membership is non-refundable</strong>, that the program is not active yet, and that
-          launch and delivery dates can't be guaranteed.</span>
+        <span>I understand the <strong>{MEMBERSHIP} membership is non-refundable</strong>, the program isn't active yet, and launch and delivery dates can't be guaranteed.</span>
       </label>
       {error && <p role="alert" className="text-sm text-red-300 sm:col-span-2">{error}</p>}
       <div className="sm:col-span-2">
-        <Button type="submit" size="lg" disabled={status === "sending"} className="w-full bg-[#D3BC8D] text-[#15110A] hover:bg-[#D3BC8D]/90 sm:w-auto">
-          {status === "sending" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Reserve my place
-        </Button>
+        <button type="submit" disabled={status === "sending"} className="gla-public-button w-full bg-[#D3BC8D] text-[#211B11] hover:bg-[#E3CCA0] disabled:opacity-70 sm:w-auto">
+          {status === "sending" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          Become a member <ArrowRight aria-hidden="true" className="h-4 w-4" />
+        </button>
         <p className="mt-3 text-xs leading-5 text-white/55">No payment is taken on this page. We'll contact you with payment instructions.</p>
       </div>
     </form>
@@ -140,133 +239,155 @@ export default function CybercabPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="public-page pt-20 lg:pt-24">
+      <main className="public-page">
         {/* Hero */}
-        <section className="relative overflow-hidden bg-[#070707] text-white">
-          <div className="absolute inset-0">
-            <img src="/gateway-buildings-hero.jpg" alt="" className="h-full w-full object-cover" aria-hidden="true" />
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,4,0.92),rgba(5,5,4,0.75)_50%,rgba(5,5,4,0.4)),linear-gradient(180deg,rgba(5,5,4,0.2),rgba(5,5,4,0.8))]" />
-          </div>
-          <div className="relative mx-auto grid min-h-[600px] max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:px-8 lg:py-20">
-            <ScrollReveal preset="hero" className="max-w-3xl">
-              <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#D3BC8D]/50 bg-[#D3BC8D]/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-[#D3BC8D]">
-                <span className="h-2 w-2 rounded-full bg-[#D3BC8D]" aria-hidden="true" /> Coming to Salt Lake City · not active yet
-              </p>
-              <h1 className="font-serif text-4xl font-light leading-tight sm:text-5xl lg:text-6xl">
-                Own a Cybercab.<br />Let it drive.<br /><span className="text-[#D3BC8D]">Let us run it.</span>
-              </h1>
-              <p className="mt-6 max-w-2xl text-base leading-7 text-white/78 sm:text-lg">
-                Golden Luxury Auto is preparing to operate a fleet of Tesla Cybercabs in Salt Lake City and manage them for
-                driverless rideshare. Owners supply the car; we handle everything on the ground. Join through our established
-                operations instead of starting alone.
-              </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <a href="#reserve"><Button size="lg" className="w-full bg-[#D3BC8D] text-[#15110A] hover:bg-[#D3BC8D]/90 sm:w-auto">
-                  Become a member for {DEPOSIT} <ArrowRight className="ml-2 h-4 w-4" /></Button></a>
-                <a href="#how"><Button size="lg" variant="outline" className="w-full border-white/30 bg-white/5 text-white hover:bg-white/10 hover:text-white sm:w-auto">How it works</Button></a>
+        <section className="relative isolate overflow-hidden bg-[#141414] text-white">
+          <img src="/gateway-buildings-hero.jpg" alt="" aria-hidden="true" className="absolute inset-0 -z-10 h-full w-full object-cover" />
+          <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-r from-black/90 via-black/65 to-black/30" />
+          <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-black/80 via-transparent to-black/10" />
+          <ScrollReveal preset="hero" className="mx-auto max-w-7xl px-5 pb-16 pt-28 sm:px-8 sm:pb-20 sm:pt-32 lg:pt-36">
+            <Eyebrow tone="dark">Tesla Cybercab · Salt Lake City</Eyebrow>
+            <h1 className="max-w-4xl font-serif text-[clamp(2rem,7.5vw,2.9rem)] font-light leading-[1.05] tracking-tight sm:text-[clamp(2.5rem,4.4vw,4.25rem)]">
+              Own a Cybercab.<br /><span className="text-[#E0C791]">We'll run it for you.</span>
+            </h1>
+            <p className="mt-7 max-w-2xl text-base leading-8 text-white/80 sm:text-lg">
+              Golden Luxury Auto manages vehicles for their owners. Our rental program is well established, and our robotaxi program
+              is now getting ready for Tesla's Cybercab in Salt Lake City. You own the car. We handle charging, cleaning, care and
+              everything else that keeps it earning.
+            </p>
+            <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#D3BC8D]/50 bg-[#D3BC8D]/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-[#E0C791]">
+              <span aria-hidden="true" className="h-2 w-2 rounded-full bg-[#D3BC8D]" /> Robotaxi program · not active yet
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <a href="#reserve" className="gla-public-button bg-[#D3BC8D] text-[#201B12] hover:bg-[#E3CCA0]" data-testid="button-cybercab-join">
+                Become a member <ArrowRight aria-hidden="true" className="h-4 w-4" />
+              </a>
+              <a href="#cities" className="gla-public-button border border-white/40 text-white hover:bg-white/10" data-testid="button-cybercab-cities">
+                Where Cybercab runs today
+              </a>
+            </div>
+          </ScrollReveal>
+        </section>
+
+        {/* Early access through an established business */}
+        <section aria-labelledby="cybercab-why-title" className="relative isolate bg-[#FBF9F4] px-5 py-16 text-[#242019] sm:px-8 sm:py-24">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,rgba(211,188,141,0.24),transparent_60%)]" />
+          <div className="mx-auto max-w-7xl">
+            <ScrollReveal preset="soft" className="grid gap-8 lg:grid-cols-[1fr_1fr] lg:gap-16">
+              <div>
+                <Eyebrow>Why join through GLA</Eyebrow>
+                <h2 id="cybercab-why-title" className="font-serif text-4xl font-light leading-[1.12] sm:text-5xl">Get in early,<br /><span className="text-[#96712D]">through a business with a track record.</span></h2>
+              </div>
+              <div className="space-y-5 text-base leading-8 text-[#625C50]">
+                <p>
+                  Tesla is starting slowly: Cybercabs are going to its own fleet first, and only select buyers can order one so far.
+                  GLA isn't a newcomer asking to be let in. We're an established company with years of managing other people's cars,
+                  real trip history and the people and systems already in place to run a fleet.
+                </p>
+                <p>
+                  That's the advantage our members join with. We work to get their Cybercabs ordered and into service sooner than an
+                  individual could on their own. Early access is our goal, not a guarantee, because Tesla hasn't published terms for
+                  owners or fleets yet.
+                </p>
               </div>
             </ScrollReveal>
-
-            <ScrollReveal preset="soft" delay={0.12} className="lg:justify-self-end">
-              <div className="rounded-md border border-white/16 bg-[#0A0A09]/85 p-6 shadow-[0_28px_90px_rgba(0,0,0,0.42)] backdrop-blur-md">
-                <p className="text-xs font-semibold uppercase tracking-widest text-[#D3BC8D]">Where it stands</p>
-                <h2 className="mt-1 text-2xl font-semibold">Not active yet</h2>
-                <p className="mt-3 text-sm leading-6 text-white/75">
-                  Tesla runs paid driverless rides in Texas and Florida today. Salt Lake City isn't served yet, though Utah law
-                  already allows driverless operation. <strong className="text-white">When Salt Lake City is activated for Cybercab
-                  fleets, we go:</strong> GLA moves forward with Cybercab purchases for members, in the order memberships were received.
-                </p>
-                <ol className="mt-5 grid gap-3 text-sm">
-                  {["Reserve your place now", "Salt Lake City opens to Cybercab fleets", "We buy and set up your Cybercab with you", "GLA runs it day to day"].map((step, i) => (
-                    <li key={step} className="flex items-center gap-3 rounded-md border border-white/12 bg-white/6 p-3">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#D3BC8D] text-xs font-bold text-[#15110A]">{i + 1}</span>
-                      <span className="text-white/85">{step}</span>
-                    </li>
-                  ))}
-                </ol>
+            <div className="mt-12"><SiteStatsStrip stats={GLA_RECORD} /></div>
+            <ScrollReveal preset="soft" className="mt-10 grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-[#E3DACA] bg-white p-6 shadow-[0_12px_40px_rgba(65,48,19,0.06)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#795B26]">Established</p>
+                <h3 className="mt-2 font-serif text-2xl">Rental program</h3>
+                <p className="mt-2 text-sm leading-7 text-[#625C50]">Owners' cars rented to guests, managed by our team from booking to return.</p>
               </div>
+              <div className="rounded-2xl border border-[#D3BC8D] bg-white p-6 shadow-[0_12px_40px_rgba(65,48,19,0.06)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#795B26]">Ramping up</p>
+                <h3 className="mt-2 font-serif text-2xl">Robotaxi program</h3>
+                <p className="mt-2 text-sm leading-7 text-[#625C50]">Driverless cars on Tesla's ride network, with GLA as the local operator.</p>
+              </div>
+              <p className="text-sm leading-6 text-[#625C50] md:col-span-2">
+                Each car we manage runs in one program at a time. Cybercabs, and Model Ys added for robotaxi service, run only in the robotaxi program.
+              </p>
             </ScrollReveal>
           </div>
         </section>
 
-        {/* Why join through GLA */}
-        <section className="border-b border-[#E6DDC7] bg-[#F7F4EC] px-4 py-14 sm:px-6 lg:px-8">
-          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-            <ScrollReveal preset="soft">
-              <p className="text-sm font-semibold uppercase tracking-widest text-[#C49000]">Why join through GLA</p>
-              <h2 className="mt-2 font-serif text-3xl font-light leading-tight text-[#171717] sm:text-4xl">Ride on an operation that's already running.</h2>
-              <p className="mt-4 text-base leading-7 text-[#5D574A]">
-                A driverless car still needs a local operator to charge it, clean it, fix it and respond when something goes wrong.
-                That's the work Golden Luxury Auto already does every day for the owners in our Turo program. Joining our fleet
-                puts you in line through an established operator instead of waiting to figure it out alone. Before Cybercabs are
-                available to individuals, they're offered to companies, and GLA is one, with an EIN and a fleet already on the road.
-              </p>
-              <p className="mt-4 text-sm leading-6 text-[#7A6B44]">
-                Earlier access is our goal, not a guarantee: Tesla hasn't published fleet or owner terms yet.
+        {/* Where Cybercab runs today */}
+        <section id="cities" aria-labelledby="cybercab-cities-title" className="scroll-mt-20 bg-white px-5 py-16 text-[#242019] sm:px-8 sm:py-24">
+          <div className="mx-auto max-w-7xl">
+            <ScrollReveal preset="soft" className="max-w-3xl">
+              <Eyebrow>Where Cybercab runs today</Eyebrow>
+              <h2 id="cybercab-cities-title" className="font-serif text-4xl font-light leading-[1.12] sm:text-5xl">Two cities with Cybercab.<br /><span className="text-[#96712D]">One where you can buy it.</span></h2>
+              <p className="mt-5 text-base leading-8 text-[#625C50]">
+                Tesla's ride service runs in nine areas, mostly with Model Ys. Cybercab rides have started in Austin and Dallas, and
+                Austin is the only city with Cybercab deliveries listed for buyers. Utah is one of the states whose laws already allow
+                driverless cars.
               </p>
             </ScrollReveal>
-            <StaggeredReveal className="grid gap-4 sm:grid-cols-3">
-              {[
-                { icon: CarFront, title: "The owner", text: "Supplies the car and the capital. Earns from rides without driving." },
-                { icon: Handshake, title: "The network", text: "Finds the rider, dispatches the car and collects the fare." },
-                { icon: Wrench, title: "GLA, the operator", text: "Charges, cleans, inspects, insures and responds when something goes wrong." },
-              ].map(({ icon: Icon, title, text }) => (
-                <StaggeredRevealItem key={title} className="rounded-md border border-[#E2D8BF] bg-white p-5">
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-[#171717] text-[#D3BC8D]"><Icon className="h-5 w-5" /></div>
-                  <h3 className="font-semibold text-[#171717]">{title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-[#5D574A]">{text}</p>
-                </StaggeredRevealItem>
-              ))}
-            </StaggeredReveal>
+            <div className="mt-10 grid gap-10 lg:grid-cols-[1.45fr_1fr] lg:items-start">
+              <div className="rounded-2xl border border-[#E3DACA] bg-[#FBF9F4] p-4 sm:p-6"><CybercabMap /></div>
+              <div className="grid gap-8">
+                <CityGroup title="Cybercab rides" status="cybercab" />
+                <CityGroup title="Tesla Robotaxi" status="robotaxi" />
+                <CityGroup title="Coming soon" status="soon" />
+              </div>
+            </div>
+            <div className="mt-6 rounded-2xl border border-[#E3DACA] bg-[#FAF8F2] p-5 text-sm leading-7 text-[#625C50]">
+              <strong className="text-[#242019]">Personal use only, for now.</strong> Cybercabs on sale today are sold invite-only for personal use. An owner
+              can't yet add their own Cybercab to Tesla's ride network for paid rides. Our robotaxi program is built for when that opens.
+            </div>
+            <p className="mt-4 text-xs leading-5 text-[#9A8F7A]">
+              As of {STATUS_AS_OF}. Tesla changes service areas often, and state laws often require a permit or registration. Sources:
+              Not a Tesla App (Nov 5 and 14, 2026), Electrek (Nov 13, 2026), Teslarati (Nov 19, 2026), Elevation Proving Grounds
+              (July 20, 2026), DockDuty (Oct 29, 2026). This is general information, not legal advice.
+            </p>
           </div>
         </section>
 
         {/* What GLA handles */}
-        <section id="how" className="px-4 py-14 sm:px-6 lg:px-8">
+        <section id="how" aria-labelledby="cybercab-how-title" className="bg-[#FAF8F2] px-5 py-16 text-[#242019] sm:px-8 sm:py-24">
           <div className="mx-auto max-w-7xl">
-            <ScrollReveal preset="soft" className="mb-8 max-w-3xl">
-              <p className="text-sm font-semibold uppercase tracking-widest text-[#C49000]">Your local operator, on the ground</p>
-              <h2 className="mt-2 font-serif text-3xl font-light text-[#171717] sm:text-4xl">Everything the car can't do for itself.</h2>
+            <ScrollReveal preset="soft" className="mb-10 max-w-3xl">
+              <Eyebrow>Your local operator</Eyebrow>
+              <h2 id="cybercab-how-title" className="font-serif text-4xl font-light leading-[1.12] sm:text-5xl">The car drives itself.<br /><span className="text-[#96712D]">We handle the rest.</span></h2>
             </ScrollReveal>
             <StaggeredReveal className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {operatorServices.map(({ icon: Icon, title, text }) => (
-                <StaggeredRevealItem key={title} className="flex gap-4 rounded-md border border-[#E2D8BF] bg-white p-5">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10"><Icon className="h-5 w-5 text-primary" /></div>
-                  <div><h3 className="font-semibold text-[#171717]">{title}</h3><p className="mt-1 text-sm leading-6 text-[#5D574A]">{text}</p></div>
+              {OPERATOR_SERVICES.map(({ icon: Icon, title, text }) => (
+                <StaggeredRevealItem key={title} className="flex gap-4 rounded-2xl border border-[#E3DACA] bg-white p-5 sm:p-6">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#E8DDC8] bg-[#F8F3E8] text-[#886524]"><Icon aria-hidden="true" className="h-5 w-5" /></div>
+                  <div><h3 className="font-semibold">{title}</h3><p className="mt-1 text-sm leading-6 text-[#625C50]">{text}</p></div>
                 </StaggeredRevealItem>
               ))}
             </StaggeredReveal>
-            <p className="mt-5 text-sm text-[#7A6B44]">Services and terms, including GLA's management share, are set with each owner.</p>
+            <p className="mt-6 text-sm text-[#625C50]">Services and GLA's management share are agreed with each owner.</p>
           </div>
         </section>
 
-        {/* Vehicle + numbers */}
-        <section className="bg-[#0A0A09] px-4 py-14 text-white sm:px-6 lg:px-8">
-          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.8fr_1.2fr]">
+        {/* The car and the numbers */}
+        <section aria-labelledby="cybercab-car-title" className="bg-[#171717] px-5 py-16 text-white sm:px-8 sm:py-24">
+          <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.8fr_1.2fr]">
             <ScrollReveal preset="soft">
-              <p className="text-sm font-semibold uppercase tracking-widest text-[#D3BC8D]">The vehicle</p>
-              <h2 className="mt-2 font-serif text-3xl font-light leading-tight sm:text-4xl">Cybercab: a two-seat cabin built for passengers.</h2>
-              <dl className="mt-6 grid gap-3">
+              <Eyebrow tone="dark">The car</Eyebrow>
+              <h2 id="cybercab-car-title" className="font-serif text-4xl font-light leading-[1.12] sm:text-5xl">Two seats.<br /><span className="text-[#E0C791]">No wheel, no pedals.</span></h2>
+              <dl className="mt-8 grid gap-4">
                 {[
-                  { k: "$29,990", v: "Price before tax for select personal-use orders (opened Nov 13, 2026)" },
-                  { k: "$299/mo", v: "Autonomy subscription required on those orders" },
+                  { k: "$29,990", v: "Before tax, for invited buyers ($1,000 non-refundable deposit)" },
+                  { k: "$299/mo", v: "Autonomy subscription the car needs to drive" },
                   { k: "Dec 2026", v: "Estimated first deliveries, Austin only" },
                 ].map(({ k, v }) => (
                   <div key={k} className="border-l-2 border-[#D3BC8D] pl-4"><dt className="text-xl font-semibold">{k}</dt><dd className="text-sm leading-6 text-white/70">{v}</dd></div>
                 ))}
               </dl>
-              <p className="mt-4 text-xs text-white/50">No steering wheel or pedals. Sources: Electrek, Nov 13, 2026; Not a Tesla App, Nov 14, 2026.</p>
+              <p className="mt-4 text-xs text-white/50">Sources: Electrek, Nov 13, 2026; Not a Tesla App, Nov 14, 2026.</p>
             </ScrollReveal>
             <ScrollReveal preset="soft" delay={0.08}>
-              <p className="text-sm font-semibold uppercase tracking-widest text-[#D3BC8D]">Illustrative numbers</p>
-              <h2 className="mt-2 text-2xl font-semibold">One car, one month, three scenarios</h2>
-              <div className="mt-5 overflow-x-auto rounded-md border border-white/14">
+              <Eyebrow tone="dark">What one car could earn</Eyebrow>
+              <h3 className="font-serif text-3xl font-light">One car, one month, three cases</h3>
+              <div className="mt-6 overflow-x-auto rounded-2xl border border-white/15">
                 <table className="w-full min-w-[460px] text-sm">
-                  <thead className="bg-white/8 text-left text-white/70">
-                    <tr><th className="p-3 font-medium">Per car, per month</th><th className="p-3 text-right font-medium">Low</th><th className="p-3 text-right font-medium">Base</th><th className="p-3 text-right font-medium">Upside</th></tr>
+                  <thead className="bg-white/[0.08] text-left text-white/70">
+                    <tr><th className="p-3 font-medium">Per car, per month</th><th className="p-3 text-right font-medium">Low</th><th className="p-3 text-right font-medium">Base</th><th className="p-3 text-right font-medium">High</th></tr>
                   </thead>
                   <tbody>
-                    {scenarios.map((row) => (
+                    {SCENARIOS.map((row) => (
                       <tr key={row.label} className={`border-t border-white/10 ${row.strong ? "bg-[#D3BC8D]/12 font-semibold" : ""}`}>
                         <td className="p-3">{row.label}</td><td className="p-3 text-right tabular-nums">{row.low}</td><td className="p-3 text-right tabular-nums">{row.base}</td><td className="p-3 text-right tabular-nums">{row.up}</td>
                       </tr>
@@ -275,59 +396,53 @@ export default function CybercabPage() {
                 </table>
               </div>
               <p className="mt-3 text-xs leading-5 text-white/55">
-                Assumptions to test, not a quote or promise: 8 / 16 / 24 paid rides a day at $15 / $20 / $25. Before GLA's management
-                share, taxes, the $299 subscription if it applies, and replacing the car. Tesla hasn't published owner terms; the 25%
-                network share is an assumption.
+                An example, not a quote or a promise. It assumes 8, 16 or 24 paid rides a day at $15, $20 or $25, before GLA's management
+                share, taxes, the $299 subscription if it applies and eventually replacing the car. Tesla hasn't published owner terms, so the
+                25% network share is our assumption.
               </p>
             </ScrollReveal>
           </div>
         </section>
 
-        {/* Unknowns */}
-        <section className="px-4 py-14 sm:px-6 lg:px-8">
+        {/* Open questions */}
+        <section aria-labelledby="cybercab-questions-title" className="bg-white px-5 py-16 text-[#242019] sm:px-8 sm:py-24">
           <div className="mx-auto max-w-7xl">
-            <ScrollReveal preset="soft" className="mb-8 max-w-3xl">
-              <p className="text-sm font-semibold uppercase tracking-widest text-[#C49000]">Risks and unknowns</p>
-              <h2 className="mt-2 font-serif text-3xl font-light text-[#171717] sm:text-4xl">What nobody can promise you yet.</h2>
+            <ScrollReveal preset="soft" className="mb-10 max-w-3xl">
+              <Eyebrow>Still to be decided</Eyebrow>
+              <h2 id="cybercab-questions-title" className="font-serif text-4xl font-light leading-[1.12] sm:text-5xl">What no one can promise yet.</h2>
             </ScrollReveal>
-            <div className="grid gap-4 md:grid-cols-3">
-              {unknowns.map((u) => (
-                <div key={u.title} className="rounded-md border border-[#E2D8BF] bg-white p-5">
-                  <ShieldAlert className="mb-3 h-5 w-5 text-[#C49000]" />
-                  <h3 className="font-semibold text-[#171717]">{u.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-[#5D574A]">{u.text}</p>
-                </div>
+            <ol className="grid gap-8 border-t border-[#E3DACA] pt-10 md:grid-cols-3">
+              {OPEN_QUESTIONS.map((q, i) => (
+                <li key={q.title}>
+                  <span aria-hidden="true" className="font-serif text-4xl text-[#B19052]">0{i + 1}</span>
+                  <h3 className="mb-3 mt-5 text-xl font-medium">{q.title}</h3>
+                  <p className="max-w-sm text-sm leading-7 text-[#625C50]">{q.text}</p>
+                </li>
               ))}
-            </div>
-            <p className="mt-5 text-sm text-[#5D574A]">Fares in Salt Lake City are unknown until service starts, and delivery and launch dates can't be guaranteed.</p>
+            </ol>
+            <p className="mt-8 text-sm text-[#625C50]">Salt Lake City fares are unknown until service starts, and no launch or delivery date can be guaranteed.</p>
           </div>
         </section>
 
-        {/* Reserve */}
-        <section id="reserve" className="bg-[#0A0A09] px-4 py-14 text-white sm:px-6 lg:px-8">
-          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+        {/* Membership */}
+        <section id="reserve" aria-labelledby="cybercab-join-title" className="scroll-mt-20 bg-[#171717] px-5 py-16 text-white sm:px-8 sm:py-24">
+          <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
             <ScrollReveal preset="soft">
-              <p className="text-sm font-semibold uppercase tracking-widest text-[#D3BC8D]">Reserve your place</p>
-              <h2 className="mt-2 font-serif text-3xl font-light leading-tight sm:text-4xl">Reserve your spot with a {DEPOSIT} membership.</h2>
-              <ul className="mt-6 grid gap-3 text-sm leading-6 text-white/78">
-                {[
-                  "Reserves your spot in GLA's Cybercab owner program. It is a membership, not a payment toward the car.",
-                  "Early access: before Cybercabs are available to individuals, they're offered to companies. GLA is an established company with an EIN, so you get in line through us.",
-                  "Access to GLA's owner software.",
-                  "Cybercab newsletter updates as Tesla's plans and Salt Lake City's launch develop.",
-                  "No monthly fee until GLA is managing your Cybercab.",
-                ].map((t) => <li key={t} className="flex gap-3"><Check className="mt-1 h-4 w-4 shrink-0 text-[#D3BC8D]" />{t}</li>)}
+              <Eyebrow tone="dark">Membership</Eyebrow>
+              <h2 id="cybercab-join-title" className="font-serif text-4xl font-light leading-[1.12] sm:text-5xl">Become a member.<br /><span className="text-[#E0C791]">{MEMBERSHIP} holds your place.</span></h2>
+              <ul className="mt-8 grid gap-4 text-sm leading-6 text-white/80">
+                {MEMBER_BENEFITS.map((t) => <li key={t} className="flex gap-3"><Check aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-[#D3BC8D]" />{t}</li>)}
               </ul>
-              <p className="mt-5 text-sm leading-6 text-white/60">
-                Spots are kept in the order memberships are received. Nothing is purchased until Salt Lake City is activated for
-                Cybercab fleets; the car itself is bought separately. The {DEPOSIT} membership is non-refundable.
+              <p className="mt-6 text-sm leading-6 text-white/60">
+                The membership is separate from the car, which is bought later. Nothing is purchased until Salt Lake City opens to Cybercab
+                fleets. The {MEMBERSHIP} membership is non-refundable.
               </p>
             </ScrollReveal>
             <ScrollReveal preset="soft" delay={0.08}><ReservationForm /></ScrollReveal>
           </div>
-          <p className="mx-auto mt-10 max-w-7xl text-xs leading-5 text-white/45">
-            Golden Luxury Auto is an independent fleet operator and is not affiliated with or endorsed by Tesla, Inc. Cybercab is a
-            trademark of Tesla, Inc. Figures are illustrative assumptions from public reporting, not a quote, offer or promise of earnings.
+          <p className="mx-auto mt-12 max-w-7xl text-xs leading-5 text-white/45">
+            Golden Luxury Auto is an independent vehicle management company and is not affiliated with or endorsed by Tesla, Inc.
+            Cybercab is a trademark of Tesla, Inc. Figures are examples based on public reporting, not a quote, offer or promise of earnings.
           </p>
         </section>
       </main>
