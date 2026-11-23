@@ -1597,7 +1597,7 @@ export default function EarningsPage() {
               </colgroup>
               <thead className="bg-card">
                 <tr className="bg-card border-b border-border">
-                  <th className="text-left px-3 py-2 text-sm font-medium text-foreground sticky top-0 md:left-0 bg-card z-[5] border-r border-border align-middle">
+                  <th className="text-left px-3 py-2 text-xs font-medium text-foreground sticky top-0 md:left-0 bg-card z-[5] border-r border-border align-middle">
                     Category / Expense
                   </th>
                   {months.map((month, index) => {
@@ -1647,7 +1647,7 @@ export default function EarningsPage() {
                     </th>
                     );
                   })}
-                  <th className="text-right px-2 py-2 text-sm font-medium text-foreground sticky top-0 bg-card z-[5] border-l border-border whitespace-nowrap align-middle">
+                  <th className="text-right px-2 py-2 text-xs font-medium text-foreground sticky top-0 bg-card z-[5] border-l border-border whitespace-nowrap align-middle">
                     Total
                   </th>
                 </tr>
@@ -2478,7 +2478,7 @@ function CategorySection({ title, isExpanded, onToggle, children, hideZeroSubcat
         <td colSpan={14} className="md:sticky md:left-0 z-[3] bg-primary px-3 py-2 border-b border-primary">
           <div className="flex items-center gap-2 cursor-pointer" onClick={onToggle}>
             {isExpanded ? <ChevronDown className="w-4 h-4 text-white" /> : <ChevronRight className="w-4 h-4 text-white" />}
-            <span className="text-sm font-semibold text-white">{title}</span>
+            <span className="text-xs font-semibold text-white">{title}</span>
           </div>
         </td>
       </tr>
@@ -2560,7 +2560,7 @@ function TableRow({
       isTotal && "bg-background font-semibold"
     )}>
       <td className={cn(
-        "px-3 py-2 text-sm md:sticky md:left-0 z-[3] border-r border-border",
+        "px-3 py-2 text-xs md:sticky md:left-0 z-[3] border-r border-border",
         isTotal ? "text-primary bg-background" : "text-muted-foreground bg-card"
       )}>
         {/* Label + share note sit inline on one line, matching the Income &
@@ -2602,7 +2602,7 @@ function TableRow({
           <td
             key={i}
             className={cn(
-              "text-right px-2 py-2 text-sm border-l border-border",
+              "text-right px-2 py-2 text-xs border-l border-border",
               cellValue !== 0
                 ? isTotal ? "text-primary font-semibold" : "text-[#B8860B] font-semibold"
                 : "text-muted-foreground"
@@ -2638,7 +2638,7 @@ function TableRow({
         );
       })}
       <td className={cn(
-        "text-right px-2 py-2 text-sm font-semibold border-l border-border bg-card md:sticky md:right-0 z-[3]",
+        "text-right px-2 py-2 text-xs font-semibold border-l border-border bg-card md:sticky md:right-0 z-[3]",
         hideTotal ? "text-muted-foreground" : isTotal ? "text-primary" : total !== 0 ? "text-[#B8860B]" : "text-muted-foreground"
       )}>
         {hideTotal
