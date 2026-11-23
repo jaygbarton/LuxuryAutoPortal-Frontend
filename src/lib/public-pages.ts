@@ -24,6 +24,7 @@ export const PUBLIC_PAGES: PublicPageDefinition[] = [
   { path: "/salt-lake-city/cybercab", label: "SLC Cybercab", group: "SLC" },
   { path: "/salt-lake-city/book", label: "SLC Direct Booking (not linked from the site)", group: "SLC" },
   { path: "/salt-lake-city/meet-us", label: "SLC Meet Us", group: "SLC" },
+  { path: "/salt-lake-city/co-hosting-partnership", label: "Co-Hosting Partnership", group: "SLC" },
   { path: "/salt-lake-city/deals", label: "SLC Deals", group: "SLC" },
   { path: "/salt-lake-city/jobs/apply", label: "SLC Job Application", group: "SLC" },
   { path: "/salt-lake-city/jobs", label: "SLC Jobs", group: "SLC" },

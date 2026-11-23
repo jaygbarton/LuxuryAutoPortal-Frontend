@@ -1,13 +1,15 @@
-import { Award, BadgeCheck, Route, Star } from "lucide-react";
+import { Award, BadgeCheck, Route, Star, type LucideIcon } from "lucide-react";
 import { SITE_STATS } from "@/lib/site-config";
 
 const STAT_ICONS = [Route, Star, Star, Award];
 
 type SiteStatsStripProps = {
   variant?: "light" | "dark";
+  /** A page's own figures in the same cards; the site-wide stats when omitted. */
+  stats?: readonly { value: string; label: string; icon?: LucideIcon }[];
 };
 
-export function SiteStatsStrip({ variant = "light" }: SiteStatsStripProps) {
+export function SiteStatsStrip({ variant = "light", stats = SITE_STATS }: SiteStatsStripProps) {
   const isDark = variant === "dark";
 
   return (
@@ -19,8 +21,8 @@ export function SiteStatsStrip({ variant = "light" }: SiteStatsStripProps) {
         backdropFilter: isDark ? "blur(22px)" : undefined,
       }}
     >
-      {SITE_STATS.map((stat, index) => {
-        const Icon = STAT_ICONS[index] ?? BadgeCheck;
+      {stats.map((stat, index) => {
+        const Icon = ("icon" in stat && stat.icon) || STAT_ICONS[index] || BadgeCheck;
         return (
           <div
             key={stat.label}

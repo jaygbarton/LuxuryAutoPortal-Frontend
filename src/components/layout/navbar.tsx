@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Car, Phone, FileText, Home, Sparkles, BadgePercent, BriefcaseBusiness, Star, PlusCircle, Navigation, ChevronDown, ShieldCheck } from "lucide-react";
+import { Menu, X, Car, Phone, FileText, Home, Sparkles, BadgePercent, BriefcaseBusiness, Star, PlusCircle, Navigation, ChevronDown, ShieldCheck, Handshake } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPreferredPublicLocation, withLocationPath } from "@/lib/location-config";
 import { UserAccountMenu } from "@/components/layout/user-account-menu";
+import { CO_HOST_PROGRAM_PATH } from "@/lib/site-config";
+import { usePublicPageStatus } from "@/components/public-page-gate";
 
 const navLinks = [
   { href: "/", label: "Home", icon: Home },
@@ -15,6 +17,7 @@ const navLinks = [
   { href: "/testimonials", label: "Testimonials", icon: Star },
   { href: "/jobs", label: "Jobs", icon: BriefcaseBusiness },
   { href: "/onboarding", label: "List Your Car", icon: FileText },
+  { href: CO_HOST_PROGRAM_PATH, label: "Co-Host Program", icon: Handshake },
   { href: "/chauffeur-services", label: "Chauffeur", icon: ShieldCheck },
   { href: "/suggested-cars", label: "Suggested Cars", icon: Car },
   { href: "/contact", label: "Contact", icon: Phone },
@@ -25,7 +28,12 @@ export function Navbar() {
   const [isPagesOpen, setIsPagesOpen] = useState(false);
   const [location] = useLocation();
   const publicLocation = getPreferredPublicLocation(location);
+  // The Co-Host Program page is the same for every city, so it is never city-prefixed.
+  const hrefFor = (href: string) => href === CO_HOST_PROGRAM_PATH ? href : withLocationPath(href, publicLocation);
+  // The Co-Host Program link appears only once that page is switched on.
+  const coHostPageLive = usePublicPageStatus(CO_HOST_PROGRAM_PATH).data?.isPublic === true;
   const links = navLinks.filter((link) => {
+    if (link.href === CO_HOST_PROGRAM_PATH && !coHostPageLive) return false;
     if (!publicLocation) return link.href === "/" || link.href === "/contact";
     if (publicLocation.comingSoon) return link.href === "/";
     if (link.href === "/chauffeur-services") return publicLocation.availablePages.chauffeur;
@@ -40,10 +48,11 @@ export function Navbar() {
     link.href === "/" ||
     link.href === "/fleet" ||
     link.href === "/onboarding" ||
+    link.href === CO_HOST_PROGRAM_PATH ||
     link.href === "/contact"
   );
   const pageLinks = links.filter((link) => !primaryLinks.some((primary) => primary.href === link.href));
-  const isPagesActive = pageLinks.some((link) => location === withLocationPath(link.href, publicLocation));
+  const isPagesActive = pageLinks.some((link) => location === hrefFor(link.href));
 
   return (
     <>
@@ -76,7 +85,7 @@ export function Navbar() {
           {/* Desktop nav links */}
           <div className="hidden lg:flex items-center gap-0.5">
             {primaryLinks.filter((link) => link.href !== "/contact").map((link) => {
-              const href = withLocationPath(link.href, publicLocation);
+              const href = hrefFor(link.href);
               return (
               <Link
                 key={link.href}
@@ -133,7 +142,7 @@ export function Navbar() {
                   >
                     {pageLinks.map((link) => {
                       const Icon = link.icon;
-                      const href = withLocationPath(link.href, publicLocation);
+                      const href = hrefFor(link.href);
                       const active = location === href;
                       return (
                         <Link
@@ -158,7 +167,7 @@ export function Navbar() {
               </div>
             )}
             {primaryLinks.filter((link) => link.href === "/contact").map((link) => {
-              const href = withLocationPath(link.href, publicLocation);
+              const href = hrefFor(link.href);
               return (
               <Link
                 key={link.href}
@@ -217,7 +226,7 @@ export function Navbar() {
         >
           {links.map((link) => {
             const Icon = link.icon;
-            const href = withLocationPath(link.href, publicLocation);
+            const href = hrefFor(link.href);
             return (
               <Link
                 key={link.href}

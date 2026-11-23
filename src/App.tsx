@@ -27,6 +27,7 @@ const Applicants = lazy(() => import("@/pages/admin/applicants"));
 const LycWorkspace = lazy(() => import("@/pages/lyc-workspace"));
 const Home = lazy(() => import("@/pages/home"));
 const Fleet = lazy(() => import("@/pages/fleet"));
+const CoHostingPartnershipPage = lazy(() => import("@/pages/co-hosting-partnership"));
 const ListYourCarRedirect = lazy(() => import("@/pages/list-your-car"));
 const Onboarding = lazy(() => import("@/pages/onboarding"));
 const Contact = lazy(() => import("@/pages/contact"));
@@ -259,6 +260,8 @@ function Router() {
       <PublicRoute path="/salt-lake-city/book"><BookPage /></PublicRoute>
       <Route path="/book/checkout/:token/:back?" component={BookCheckoutPage} />
       <PublicRoute path="/salt-lake-city/meet-us"><MeetUsPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/co-hosting-partnership"><CoHostingPartnershipPage /></PublicRoute>
+      <Route path="/co-hosting-partnership"><Redirect to="/salt-lake-city/co-hosting-partnership" /></Route>
       <PublicRoute path="/salt-lake-city/deals"><DealsPage /></PublicRoute>
       <PublicRoute path="/salt-lake-city/jobs/apply"><JobApplicationPage /></PublicRoute>
       <PublicRoute path="/salt-lake-city/jobs"><JobsPage /></PublicRoute>

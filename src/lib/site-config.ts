@@ -22,6 +22,9 @@ export const SITE_STATS = [
   { label: "Turo Host", value: "All-Star" },
 ] as const;
 
+/** The Co-Hosting Partnership page: one Salt Lake City page linked from every city's header and footer. */
+export const CO_HOST_PROGRAM_PATH = "/salt-lake-city/co-hosting-partnership";
+
 export const LEGAL_LINKS = {
   privacy: "/privacy-policy",
   terms: "/terms-and-conditions",

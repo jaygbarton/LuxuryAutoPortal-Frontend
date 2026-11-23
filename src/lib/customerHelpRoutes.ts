@@ -19,6 +19,7 @@ export const CUSTOMER_HELP_PUBLIC_PATHS = [
   "/salt-lake-city/cybercab",
   "/salt-lake-city/book",
   "/salt-lake-city/meet-us",
+  "/salt-lake-city/co-hosting-partnership",
   "/salt-lake-city/deals",
   "/salt-lake-city/jobs/apply",
   "/salt-lake-city/jobs",

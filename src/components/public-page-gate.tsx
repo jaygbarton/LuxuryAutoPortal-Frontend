@@ -25,12 +25,9 @@ function MaintenancePage({ path }: { path: string }) {
   );
 }
 
-export function PublicPageGate({ path, children }: PublicPageGateProps) {
-  const isDeveloperPreview =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("devPreview") === "1";
-
-  const { data, isLoading, isError } = useQuery<{
+/** Whether a public page is switched on (Developer > Public Pages); shared by the gate and site links. */
+export function usePublicPageStatus(path: string) {
+  return useQuery<{
     path: string;
     isPublic: boolean;
     canPreview: boolean;
@@ -45,6 +42,14 @@ export function PublicPageGate({ path, children }: PublicPageGateProps) {
     },
     staleTime: 1000 * 30,
   });
+}
+
+export function PublicPageGate({ path, children }: PublicPageGateProps) {
+  const isDeveloperPreview =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("devPreview") === "1";
+
+  const { data, isLoading, isError } = usePublicPageStatus(path);
 
   if (isLoading) {
     return <PublicPageLoading path={path} />;

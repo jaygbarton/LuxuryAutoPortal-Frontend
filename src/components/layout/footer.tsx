@@ -2,9 +2,10 @@ import { Link } from "wouter";
 import { useLocation } from "wouter";
 import { Mail, Phone, MapPin, Clock, Facebook, Instagram, Linkedin } from "lucide-react";
 import { FaGoogle, FaPinterestP, FaYoutube } from "react-icons/fa";
-import { SITE_CONTACT, SITE_TAGLINE, LEGAL_LINKS, SOCIAL_LINKS } from "@/lib/site-config";
+import { SITE_CONTACT, SITE_TAGLINE, LEGAL_LINKS, SOCIAL_LINKS, CO_HOST_PROGRAM_PATH } from "@/lib/site-config";
 import { SiteStatsStrip } from "@/components/layout/site-stats-strip";
 import { getPreferredPublicLocation, withLocationPath } from "@/lib/location-config";
+import { usePublicPageStatus } from "@/components/public-page-gate";
 
 const quickLinks = [
   { href: "/fleet", label: "Our Fleet" },
@@ -15,6 +16,7 @@ const quickLinks = [
   { href: "/testimonials", label: "Testimonials" },
   { href: "/jobs", label: "Jobs" },
   { href: "/onboarding", label: "List Your Car" },
+  { href: CO_HOST_PROGRAM_PATH, label: "Co-Host Program" },
   { href: "/suggested-cars", label: "Suggested Cars" },
   { href: "/contact", label: "Contact Us" },
 ];
@@ -41,7 +43,10 @@ const socialIconFor = (social: { name: string; href: string }) => {
 export function Footer() {
   const [location] = useLocation();
   const publicLocation = getPreferredPublicLocation(location);
+  // The Co-Host Program link appears only once that page is switched on.
+  const coHostPageLive = usePublicPageStatus(CO_HOST_PROGRAM_PATH).data?.isPublic === true;
   const links = quickLinks.filter((link) => {
+    if (link.href === CO_HOST_PROGRAM_PATH && !coHostPageLive) return false;
     if (!publicLocation) return link.href === "/contact";
     if (publicLocation.comingSoon) return false;
     if (link.href === "/detail-shop") return publicLocation.availablePages.detailShop;
@@ -122,7 +127,7 @@ export function Footer() {
               {links.map((link) => (
                 <li key={link.href}>
                   <Link
-                    href={withLocationPath(link.href, publicLocation)}
+                    href={link.href === CO_HOST_PROGRAM_PATH ? link.href : withLocationPath(link.href, publicLocation)}
                     className="whitespace-nowrap text-xs transition-colors xl:text-sm"
                     style={{ color: "#4A4A4A", textDecoration: "none" }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#C49000"; }}
