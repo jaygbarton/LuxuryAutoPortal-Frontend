@@ -391,19 +391,19 @@ describe("buildIncomeExpenseCSV", () => {
     expect(result.success).toBe(true);
     expect(result.sections?.incomeExpenses?.length).toBe(15); // 11 income rows + Guest Cancellation, Gas Reimbursement, On-Trip & Post-Trip Charging
     const rentalRow = result.sections?.incomeExpenses?.find(
-      (r: any) => r.category === "Rental Income"
+      (r: any) => r.category === "Income Car Rentals - Turo (Trip Income)"
     );
     expect(rentalRow?.month1).toBe(1000);
   });
 
   it("adds Gas Prepaid Income (Owner Share) from 2026 only", () => {
-    expect(csv).not.toContain("Gas Prepaid Income (Owner Share)");
+    expect(csv).not.toContain("Income Gas Prepaid (Owner Share)");
     const csv2026 = buildIncomeExpenseCSV(data, CAR_INFO, "2026", EMPTY_MONTH_MODES);
     const result = parseImportedCSV(csv2026);
     expect(result.success).toBe(true);
     expect(result.sections?.incomeExpenses?.length).toBe(16);
     expect(
-      result.sections?.incomeExpenses?.some((r: any) => r.category === "Gas Prepaid Income (Owner Share)"),
+      result.sections?.incomeExpenses?.some((r: any) => r.category === "Income Gas Prepaid (Owner Share)"),
     ).toBe(true);
   });
 
@@ -934,8 +934,8 @@ describe("buildIncomeExpenseCSV — Gas Reimbursement Income", () => {
   it("exports the row below Guest Cancellation Income", () => {
     const csv = buildIncomeExpenseCSV(withGas(40), CAR_INFO, "2024", EMPTY_MONTH_MODES);
     const lines = csv.split("\n");
-    const gci = lines.findIndex((l) => l.startsWith("Guest Cancellation Income,"));
-    expect(lines[gci + 1].startsWith("Gas Reimbursement Income,$40.00")).toBe(true);
+    const gci = lines.findIndex((l) => l.startsWith("Income Guest Cancellation,"));
+    expect(lines[gci + 1].startsWith("Income Gas Reimbursed,$40.00")).toBe(true);
   });
 
   it("adds the full amount to the Car Management (Co-Host) Split and Total Car Profit, owner unchanged", () => {
@@ -967,7 +967,7 @@ describe("buildIncomeExpenseCSV — On-Trip / Post-Trip Charging Income", () => 
   it("exports both rows directly below Gas Reimbursement Income", () => {
     const csv = buildIncomeExpenseCSV(withCharging(15, 25), CAR_INFO, "2024", EMPTY_MONTH_MODES);
     const lines = csv.split("\n");
-    const gas = lines.findIndex((l) => l.startsWith("Gas Reimbursement Income,"));
+    const gas = lines.findIndex((l) => l.startsWith("Income Gas Reimbursed,"));
     expect(lines[gas + 1].startsWith("On-Trip Charging Income,$15.00")).toBe(true);
     expect(lines[gas + 2].startsWith("Post-Trip Charging Income,$25.00")).toBe(true);
   });

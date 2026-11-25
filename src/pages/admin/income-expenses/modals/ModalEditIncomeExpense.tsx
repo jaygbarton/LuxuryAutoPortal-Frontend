@@ -140,20 +140,20 @@ export default function ModalEditIncomeExpense() {
 
   // Get friendly field name
   const fieldNames: { [key: string]: string } = {
-    rentalIncome: "Rental Income",
-    deliveryIncome: "Delivery Income",
-    electricPrepaidIncome: "Electric Prepaid Income",
-    smokingFines: "Smoking Fines",
-    gasPrepaidIncome: "Gas Prepaid Income",
+    rentalIncome: "Income Car Rentals - Turo (Trip Income)",
+    deliveryIncome: "Income Delivery",
+    electricPrepaidIncome: "Income Electric Prepaid",
+    smokingFines: "Income Smoking Fines",
+    gasPrepaidIncome: "Income Gas Prepaid",
     gasPrepaidOwnerIncome: "Gas Prepaid Income (100% Owner Share)",
-    skiRacksIncome: "Ski Racks Income",
-    milesIncome: "Miles Income",
-    childSeatIncome: "Child Seat Income",
-    coolersIncome: "Coolers Income",
-    insuranceWreckIncome: "Income Insurance and Client Wrecks",
-    otherIncome: "Other Income",
-    guestCancellationIncome: "Guest Cancellation Income",
-    gasReimbursementIncome: "Gas Reimbursement Income",
+    skiRacksIncome: "Income Ski Racks",
+    milesIncome: "Income Miles",
+    childSeatIncome: "Income Car Seats",
+    coolersIncome: "Income Coolers/Camp Chairs",
+    insuranceWreckIncome: "Income Turo Claims & Insurance Payments",
+    otherIncome: "Income Other Turo",
+    guestCancellationIncome: "Income Guest Cancellation",
+    gasReimbursementIncome: "Income Gas Reimbursed",
     onTripChargingIncome: "On-Trip Charging Income",
     postTripChargingIncome: "Post-Trip Charging Income",
     negativeBalanceCarryOver: "Negative Balance Carry Over",
@@ -441,59 +441,59 @@ export default function ModalEditIncomeExpense() {
                   <div className="text-primary text-xs font-semibold mb-2">INCOME</div>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Rental Income:</span>
+                      <span>Income Car Rentals - Turo (Trip Income):</span>
                       <span>${incomeValues.rentalIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Delivery Income:</span>
+                      <span>Income Delivery:</span>
                       <span>${incomeValues.deliveryIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Electric Prepaid Income:</span>
+                      <span>Income Electric Prepaid:</span>
                       <span>${incomeValues.electricPrepaidIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Smoking Fines:</span>
+                      <span>Income Smoking Fines:</span>
                       <span>${incomeValues.smokingFines.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Gas Prepaid Income:</span>
+                      <span>Income Gas Prepaid:</span>
                       <span>${incomeValues.gasPrepaidIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Gas Prepaid Income (Owner Share):</span>
+                      <span>Income Gas Prepaid (Owner Share):</span>
                       <span>${incomeValues.gasPrepaidOwnerIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Ski Racks Income:</span>
+                      <span>Income Ski Racks:</span>
                       <span>${incomeValues.skiRacksIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Miles Income:</span>
+                      <span>Income Miles:</span>
                       <span>${incomeValues.milesIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Child Seat Income:</span>
+                      <span>Income Car Seats:</span>
                       <span>${incomeValues.childSeatIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Coolers Income:</span>
+                      <span>Income Coolers/Camp Chairs:</span>
                       <span>${incomeValues.coolersIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Insurance and Client Wrecks:</span>
+                      <span>Income Turo Claims & Insurance Payments:</span>
                       <span>${incomeValues.insuranceWreckIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Other Income:</span>
+                      <span>Income Other Turo:</span>
                       <span>${incomeValues.otherIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Guest Cancellation Income:</span>
+                      <span>Income Guest Cancellation:</span>
                       <span>${incomeValues.guestCancellationIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Gas Reimbursement Income:</span>
+                      <span>Income Gas Reimbursed:</span>
                       <span>${incomeValues.gasReimbursementIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">

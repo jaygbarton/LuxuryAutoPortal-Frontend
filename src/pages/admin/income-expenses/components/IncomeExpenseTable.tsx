@@ -2669,7 +2669,7 @@ lastSavedNote.current = coHostNote;
               onToggle={() => toggleSection("incomeExpenses")}
             >
               <CategoryRow
-                label="Rental Income"
+                label="Income Car Rentals - Turo (Trip Income)"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "rentalIncome"),
                 )}
@@ -2677,7 +2677,7 @@ lastSavedNote.current = coHostNote;
                 field="rentalIncome"
               />
               <CategoryRow
-                label="Delivery Income"
+                label="Income Delivery"
                 splitLabel={shareNote("deliveryIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "deliveryIncome"),
@@ -2686,7 +2686,7 @@ lastSavedNote.current = coHostNote;
                 field="deliveryIncome"
               />
               <CategoryRow
-                label="Electric Prepaid Income"
+                label="Income Electric Prepaid"
                 splitLabel={shareNote("electricPrepaidIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(
@@ -2699,7 +2699,7 @@ lastSavedNote.current = coHostNote;
                 field="electricPrepaidIncome"
               />
               <CategoryRow
-                label="Smoking Fines"
+                label="Income Smoking Fines"
                 splitLabel={shareNote("smokingFines")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "smokingFines"),
@@ -2708,7 +2708,7 @@ lastSavedNote.current = coHostNote;
                 field="smokingFines"
               />
               <CategoryRow
-                label="Gas Prepaid Income"
+                label="Income Gas Prepaid"
                 splitLabel={shareNote("gasPrepaidIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "gasPrepaidIncome"),
@@ -2719,7 +2719,7 @@ lastSavedNote.current = coHostNote;
               {/* Gas Prepaid Income — 100% Owner Share takes effect from 2026. */}
               {parseInt(year, 10) >= 2026 && (
                 <CategoryRow
-                  label="Gas Prepaid Income"
+                  label="Income Gas Prepaid"
                   splitLabel={shareNote("gasPrepaidOwnerIncome")}
                   values={MONTHS.map((_, i) =>
                     getMonthValue(data.incomeExpenses, i + 1, "gasPrepaidOwnerIncome"),
@@ -2729,7 +2729,7 @@ lastSavedNote.current = coHostNote;
                 />
               )}
               <CategoryRow
-                label="Ski Racks Income"
+                label="Income Ski Racks"
                 splitLabel={shareNote("skiRacksIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "skiRacksIncome"),
@@ -2738,7 +2738,7 @@ lastSavedNote.current = coHostNote;
                 field="skiRacksIncome"
               />
               <CategoryRow
-                label="Miles Income"
+                label="Income Miles"
                 splitLabel={shareNote("milesIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "milesIncome"),
@@ -2747,7 +2747,7 @@ lastSavedNote.current = coHostNote;
                 field="milesIncome"
               />
               <CategoryRow
-                label="Child Seat Income"
+                label="Income Car Seats"
                 splitLabel={shareNote("childSeatIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "childSeatIncome"),
@@ -2756,7 +2756,7 @@ lastSavedNote.current = coHostNote;
                 field="childSeatIncome"
               />
               <CategoryRow
-                label="Coolers Income"
+                label="Income Coolers/Camp Chairs"
                 splitLabel={shareNote("coolersIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "coolersIncome"),
@@ -2765,7 +2765,7 @@ lastSavedNote.current = coHostNote;
                 field="coolersIncome"
               />
               <CategoryRow
-                label="Income Insurance and Client Wrecks"
+                label="Income Turo Claims & Insurance Payments"
                 splitLabel={shareNote("insuranceWreckIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(
@@ -2778,7 +2778,7 @@ lastSavedNote.current = coHostNote;
                 field="insuranceWreckIncome"
               />
               <CategoryRow
-                label="Other Income"
+                label="Income Other Turo"
                 splitLabel={shareNote("otherIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "otherIncome"),
@@ -2787,7 +2787,7 @@ lastSavedNote.current = coHostNote;
                 field="otherIncome"
               />
               <CategoryRow
-                label="Guest Cancellation Income"
+                label="Income Guest Cancellation"
                 splitLabel={shareNote("guestCancellationIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "guestCancellationIncome"),
@@ -2796,7 +2796,7 @@ lastSavedNote.current = coHostNote;
                 field="guestCancellationIncome"
               />
               <CategoryRow
-                label="Gas Reimbursement Income"
+                label="Income Gas Reimbursed"
                 splitLabel={shareNote("gasReimbursementIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "gasReimbursementIncome"),
