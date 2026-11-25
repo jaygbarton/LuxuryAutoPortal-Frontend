@@ -72,7 +72,6 @@ const FIELD_LABELS: { [key: string]: string } = {
   utilities: "Utilities",
   furniture: "Furniture",
   quickbooksPaymentsFees: "QuickBooks Payments Fees",
-  benefits: "Benefits",
 };
 
 export default function ModalEditOfficeSupport() {

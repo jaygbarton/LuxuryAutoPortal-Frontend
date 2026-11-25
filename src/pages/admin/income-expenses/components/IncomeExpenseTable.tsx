@@ -870,7 +870,6 @@ lastSavedNote.current = coHostNote;
       getMonthValue(data.officeSupport, month, "utilities") +
       getMonthValue(data.officeSupport, month, "furniture") +
       getMonthValue(data.officeSupport, month, "quickbooksPaymentsFees") +
-      getMonthValue(data.officeSupport, month, "benefits") +
       // Approved Office Support receipts (car_id 0), shown on top of the
       // manual value in each row above.
       getCategoryMonthFormTotal("officeSupport", month)
@@ -4356,14 +4355,6 @@ lastSavedNote.current = coHostNote;
                   )}
                   category="officeSupport"
                   field="quickbooksPaymentsFees"
-                />
-                <CategoryRow
-                  label="Benefits"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "benefits"),
-                  )}
-                  category="officeSupport"
-                  field="benefits"
                 />
                 <CategoryRow
                   label="Totals OPERATING EXPENSE (Office Support)"
