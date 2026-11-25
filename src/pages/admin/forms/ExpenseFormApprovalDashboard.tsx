@@ -629,8 +629,8 @@ const CATEGORY_FIELDS: Record<string, { value: string; label: string }[]> = {
     { value: "otherIncome", label: "Income Other Turo" },
     { value: "guestCancellationIncome", label: "Income Guest Cancellation" },
     { value: "gasReimbursementIncome", label: "Income Gas Reimbursed" },
-    { value: "onTripChargingIncome", label: "On-Trip Charging" },
-    { value: "postTripChargingIncome", label: "Post-Trip Charging" },
+    { value: "onTripChargingIncome", label: "Income On-Trip Charging" },
+    { value: "postTripChargingIncome", label: "Income Post-Trip Charging" },
   ],
 };
 

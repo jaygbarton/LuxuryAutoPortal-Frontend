@@ -795,8 +795,8 @@ export default function TotalsPage() {
               <TotalRow label="Income Other Turo" value={totals?.income?.otherIncome} />
               <TotalRow label="Income Guest Cancellation" value={totals?.income?.guestCancellationIncome} />
               <TotalRow label="Income Gas Reimbursed" value={totals?.income?.gasReimbursementIncome} />
-              <TotalRow label="On-Trip Charging Income" value={totals?.income?.onTripChargingIncome} />
-              <TotalRow label="Post-Trip Charging Income" value={totals?.income?.postTripChargingIncome} />
+              <TotalRow label="Income On-Trip Charging" value={totals?.income?.onTripChargingIncome} />
+              <TotalRow label="Income Post-Trip Charging" value={totals?.income?.postTripChargingIncome} />
               <TotalRow label="Negative Balance Carry Over" value={0} />
               <TotalRow label="Car Management Total Expenses" value={totals?.income?.carManagementTotalExpenses} separator bold />
               <TotalRow label="Car Owner Total Expenses" value={totals?.income?.carOwnerTotalExpenses} bold />
