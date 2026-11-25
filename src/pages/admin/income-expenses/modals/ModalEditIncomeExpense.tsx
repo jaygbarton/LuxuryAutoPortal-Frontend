@@ -145,7 +145,7 @@ export default function ModalEditIncomeExpense() {
     electricPrepaidIncome: "Income Electric Prepaid",
     smokingFines: "Income Smoking Fines",
     gasPrepaidIncome: "Income Gas Prepaid",
-    gasPrepaidOwnerIncome: "Gas Prepaid Income (100% Owner Share)",
+    gasPrepaidOwnerIncome: "Income Gas Prepaid (100% Owner Share)",
     skiRacksIncome: "Income Ski Racks",
     milesIncome: "Income Miles",
     childSeatIncome: "Income Car Seats",
