@@ -781,20 +781,20 @@ export default function TotalsPage() {
               title="INCOME / PROFIT & LOSS"
               totalValue={totals?.income?.totalProfit}
             >
-              <TotalRow label="Rental Income" value={totals?.income?.rentalIncome} />
-              <TotalRow label="Delivery Income" value={totals?.income?.deliveryIncome} />
-              <TotalRow label="Electric Prepaid Income" value={totals?.income?.electricPrepaidIncome} />
-              <TotalRow label="Smoking Fines" value={totals?.income?.smokingFines} />
-              <TotalRow label="Gas Prepaid Income" value={totals?.income?.gasPrepaidIncome} />
-              <TotalRow label="Gas Prepaid Income (Owner Share)" value={totals?.income?.gasPrepaidOwnerIncome} />
-              <TotalRow label="Miles Income" value={totals?.income?.milesIncome} />
-              <TotalRow label="Ski Racks Income" value={totals?.income?.skiRacksIncome} />
-              <TotalRow label="Child Seat Income" value={totals?.income?.childSeatIncome} />
-              <TotalRow label="Coolers Income" value={totals?.income?.coolersIncome} />
+              <TotalRow label="Income Car Rentals - Turo (Trip Income)" value={totals?.income?.rentalIncome} />
+              <TotalRow label="Income Delivery" value={totals?.income?.deliveryIncome} />
+              <TotalRow label="Income Electric Prepaid" value={totals?.income?.electricPrepaidIncome} />
+              <TotalRow label="Income Smoking Fines" value={totals?.income?.smokingFines} />
+              <TotalRow label="Income Gas Prepaid" value={totals?.income?.gasPrepaidIncome} />
+              <TotalRow label="Income Gas Prepaid (Owner Share)" value={totals?.income?.gasPrepaidOwnerIncome} />
+              <TotalRow label="Income Miles" value={totals?.income?.milesIncome} />
+              <TotalRow label="Income Ski Racks" value={totals?.income?.skiRacksIncome} />
+              <TotalRow label="Income Car Seats" value={totals?.income?.childSeatIncome} />
+              <TotalRow label="Income Coolers/Camp Chairs" value={totals?.income?.coolersIncome} />
               <TotalRow label="Income Insurance & Client Wrecks" value={totals?.income?.incomeInsurance} />
-              <TotalRow label="Other Income" value={totals?.income?.otherIncome} />
-              <TotalRow label="Guest Cancellation Income" value={totals?.income?.guestCancellationIncome} />
-              <TotalRow label="Gas Reimbursement Income" value={totals?.income?.gasReimbursementIncome} />
+              <TotalRow label="Income Other Turo" value={totals?.income?.otherIncome} />
+              <TotalRow label="Income Guest Cancellation" value={totals?.income?.guestCancellationIncome} />
+              <TotalRow label="Income Gas Reimbursed" value={totals?.income?.gasReimbursementIncome} />
               <TotalRow label="On-Trip Charging Income" value={totals?.income?.onTripChargingIncome} />
               <TotalRow label="Post-Trip Charging Income" value={totals?.income?.postTripChargingIncome} />
               <TotalRow label="Negative Balance Carry Over" value={0} />
