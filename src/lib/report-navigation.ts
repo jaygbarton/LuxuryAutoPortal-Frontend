@@ -5,6 +5,10 @@ export const reportSections: Record<string, { label: string; title: string }> =
       title: "CAR MANAGEMENT - OWNER SPLIT",
     },
     incomeExpenses: { label: "Income", title: "INCOME & EXPENSES" },
+    incomeDistribution: {
+      label: "Income distribution",
+      title: "INCOME DISTRIBUTION",
+    },
     directDelivery: {
       label: "Direct delivery",
       title: "OPERATING EXPENSE (Direct Delivery)",
