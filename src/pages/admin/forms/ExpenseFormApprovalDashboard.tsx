@@ -603,6 +603,7 @@ const CATEGORY_FIELDS: Record<string, { value: string; label: string }[]> = {
     { value: "wipers", label: "Wipers" },
   ],
   reimbursedBills: [
+    { value: "electricReimbursed", label: "Electric Reimbursed" },
     { value: "electricNotReimbursed", label: "Electric Not Reimbursed" },
     { value: "gasReimbursed", label: "Gas – Charged to Guest" },
     { value: "gasNotReimbursed", label: "Gas – Not Charged to Guest" },

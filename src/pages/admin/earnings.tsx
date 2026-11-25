@@ -2003,17 +2003,11 @@ export default function EarningsPage() {
                     isExpanded={expandedSections.reimbursedBills}
                     onToggle={() => toggleSection("reimbursedBills")}
                   >
-                    {/* Electric - Reimbursed is retired: shown only when it already holds money. */}
-                    {MONTHS.some((_, i) =>
-                      getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "electricReimbursed") !== 0 ||
-                      getFormAmount("reimbursedBills", "electricReimbursed", i + 1) !== 0,
-                    ) && (
                     <TableRow
                       label="Electric - Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "electricReimbursed"))}
                       category="reimbursedBills" field="electricReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
-                    )}
                     <TableRow
                       label="Electric - Not Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "electricNotReimbursed"))}

@@ -282,6 +282,7 @@ GLA Parking Fee,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.0
 Labor - Cleaning,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00
 ,,,,,,,,,,,,
 REIMBURSE AND NON-REIMBURSE BILLS,Jan-${selectedYear.slice(-2)},Feb-${selectedYear.slice(-2)},Mar-${selectedYear.slice(-2)},Apr-${selectedYear.slice(-2)},May-${selectedYear.slice(-2)},Jun-${selectedYear.slice(-2)},Jul-${selectedYear.slice(-2)},Aug-${selectedYear.slice(-2)},Sep-${selectedYear.slice(-2)},Oct-${selectedYear.slice(-2)},Nov-${selectedYear.slice(-2)},Dec-${selectedYear.slice(-2)}
+Electric - Reimbursed,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00
 Electric - Not Reimbursed,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00
 Gas – Charged to Guest,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00
 Gas – Not Charged to Guest,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00
