@@ -2978,19 +2978,27 @@ lastSavedNote.current = coHostNote;
                   values,
                 });
               });
+              // Trip income is not listed (Cathy, 2026-11-25); the rows below
+              // are the income rows with a fixed share.
               const rows = DISTRIBUTION_ROWS.filter(
-                ({ field }) => field !== "gasPrepaidOwnerIncome" || yearNum >= 2026,
+                ({ field }) =>
+                  field !== "tripIncome" && (field !== "gasPrepaidOwnerIncome" || yearNum >= 2026),
               );
+              // Each side lists only the rows it gets a share of in some month
+              // (no 0% rows).
+              const sideRows = (side: "mgmt" | "owner") =>
+                rows.filter(({ field }) =>
+                  months.some((m) => m && (side === "mgmt" ? m[field].mgmtPercent : m[field].ownerPercent) > 0),
+                );
               const part = (side: "mgmt" | "owner", field: DistributionField) =>
                 months.map((m) => (m ? m[field][side] : 0));
               const note = (side: "mgmt" | "owner", field: DistributionField) => {
-                const p = percentNote(
+                return percentNote(
                   months.map((m) => (m ? (side === "mgmt" ? m[field].mgmtPercent : m[field].ownerPercent) : 0)),
                 );
-                return field === "tripIncome" ? `${p} of trip income after carve-outs` : p;
               };
               const total = (side: "mgmt" | "owner") =>
-                months.map((m) => (m ? rows.reduce((sum, { field }) => sum + m[field][side], 0) : 0));
+                months.map((m) => (m ? sideRows(side).reduce((sum, { field }) => sum + m[field][side], 0) : 0));
               const subheader = (text: string) => (
                 <tr className="bg-muted/60">
                   <td colSpan={14} className="px-2 py-1.5 text-xs font-semibold text-foreground">
@@ -3013,7 +3021,7 @@ lastSavedNote.current = coHostNote;
                   ) : (
                     <>
                       {subheader("Car Management Income")}
-                      {rows.map(({ field, label }) => (
+                      {sideRows("mgmt").map(({ field, label }) => (
                         <CategoryRow
                           key={`mgmt-${field}`}
                           label={label}
@@ -3024,7 +3032,7 @@ lastSavedNote.current = coHostNote;
                       ))}
                       <CategoryRow label="Total Car Management Income" values={total("mgmt")} isEditable={false} isTotal />
                       {subheader("Car Owner Income")}
-                      {rows.map(({ field, label }) => (
+                      {sideRows("owner").map(({ field, label }) => (
                         <CategoryRow
                           key={`owner-${field}`}
                           label={label}
@@ -3036,10 +3044,10 @@ lastSavedNote.current = coHostNote;
                       <CategoryRow label="Total Car Owner Income" values={total("owner")} isEditable={false} isTotal />
                       <tr>
                         <td colSpan={14} className="px-2 py-2 text-xs text-muted-foreground">
-                          Income only, before expenses. Trip income is what is left of Income Car Rentals - Turo
-                          after the rows carved out of it, split by each month&apos;s Car Management / Car Owner %.
-                          The Car Management Split and Car Owner Split rows also take off expenses and the
-                          negative balance carry-over, and never go below $0.
+                          Income only, before expenses. Each side lists the income rows it receives a share of.
+                          Trip income (Income Car Rentals - Turo after these rows) is split in the Car Management
+                          Split and Car Owner Split rows, which also take off expenses and the negative balance
+                          carry-over.
                         </td>
                       </tr>
                     </>
