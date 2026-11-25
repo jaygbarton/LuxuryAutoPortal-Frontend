@@ -873,7 +873,7 @@ lastSavedNote.current = coHostNote;
       // Approved Office Support receipts (car_id 0), shown on top of the
       // manual value in each row above.
       getCategoryMonthFormTotal("officeSupport", month)
-      // NOTE: EBITDA-only fields (vehicleLoanInterestExpense, depreciationExpense,
+      // NOTE: EBITDA-only fields (vehicleLoanInterestExpense, cardBankInterestExpense, depreciationExpense,
       // vehicleDepreciationExpense, amortizationExpense, ebitdaTaxes) are
       // intentionally excluded here. They are manual entries on the EBITDA
       // card and must not feed the "Totals OPERATING EXPENSE (Office Support)"
@@ -881,8 +881,8 @@ lastSavedNote.current = coHostNote;
     );
   };
 
-  // Sum of the four EBITDA manual entries (Interest + Taxes + Depreciation +
-  // Amortization). These are tracked separately from OPERATING EXPENSES
+  // Sum of the five EBITDA manual entries (Vehicle Loan Interest + Card & Bank
+  // Interest + Taxes + Depreciation + Amortization). These are tracked separately from OPERATING EXPENSES
   // (OFFICE SUPPORT) so they don't pollute that total, but they still need to
   // be subtracted from Net Income (and added back to get EBITDA). See the
   // Total Expenses / Net Income / EBITDA rows in the EBITDA section below.
@@ -890,6 +890,7 @@ lastSavedNote.current = coHostNote;
     if (!data.officeSupport || !Array.isArray(data.officeSupport)) return 0;
     return (
       getMonthValue(data.officeSupport, month, "vehicleLoanInterestExpense") +
+      getMonthValue(data.officeSupport, month, "cardBankInterestExpense") +
       getMonthValue(data.officeSupport, month, "ebitdaTaxes") +
       getMonthValue(data.officeSupport, month, "depreciationExpense") +
       getMonthValue(data.officeSupport, month, "amortizationExpense")
@@ -4382,7 +4383,7 @@ lastSavedNote.current = coHostNote;
                     admin-page blanket read-only guard used for aggregated
                     rows so the admin can type these values here. */}
                 <CategoryRow
-                  label="Bank & Credit Card Merchant Fees or Interest"
+                  label="Vehicle Loan Interest"
                   values={MONTHS.map((_, i) =>
                     getMonthValue(
                       data.officeSupport,
@@ -4392,6 +4393,23 @@ lastSavedNote.current = coHostNote;
                   )}
                   category="officeSupport"
                   field="vehicleLoanInterestExpense"
+                  isEditable={true}
+                  alwaysEditable
+                />
+                {/* Card & bank interest, separate from vehicle loan interest
+                    (Cathy, 2026-11-25). An EBITDA add-back like the rows
+                    around it; not part of Office Support. */}
+                <CategoryRow
+                  label="Card & Bank Interest"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(
+                      data.officeSupport,
+                      i + 1,
+                      "cardBankInterestExpense",
+                    ),
+                  )}
+                  category="officeSupport"
+                  field="cardBankInterestExpense"
                   isEditable={true}
                   alwaysEditable
                 />

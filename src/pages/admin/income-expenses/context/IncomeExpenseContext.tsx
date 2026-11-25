@@ -210,6 +210,7 @@ function getEmptyData(): IncomeExpenseData {
       lifeInsurance: 0,
       badDebt: 0,
       vehicleLoanInterestExpense: 0,
+      cardBankInterestExpense: 0,
       amortizationExpense: 0,
       ebitdaTaxes: 0,
     })),

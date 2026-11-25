@@ -28,7 +28,8 @@ const FIELD_LABELS: { [key: string]: string } = {
   // EBITDA manual entries. EBITDA Taxes uses ebitdaTaxes (distinct from the
   // operational taxesLicense row shown under OPERATING EXPENSES (OFFICE
   // SUPPORT)).
-  vehicleLoanInterestExpense: "Bank & Credit Card Merchant Fees or Interest",
+  vehicleLoanInterestExpense: "Vehicle Loan Interest",
+  cardBankInterestExpense: "Card & Bank Interest",
   ebitdaTaxes: "Taxes",
   depreciationExpense: "Depreciation",
   amortizationExpense: "Amortization",

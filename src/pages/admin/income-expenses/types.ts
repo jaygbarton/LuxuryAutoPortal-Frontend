@@ -172,6 +172,7 @@ export interface OfficeSupportMonth {
   lifeInsurance: number;
   badDebt: number;
   vehicleLoanInterestExpense: number;
+  cardBankInterestExpense: number;
   // All-Cars EBITDA manual entry (stored at car_id = 0, same pattern as
   // parking_airport_qb). Not meaningful on per-car rows.
   amortizationExpense: number;
