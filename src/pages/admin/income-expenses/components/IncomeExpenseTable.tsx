@@ -842,6 +842,12 @@ lastSavedNote.current = coHostNote;
       getMonthValue(data.officeSupport, month, "laborSales") +
       getMonthValue(data.officeSupport, month, "laborSoftware") +
       getMonthValue(data.officeSupport, month, "laborMarketing") +
+      getMonthValue(data.officeSupport, month, "laborHumanResources") +
+      getMonthValue(data.officeSupport, month, "laborSellingCarsCommission") +
+      getMonthValue(data.officeSupport, month, "laborStaffCleaningDetailing") +
+      getMonthValue(data.officeSupport, month, "laborStaffCommissions") +
+      getMonthValue(data.officeSupport, month, "laborStaffDrivers") +
+      getMonthValue(data.officeSupport, month, "laborStaffInspection") +
       getMonthValue(data.officeSupport, month, "legalProfessional") +
       getMonthValue(data.officeSupport, month, "mealsEntertainment") +
       getMonthValue(data.officeSupport, month, "officeExpense") +
@@ -857,10 +863,6 @@ lastSavedNote.current = coHostNote;
       getMonthValue(data.officeSupport, month, "taxesLicense") +
       getMonthValue(data.officeSupport, month, "telephone") +
       getMonthValue(data.officeSupport, month, "travel") +
-      getMonthValue(data.officeSupport, month, "wagesCleaning") +
-      getMonthValue(data.officeSupport, month, "wagesDrivers") +
-      getMonthValue(data.officeSupport, month, "wagesHumanResources") +
-      getMonthValue(data.officeSupport, month, "wagesOwner") +
       getMonthValue(data.officeSupport, month, "payrollTaxes") +
       getMonthValue(data.officeSupport, month, "detailShopChemicals") +
       getMonthValue(data.officeSupport, month, "ownerDistributions") +
@@ -4105,24 +4107,92 @@ lastSavedNote.current = coHostNote;
                   field="duesSubscription"
                 />
                 <CategoryRow
+                  label="Labor Outside & Staff Contractors"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "outsideStaffContractors"),
+                  )}
+                  category="officeSupport"
+                  field="outsideStaffContractors"
+                />
+                <CategoryRow
+                  label="Labor Selling Cars Commission"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "laborSellingCarsCommission"),
+                  )}
+                  category="officeSupport"
+                  field="laborSellingCarsCommission"
+                />
+                <CategoryRow
+                  label="Labor Staff Cleaning & Detailing"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "laborStaffCleaningDetailing"),
+                  )}
+                  category="officeSupport"
+                  field="laborStaffCleaningDetailing"
+                />
+                <CategoryRow
+                  label="Labor Staff Commissions"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "laborStaffCommissions"),
+                  )}
+                  category="officeSupport"
+                  field="laborStaffCommissions"
+                />
+                <CategoryRow
+                  label="Labor Staff Drivers"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "laborStaffDrivers"),
+                  )}
+                  category="officeSupport"
+                  field="laborStaffDrivers"
+                />
+                <CategoryRow
+                  label="Labor Staff Human Resources"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "laborHumanResources"),
+                  )}
+                  category="officeSupport"
+                  field="laborHumanResources"
+                />
+                <CategoryRow
+                  label="Labor Staff Inspection"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "laborStaffInspection"),
+                  )}
+                  category="officeSupport"
+                  field="laborStaffInspection"
+                />
+                <CategoryRow
+                  label="Labor Staff Marketers"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "laborMarketing"),
+                  )}
+                  category="officeSupport"
+                  field="laborMarketing"
+                />
+                <CategoryRow
+                  label="Labor Staff Sales"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "laborSales"),
+                  )}
+                  category="officeSupport"
+                  field="laborSales"
+                />
+                <CategoryRow
+                  label="Labor Staff Software"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "laborSoftware"),
+                  )}
+                  category="officeSupport"
+                  field="laborSoftware"
+                />
+                <CategoryRow
                   label="Office Rent"
                   values={MONTHS.map((_, i) =>
                     getMonthValue(data.officeSupport, i + 1, "officeRent"),
                   )}
                   category="officeSupport"
                   field="officeRent"
-                />
-                <CategoryRow
-                  label="Outside & Staff Contractors"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(
-                      data.officeSupport,
-                      i + 1,
-                      "outsideStaffContractors",
-                    ),
-                  )}
-                  category="officeSupport"
-                  field="outsideStaffContractors"
                 />
                 <CategoryRow
                   label="Park n Jet Booth"
@@ -4205,14 +4275,6 @@ lastSavedNote.current = coHostNote;
                   field="travel"
                 />
                 <CategoryRow
-                  label="Labor Software"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "laborSoftware"),
-                  )}
-                  category="officeSupport"
-                  field="laborSoftware"
-                />
-                <CategoryRow
                   label="Legal & Professional"
                   values={MONTHS.map((_, i) =>
                     getMonthValue(
@@ -4244,55 +4306,7 @@ lastSavedNote.current = coHostNote;
                   category="officeSupport"
                   field="officeExpense"
                 />
-                <CategoryRow
-                  label="Labor Sales"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "laborSales"),
-                  )}
-                  category="officeSupport"
-                  field="laborSales"
-                />
                 {/* QuickBooks categories (Cathy, 2026-11-25) */}
-                <CategoryRow
-                  label="Wages - Cleaning"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "wagesCleaning"),
-                  )}
-                  category="officeSupport"
-                  field="wagesCleaning"
-                />
-                <CategoryRow
-                  label="Wages - Drivers"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "wagesDrivers"),
-                  )}
-                  category="officeSupport"
-                  field="wagesDrivers"
-                />
-                <CategoryRow
-                  label="Wages - Human Resources"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "wagesHumanResources"),
-                  )}
-                  category="officeSupport"
-                  field="wagesHumanResources"
-                />
-                <CategoryRow
-                  label="Wages - Marketing"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "laborMarketing"),
-                  )}
-                  category="officeSupport"
-                  field="laborMarketing"
-                />
-                <CategoryRow
-                  label="Wages - Owner"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "wagesOwner"),
-                  )}
-                  category="officeSupport"
-                  field="wagesOwner"
-                />
                 <CategoryRow
                   label="Payroll Taxes"
                   values={MONTHS.map((_, i) =>
