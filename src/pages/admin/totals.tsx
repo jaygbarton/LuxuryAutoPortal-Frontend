@@ -876,21 +876,16 @@ export default function TotalsPage() {
               >
                 <TotalRow label="Accounting & Professional Fees" value={totals?.operatingExpensesOffice?.accountingProfessionalFees} />
                 <TotalRow label="Advertising" value={totals?.operatingExpensesOffice?.advertizing} />
-                <TotalRow label="Bank Charges" value={totals?.operatingExpensesOffice?.bankCharges} />
-                <TotalRow label="Detail Mobile" value={totals?.operatingExpensesOffice?.detailMobile} />
                 <TotalRow label="Charitable Contributions" value={totals?.operatingExpensesOffice?.charitableContributions} />
                 <TotalRow label="Computer & Internet" value={totals?.operatingExpensesOffice?.computerInternet} />
                 <TotalRow label="Delivery, Postage & Freight" value={totals?.operatingExpensesOffice?.deliveryPostageFreight} />
                 <TotalRow label="Detail Shop Equipment" value={totals?.operatingExpensesOffice?.detailShopEquipment} />
                 <TotalRow label="Dues & Subscription" value={totals?.operatingExpensesOffice?.duesSubscription} />
-                <TotalRow label="General & Administrative (G&A)" value={totals?.operatingExpensesOffice?.generalAdministrative} />
-                <TotalRow label="Health & Wellness" value={totals?.operatingExpensesOffice?.healthWellness} />
                 <TotalRow label="Labor - Human Resources" value={totals?.operatingExpensesOffice?.laborHumanResources} />
                 <TotalRow label="Labor - Marketing" value={totals?.operatingExpensesOffice?.laborMarketing} />
                 <TotalRow label="Labor - Sales" value={totals?.operatingExpensesOffice?.laborSales} />
                 <TotalRow label="Labor - Software" value={totals?.operatingExpensesOffice?.laborSoftware} />
                 <TotalRow label="Legal & Professional" value={totals?.operatingExpensesOffice?.legalProfessional} />
-                <TotalRow label="Marketing" value={totals?.operatingExpensesOffice?.marketing} />
                 <TotalRow label="Meals & Entertainment" value={totals?.operatingExpensesOffice?.mealsEntertainment} />
                 <TotalRow label="Office Expense" value={totals?.operatingExpensesOffice?.officeExpense} />
                 <TotalRow label="Office Rent" value={totals?.operatingExpensesOffice?.officeRent} />
@@ -899,12 +894,25 @@ export default function TotalsPage() {
                 <TotalRow label="Printing" value={totals?.operatingExpensesOffice?.printing} />
                 <TotalRow label="Referral" value={totals?.operatingExpensesOffice?.referral} />
                 <TotalRow label="Repairs & Maintenance" value={totals?.operatingExpensesOffice?.repairsMaintenance} />
-                <TotalRow label="Sales Tax" value={totals?.operatingExpensesOffice?.salesTax} />
                 <TotalRow label="Security Cameras" value={totals?.operatingExpensesOffice?.securityCameras} />
                 <TotalRow label="Supplies & Materials" value={totals?.operatingExpensesOffice?.suppliesMaterials} />
                 <TotalRow label="Taxes & License" value={totals?.operatingExpensesOffice?.taxesLicense} />
                 <TotalRow label="Telephone" value={totals?.operatingExpensesOffice?.telephone} />
                 <TotalRow label="Travel" value={totals?.operatingExpensesOffice?.travel} />
+                <TotalRow label="Wages - Cleaning" value={totals?.operatingExpensesOffice?.wagesCleaning} />
+                <TotalRow label="Wages - Drivers" value={totals?.operatingExpensesOffice?.wagesDrivers} />
+                <TotalRow label="Wages - Human Resources" value={totals?.operatingExpensesOffice?.wagesHumanResources} />
+                <TotalRow label="Wages - Owner" value={totals?.operatingExpensesOffice?.wagesOwner} />
+                <TotalRow label="Payroll Taxes" value={totals?.operatingExpensesOffice?.payrollTaxes} />
+                <TotalRow label="Detail Shop Chemicals" value={totals?.operatingExpensesOffice?.detailShopChemicals} />
+                <TotalRow label="Owner Distributions" value={totals?.operatingExpensesOffice?.ownerDistributions} />
+                <TotalRow label="Storage Unit" value={totals?.operatingExpensesOffice?.storageUnit} />
+                <TotalRow label="Utilities" value={totals?.operatingExpensesOffice?.utilities} />
+                <TotalRow label="Furniture" value={totals?.operatingExpensesOffice?.furniture} />
+                <TotalRow label="QuickBooks Payments Fees" value={totals?.operatingExpensesOffice?.quickbooksPaymentsFees} />
+                <TotalRow label="Benefits" value={totals?.operatingExpensesOffice?.benefits} />
+                <TotalRow label="Life Insurance" value={totals?.operatingExpensesOffice?.lifeInsurance} />
+                <TotalRow label="Bad Debt" value={totals?.operatingExpensesOffice?.badDebt} />
                 <TotalRow label="Total Office Support" value={totals?.operatingExpensesOffice?.total} separator bold />
               </Section>
             )}
