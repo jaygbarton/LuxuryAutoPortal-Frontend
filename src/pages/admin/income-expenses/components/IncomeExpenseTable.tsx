@@ -832,21 +832,16 @@ lastSavedNote.current = coHostNote;
     return (
       getMonthValue(data.officeSupport, month, "accountingProfessionalFees") +
       getMonthValue(data.officeSupport, month, "advertizing") +
-      getMonthValue(data.officeSupport, month, "bankCharges") +
-      getMonthValue(data.officeSupport, month, "detailMobile") +
       getMonthValue(data.officeSupport, month, "charitableContributions") +
       getMonthValue(data.officeSupport, month, "computerInternet") +
       getMonthValue(data.officeSupport, month, "deliveryPostageFreight") +
       getMonthValue(data.officeSupport, month, "detailShopEquipment") +
       getMonthValue(data.officeSupport, month, "duesSubscription") +
-      getMonthValue(data.officeSupport, month, "generalAdministrative") +
-      getMonthValue(data.officeSupport, month, "healthWellness") +
       getMonthValue(data.officeSupport, month, "laborSales") +
       getMonthValue(data.officeSupport, month, "laborSoftware") +
       getMonthValue(data.officeSupport, month, "laborHumanResources") +
       getMonthValue(data.officeSupport, month, "laborMarketing") +
       getMonthValue(data.officeSupport, month, "legalProfessional") +
-      getMonthValue(data.officeSupport, month, "marketing") +
       getMonthValue(data.officeSupport, month, "mealsEntertainment") +
       getMonthValue(data.officeSupport, month, "officeExpense") +
       getMonthValue(data.officeSupport, month, "officeRent") +
@@ -855,17 +850,30 @@ lastSavedNote.current = coHostNote;
       getMonthValue(data.officeSupport, month, "printing") +
       getMonthValue(data.officeSupport, month, "referral") +
       getMonthValue(data.officeSupport, month, "repairsMaintenance") +
-      getMonthValue(data.officeSupport, month, "salesTax") +
       getMonthValue(data.officeSupport, month, "securityCameras") +
       getMonthValue(data.officeSupport, month, "shippingFreightDelivery") +
       getMonthValue(data.officeSupport, month, "suppliesMaterials") +
       getMonthValue(data.officeSupport, month, "taxesLicense") +
       getMonthValue(data.officeSupport, month, "telephone") +
       getMonthValue(data.officeSupport, month, "travel") +
+      getMonthValue(data.officeSupport, month, "wagesCleaning") +
+      getMonthValue(data.officeSupport, month, "wagesDrivers") +
+      getMonthValue(data.officeSupport, month, "wagesHumanResources") +
+      getMonthValue(data.officeSupport, month, "wagesOwner") +
+      getMonthValue(data.officeSupport, month, "payrollTaxes") +
+      getMonthValue(data.officeSupport, month, "detailShopChemicals") +
+      getMonthValue(data.officeSupport, month, "ownerDistributions") +
+      getMonthValue(data.officeSupport, month, "storageUnit") +
+      getMonthValue(data.officeSupport, month, "utilities") +
+      getMonthValue(data.officeSupport, month, "furniture") +
+      getMonthValue(data.officeSupport, month, "quickbooksPaymentsFees") +
+      getMonthValue(data.officeSupport, month, "benefits") +
+      getMonthValue(data.officeSupport, month, "lifeInsurance") +
+      getMonthValue(data.officeSupport, month, "badDebt") +
       // Approved Office Support receipts (car_id 0), shown on top of the
       // manual value in each row above.
       getCategoryMonthFormTotal("officeSupport", month)
-      // NOTE: EBITDA-only fields (vehicleLoanInterestExpense, depreciationExpense,
+      // NOTE: EBITDA-only fields (vehicleLoanInterestExpense, cardBankInterestExpense, depreciationExpense,
       // vehicleDepreciationExpense, amortizationExpense, ebitdaTaxes) are
       // intentionally excluded here. They are manual entries on the EBITDA
       // card and must not feed the "Totals OPERATING EXPENSE (Office Support)"
@@ -873,8 +881,8 @@ lastSavedNote.current = coHostNote;
     );
   };
 
-  // Sum of the four EBITDA manual entries (Interest + Taxes + Depreciation +
-  // Amortization). These are tracked separately from OPERATING EXPENSES
+  // Sum of the five EBITDA manual entries (Vehicle Loan Interest + Card & Bank
+  // Interest + Taxes + Depreciation + Amortization). These are tracked separately from OPERATING EXPENSES
   // (OFFICE SUPPORT) so they don't pollute that total, but they still need to
   // be subtracted from Net Income (and added back to get EBITDA). See the
   // Total Expenses / Net Income / EBITDA rows in the EBITDA section below.
@@ -882,6 +890,7 @@ lastSavedNote.current = coHostNote;
     if (!data.officeSupport || !Array.isArray(data.officeSupport)) return 0;
     return (
       getMonthValue(data.officeSupport, month, "vehicleLoanInterestExpense") +
+      getMonthValue(data.officeSupport, month, "cardBankInterestExpense") +
       getMonthValue(data.officeSupport, month, "ebitdaTaxes") +
       getMonthValue(data.officeSupport, month, "depreciationExpense") +
       getMonthValue(data.officeSupport, month, "amortizationExpense")
@@ -3883,22 +3892,6 @@ lastSavedNote.current = coHostNote;
                   field="advertizing"
                 />
                 <CategoryRow
-                  label="Bank Charges"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "bankCharges"),
-                  )}
-                  category="officeSupport"
-                  field="bankCharges"
-                />
-                <CategoryRow
-                  label="Detail Mobile"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "detailMobile"),
-                  )}
-                  category="officeSupport"
-                  field="detailMobile"
-                />
-                <CategoryRow
                   label="Charitable Contributions"
                   values={MONTHS.map((_, i) =>
                     getMonthValue(
@@ -3957,26 +3950,6 @@ lastSavedNote.current = coHostNote;
                   )}
                   category="officeSupport"
                   field="duesSubscription"
-                />
-                <CategoryRow
-                  label="General and administrative (G&A)"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(
-                      data.officeSupport,
-                      i + 1,
-                      "generalAdministrative",
-                    ),
-                  )}
-                  category="officeSupport"
-                  field="generalAdministrative"
-                />
-                <CategoryRow
-                  label="Health & Wellness"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "healthWellness"),
-                  )}
-                  category="officeSupport"
-                  field="healthWellness"
                 />
                 <CategoryRow
                   label="Labor - Human Resources"
@@ -4055,14 +4028,6 @@ lastSavedNote.current = coHostNote;
                   field="repairsMaintenance"
                 />
                 <CategoryRow
-                  label="Sales Tax"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "salesTax"),
-                  )}
-                  category="officeSupport"
-                  field="salesTax"
-                />
-                <CategoryRow
                   label="Security Cameras"
                   values={MONTHS.map((_, i) =>
                     getMonthValue(data.officeSupport, i + 1, "securityCameras"),
@@ -4127,14 +4092,6 @@ lastSavedNote.current = coHostNote;
                   field="legalProfessional"
                 />
                 <CategoryRow
-                  label="Marketing"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "marketing"),
-                  )}
-                  category="officeSupport"
-                  field="marketing"
-                />
-                <CategoryRow
                   label="Meals & Entertainment"
                   values={MONTHS.map((_, i) =>
                     getMonthValue(
@@ -4161,6 +4118,119 @@ lastSavedNote.current = coHostNote;
                   )}
                   category="officeSupport"
                   field="laborSales"
+                />
+                {/* QuickBooks categories (Cathy, 2026-11-25) */}
+                <CategoryRow
+                  label="Wages - Cleaning"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "wagesCleaning"),
+                  )}
+                  category="officeSupport"
+                  field="wagesCleaning"
+                />
+                <CategoryRow
+                  label="Wages - Drivers"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "wagesDrivers"),
+                  )}
+                  category="officeSupport"
+                  field="wagesDrivers"
+                />
+                <CategoryRow
+                  label="Wages - Human Resources"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "wagesHumanResources"),
+                  )}
+                  category="officeSupport"
+                  field="wagesHumanResources"
+                />
+                <CategoryRow
+                  label="Wages - Owner"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "wagesOwner"),
+                  )}
+                  category="officeSupport"
+                  field="wagesOwner"
+                />
+                <CategoryRow
+                  label="Payroll Taxes"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "payrollTaxes"),
+                  )}
+                  category="officeSupport"
+                  field="payrollTaxes"
+                />
+                <CategoryRow
+                  label="Detail Shop Chemicals"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "detailShopChemicals"),
+                  )}
+                  category="officeSupport"
+                  field="detailShopChemicals"
+                />
+                <CategoryRow
+                  label="Owner Distributions"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "ownerDistributions"),
+                  )}
+                  category="officeSupport"
+                  field="ownerDistributions"
+                />
+                <CategoryRow
+                  label="Storage Unit"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "storageUnit"),
+                  )}
+                  category="officeSupport"
+                  field="storageUnit"
+                />
+                <CategoryRow
+                  label="Utilities"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "utilities"),
+                  )}
+                  category="officeSupport"
+                  field="utilities"
+                />
+                <CategoryRow
+                  label="Furniture"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "furniture"),
+                  )}
+                  category="officeSupport"
+                  field="furniture"
+                />
+                <CategoryRow
+                  label="QuickBooks Payments Fees"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "quickbooksPaymentsFees"),
+                  )}
+                  category="officeSupport"
+                  field="quickbooksPaymentsFees"
+                />
+                <CategoryRow
+                  label="Benefits"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "benefits"),
+                  )}
+                  category="officeSupport"
+                  field="benefits"
+                />
+                <CategoryRow
+                  label="Life Insurance"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "lifeInsurance"),
+                  )}
+                  category="officeSupport"
+                  field="lifeInsurance"
+                />
+                <CategoryRow
+                  label="Bad Debt"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "badDebt"),
+                  )}
+                  category="officeSupport"
+                  field="badDebt"
                 />
                 <CategoryRow
                   label="Totals OPERATING EXPENSE (Office Support)"
@@ -4313,7 +4383,7 @@ lastSavedNote.current = coHostNote;
                     admin-page blanket read-only guard used for aggregated
                     rows so the admin can type these values here. */}
                 <CategoryRow
-                  label="Interest"
+                  label="Vehicle Loan Interest"
                   values={MONTHS.map((_, i) =>
                     getMonthValue(
                       data.officeSupport,
@@ -4323,6 +4393,23 @@ lastSavedNote.current = coHostNote;
                   )}
                   category="officeSupport"
                   field="vehicleLoanInterestExpense"
+                  isEditable={true}
+                  alwaysEditable
+                />
+                {/* Card & bank interest, separate from vehicle loan interest
+                    (Cathy, 2026-11-25). An EBITDA add-back like the rows
+                    around it; not part of Office Support. */}
+                <CategoryRow
+                  label="Card & Bank Interest"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(
+                      data.officeSupport,
+                      i + 1,
+                      "cardBankInterestExpense",
+                    ),
+                  )}
+                  category="officeSupport"
+                  field="cardBankInterestExpense"
                   isEditable={true}
                   alwaysEditable
                 />

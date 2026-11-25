@@ -28,7 +28,8 @@ const FIELD_LABELS: { [key: string]: string } = {
   // EBITDA manual entries. EBITDA Taxes uses ebitdaTaxes (distinct from the
   // operational taxesLicense row shown under OPERATING EXPENSES (OFFICE
   // SUPPORT)).
-  vehicleLoanInterestExpense: "Interest",
+  vehicleLoanInterestExpense: "Vehicle Loan Interest",
+  cardBankInterestExpense: "Card & Bank Interest",
   ebitdaTaxes: "Taxes",
   depreciationExpense: "Depreciation",
   amortizationExpense: "Amortization",
@@ -36,21 +37,16 @@ const FIELD_LABELS: { [key: string]: string } = {
   // is a manual entry on the All Cars page.
   accountingProfessionalFees: "Accounting & Professional Fees",
   advertizing: "Advertizing",
-  bankCharges: "Bank Charges",
-  detailMobile: "Detail Mobile",
   charitableContributions: "Charitable Contributions",
   computerInternet: "Computer & Internet",
   deliveryPostageFreight: "Delivery, Postage & Freight",
   detailShopEquipment: "Detail Shop Equipment",
   duesSubscription: "Dues & Subscription",
-  generalAdministrative: "General and administrative (G&A)",
-  healthWellness: "Health & Wellness",
   laborHumanResources: "Labor - Human Resources",
   laborMarketing: "Labor - Marketing",
   laborSales: "Labor Sales",
   laborSoftware: "Labor Software",
   legalProfessional: "Legal & Professional",
-  marketing: "Marketing",
   mealsEntertainment: "Meals & Entertainment",
   officeExpense: "Office Expense",
   officeRent: "Office Rent",
@@ -59,11 +55,25 @@ const FIELD_LABELS: { [key: string]: string } = {
   printing: "Printing",
   referral: "Referral",
   repairsMaintenance: "Repairs & Maintenance",
-  salesTax: "Sales Tax",
   securityCameras: "Security Cameras",
   suppliesMaterials: "Supplies & Materials",
   telephone: "Telephone",
   travel: "Travel",
+  // QuickBooks categories (Cathy, 2026-11-25).
+  wagesCleaning: "Wages - Cleaning",
+  wagesDrivers: "Wages - Drivers",
+  wagesHumanResources: "Wages - Human Resources",
+  wagesOwner: "Wages - Owner",
+  payrollTaxes: "Payroll Taxes",
+  detailShopChemicals: "Detail Shop Chemicals",
+  ownerDistributions: "Owner Distributions",
+  storageUnit: "Storage Unit",
+  utilities: "Utilities",
+  furniture: "Furniture",
+  quickbooksPaymentsFees: "QuickBooks Payments Fees",
+  benefits: "Benefits",
+  lifeInsurance: "Life Insurance",
+  badDebt: "Bad Debt",
 };
 
 export default function ModalEditOfficeSupport() {

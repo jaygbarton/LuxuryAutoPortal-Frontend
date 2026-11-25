@@ -156,7 +156,23 @@ export interface OfficeSupportMonth {
   travel: number;
   depreciationExpense: number;
   vehicleDepreciationExpense: number;
+  // QuickBooks categories (Cathy, 2026-11-25).
+  wagesCleaning: number;
+  wagesDrivers: number;
+  wagesHumanResources: number;
+  wagesOwner: number;
+  payrollTaxes: number;
+  detailShopChemicals: number;
+  ownerDistributions: number;
+  storageUnit: number;
+  utilities: number;
+  furniture: number;
+  quickbooksPaymentsFees: number;
+  benefits: number;
+  lifeInsurance: number;
+  badDebt: number;
   vehicleLoanInterestExpense: number;
+  cardBankInterestExpense: number;
   // All-Cars EBITDA manual entry (stored at car_id = 0, same pattern as
   // parking_airport_qb). Not meaningful on per-car rows.
   amortizationExpense: number;
