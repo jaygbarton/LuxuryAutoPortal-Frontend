@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { distributeIncomeMonth, percentNote, DISTRIBUTION_ROWS } from "../incomeDistribution";
+import { distributeIncomeMonth, fleetShareNote, percentNote, DISTRIBUTION_ROWS } from "../incomeDistribution";
 
 const base = { mode: 50 as const, mgmtPercent: 50, ownerPercent: 50, skiRacksOwner: "GLA" as const };
 
@@ -70,5 +70,26 @@ describe("percentNote", () => {
   it("names one % when every month agrees", () => {
     expect(percentNote([50, 50, 50])).toBe("50%");
     expect(percentNote([30, 50])).toBe("% by month");
+  });
+});
+
+describe("fleetShareNote (All Cars / Totals)", () => {
+  it("names the fixed share every car gets", () => {
+    expect(fleetShareNote("smokingFines", 2026, "mgmt")).toBe("90%");
+    expect(fleetShareNote("smokingFines", 2026, "owner")).toBe("10%");
+    expect(fleetShareNote("deliveryIncome", 2026, "mgmt")).toBe("100%");
+    expect(fleetShareNote("milesIncome", 2026, "owner")).toBe("100%");
+  });
+
+  it("leaves out a side that never gets a share", () => {
+    expect(fleetShareNote("deliveryIncome", 2026, "owner")).toBeNull();
+    expect(fleetShareNote("guestCancellationIncome", 2026, "mgmt")).toBeNull();
+    expect(fleetShareNote("deliveryIncome", 2018, "mgmt")).toBeNull();
+  });
+
+  it("says when the share depends on the car", () => {
+    expect(fleetShareNote("skiRacksIncome", 2026, "owner")).toBe("varies by car");
+    expect(fleetShareNote("childSeatIncome", 2024, "owner")).toBe("varies by car");
+    expect(fleetShareNote("tripIncome", 2026, "mgmt")).toBe("each car's %");
   });
 });

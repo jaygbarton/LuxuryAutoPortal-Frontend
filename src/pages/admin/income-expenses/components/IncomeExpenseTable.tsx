@@ -1,5 +1,5 @@
 import {reportSectionId,reportSections} from '@/lib/report-navigation';
-import { DISTRIBUTION_ROWS, distributeIncomeMonth, percentNote, type DistributionField } from "../utils/incomeDistribution";
+import { DISTRIBUTION_ROWS, distributeIncomeMonth, fleetShareNote, percentNote, type DistributionField } from "../utils/incomeDistribution";
 import { rentalAveragePerKnownTrip, rentalMetric } from "@/lib/rentalReportMetrics";
 import React, { useState } from "react";
 import {
@@ -2251,7 +2251,7 @@ lastSavedNote.current = coHostNote;
     <div className="w-full min-w-0 bg-card border border-border rounded-lg">
       <nav aria-label="Financial report sections" className="flex flex-wrap gap-2 border-b p-3">
         {Object.entries(reportSections).filter(([key,section]) =>
-          (key !== 'officeSupport' || isAllCarsView) && (key !== 'incomeDistribution' || !isAllCarsView) && (!isEmployeeView || isSectionAllowedForEmployee(section.title))
+          (key !== 'officeSupport' || isAllCarsView) && (!isEmployeeView || isSectionAllowedForEmployee(section.title))
         ).map(([key,section]) => <button key={key} type="button" className="rounded-md border px-3 py-2 text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary"
           onClick={() => {setExpandedSections(previous=>({...previous,[key]:true}));requestAnimationFrame(()=>document.getElementById(`report-${key}`)?.scrollIntoView({block:'start'}));}}>{section.label}</button>)}
       </nav>
@@ -2955,9 +2955,14 @@ lastSavedNote.current = coHostNote;
             {/* INCOME DISTRIBUTION (per car; Cathy, 2026-11-25): each
                 income row above divided between Car Management and the Car
                 Owner, before expenses. Rules in ../utils/incomeDistribution.ts. */}
-            {!isAllCarsView && (() => {
+            {(() => {
               const yearNum = parseInt(year, 10);
-              const months = MONTHS.map((_, i) => {
+              // All Cars: the backend distributes every car with its own %
+              // and sums them (data.incomeDistribution).
+              const fleetMonths = isAllCarsView
+                ? MONTHS.map((_, i) => data.incomeDistribution?.find((m) => m.month === i + 1) || null)
+                : [];
+              const months = isAllCarsView ? [] : MONTHS.map((_, i) => {
                 const month = i + 1;
                 const row = data.incomeExpenses?.find((x: any) => x && x.month === month);
                 const pct = (stored: any, fallback: number) =>
@@ -2988,17 +2993,22 @@ lastSavedNote.current = coHostNote;
               // (no 0% rows).
               const sideRows = (side: "mgmt" | "owner") =>
                 rows.filter(({ field }) =>
-                  months.some((m) => m && (side === "mgmt" ? m[field].mgmtPercent : m[field].ownerPercent) > 0),
+                  isAllCarsView
+                    ? fleetShareNote(field, yearNum, side) !== null
+                    : months.some((m) => m && (side === "mgmt" ? m[field].mgmtPercent : m[field].ownerPercent) > 0),
                 );
               const part = (side: "mgmt" | "owner", field: DistributionField) =>
-                months.map((m) => (m ? m[field][side] : 0));
-              const note = (side: "mgmt" | "owner", field: DistributionField) => {
-                return percentNote(
-                  months.map((m) => (m ? (side === "mgmt" ? m[field].mgmtPercent : m[field].ownerPercent) : 0)),
-                );
-              };
+                isAllCarsView
+                  ? fleetMonths.map((m) => Number(m?.[side]?.[field]) || 0)
+                  : months.map((m) => (m ? m[field][side] : 0));
+              const note = (side: "mgmt" | "owner", field: DistributionField) =>
+                isAllCarsView
+                  ? fleetShareNote(field, yearNum, side) ?? undefined
+                  : percentNote(
+                      months.map((m) => (m ? (side === "mgmt" ? m[field].mgmtPercent : m[field].ownerPercent) : 0)),
+                    );
               const total = (side: "mgmt" | "owner") =>
-                months.map((m) => (m ? sideRows(side).reduce((sum, { field }) => sum + m[field][side], 0) : 0));
+                MONTHS.map((_, i) => sideRows(side).reduce((sum, { field }) => sum + part(side, field)[i], 0));
               const subheader = (text: string) => (
                 <tr className="bg-muted/60">
                   <td colSpan={14} className="px-2 py-1.5 text-xs font-semibold text-foreground">

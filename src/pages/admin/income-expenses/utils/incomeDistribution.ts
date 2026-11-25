@@ -94,7 +94,7 @@ export interface DistributionCell {
 const round2 = (v: number) => Math.round((v + Number.EPSILON) * 100) / 100;
 
 /** [Car Management %, Car Owner %] for a row, or "pool" for the month's split %. */
-function shareOf(
+export function shareOf(
   field: DistributionField,
   year: number,
   mode: 50 | 70,
@@ -157,4 +157,32 @@ export function percentNote(percents: number[]): string {
   const distinct = Array.from(new Set(percents.map((p) => round2(p))));
   if (distinct.length === 1) return `${distinct[0]}%`;
   return "% by month";
+}
+
+/**
+ * The % note for one side of a row on views that add up many cars (All Cars,
+ * Totals): the fixed % when every car gets the same share that year, "each
+ * car's %" when it follows each car's split, "varies by car" when it depends
+ * on the car's mode or ski rack owner. Null when that side never gets a share
+ * of the row in that year, so the row is left out.
+ */
+export function fleetShareNote(field: DistributionField, year: number, side: "mgmt" | "owner"): string | null {
+  if (!(year >= 2019)) return null;
+  const notes = new Set<string>();
+  let anyShare = false;
+  for (const mode of [50, 70] as const) {
+    for (const ski of ["GLA", "CAR_OWNER"] as const) {
+      const share = shareOf(field, year, mode, ski);
+      if (share === "pool") {
+        anyShare = true;
+        notes.add("each car's %");
+      } else {
+        const p = side === "mgmt" ? share[0] : share[1];
+        if (p > 0) anyShare = true;
+        notes.add(`${p}%`);
+      }
+    }
+  }
+  if (!anyShare) return null;
+  return notes.size === 1 ? [...notes][0] : "varies by car";
 }
