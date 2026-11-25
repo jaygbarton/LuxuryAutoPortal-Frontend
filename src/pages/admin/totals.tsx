@@ -924,7 +924,6 @@ export default function TotalsPage() {
               >
                 <TotalRow label="Accounting & Professional Fees" value={totals?.operatingExpensesOffice?.accountingProfessionalFees} />
                 <TotalRow label="Advertising" value={totals?.operatingExpensesOffice?.advertizing} />
-                <TotalRow label="Charitable Contributions" value={totals?.operatingExpensesOffice?.charitableContributions} />
                 <TotalRow label="Computer & Internet" value={totals?.operatingExpensesOffice?.computerInternet} />
                 <TotalRow label="Delivery, Postage & Freight" value={totals?.operatingExpensesOffice?.deliveryPostageFreight} />
                 <TotalRow label="Detail Shop Equipment" value={totals?.operatingExpensesOffice?.detailShopEquipment} />

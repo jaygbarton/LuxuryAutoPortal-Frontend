@@ -37,7 +37,6 @@ const FIELD_LABELS: { [key: string]: string } = {
   // is a manual entry on the All Cars page.
   accountingProfessionalFees: "Accounting & Professional Fees",
   advertizing: "Advertizing",
-  charitableContributions: "Charitable Contributions",
   computerInternet: "Computer & Internet",
   deliveryPostageFreight: "Delivery, Postage & Freight",
   detailShopEquipment: "Detail Shop Equipment",
