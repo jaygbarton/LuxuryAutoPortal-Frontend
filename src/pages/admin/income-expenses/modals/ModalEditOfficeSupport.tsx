@@ -53,7 +53,6 @@ const FIELD_LABELS: { [key: string]: string } = {
   laborSales: "Labor Staff Sales",
   laborSoftware: "Labor Staff Software",
   legalProfessional: "Legal & Professional",
-  mealsEntertainment: "Meals & Entertainment",
   officeExpense: "Office Expense",
   equipment: "Equipment",
   officeRent: "Office Rent",
@@ -73,7 +72,6 @@ const FIELD_LABELS: { [key: string]: string } = {
   utilities: "Utilities",
   furniture: "Furniture",
   quickbooksPaymentsFees: "QuickBooks Payments Fees",
-  benefits: "Benefits",
 };
 
 export default function ModalEditOfficeSupport() {
