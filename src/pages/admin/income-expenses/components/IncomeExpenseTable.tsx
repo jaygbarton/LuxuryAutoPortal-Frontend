@@ -2805,7 +2805,7 @@ lastSavedNote.current = coHostNote;
                 field="gasReimbursementIncome"
               />
               <CategoryRow
-                label="On-Trip Charging Income"
+                label="Income On-Trip Charging"
                 splitLabel={shareNote("onTripChargingIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "onTripChargingIncome"),
@@ -2814,7 +2814,7 @@ lastSavedNote.current = coHostNote;
                 field="onTripChargingIncome"
               />
               <CategoryRow
-                label="Post-Trip Charging Income"
+                label="Income Post-Trip Charging"
                 splitLabel={shareNote("postTripChargingIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "postTripChargingIncome"),

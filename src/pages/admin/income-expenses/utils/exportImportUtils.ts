@@ -910,8 +910,8 @@ export function buildIncomeExpenseCSV(
     { field: 'otherIncome', label: 'Income Other Turo' },
     { field: 'guestCancellationIncome', label: 'Income Guest Cancellation' },
     { field: 'gasReimbursementIncome', label: 'Income Gas Reimbursed' },
-    { field: 'onTripChargingIncome', label: 'On-Trip Charging Income' },
-    { field: 'postTripChargingIncome', label: 'Post-Trip Charging Income' },
+    { field: 'onTripChargingIncome', label: 'Income On-Trip Charging' },
+    { field: 'postTripChargingIncome', label: 'Income Post-Trip Charging' },
   ];
   
   incomeFields.forEach(({ field, label }) => {

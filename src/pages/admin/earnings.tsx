@@ -1779,13 +1779,13 @@ export default function EarningsPage() {
                     category="income" field="gasReimbursementIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
-                    label="On-Trip Charging Income"
+                    label="Income On-Trip Charging"
                     splitLabel={shareNote("onTripChargingIncome")}
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "onTripChargingIncome"))}
                     category="income" field="onTripChargingIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
-                    label="Post-Trip Charging Income"
+                    label="Income Post-Trip Charging"
                     splitLabel={shareNote("postTripChargingIncome")}
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "postTripChargingIncome"))}
                     category="income" field="postTripChargingIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}

@@ -154,8 +154,8 @@ export default function ModalEditIncomeExpense() {
     otherIncome: "Income Other Turo",
     guestCancellationIncome: "Income Guest Cancellation",
     gasReimbursementIncome: "Income Gas Reimbursed",
-    onTripChargingIncome: "On-Trip Charging Income",
-    postTripChargingIncome: "Post-Trip Charging Income",
+    onTripChargingIncome: "Income On-Trip Charging",
+    postTripChargingIncome: "Income Post-Trip Charging",
     negativeBalanceCarryOver: "Negative Balance Carry Over",
     carPayment: "Car Payment",
     carManagementTotalExpenses: "Car Management Total Expenses",
@@ -497,11 +497,11 @@ export default function ModalEditIncomeExpense() {
                       <span>${incomeValues.gasReimbursementIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>On-Trip Charging Income:</span>
+                      <span>Income On-Trip Charging:</span>
                       <span>${incomeValues.onTripChargingIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Post-Trip Charging Income:</span>
+                      <span>Income Post-Trip Charging:</span>
                       <span>${incomeValues.postTripChargingIncome.toFixed(2)}</span>
                     </div>
                   </div>
