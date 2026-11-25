@@ -917,10 +917,7 @@ export default function TotalsPage() {
               title="REIMBURSED & NON-REIMBURSED BILLS"
               totalValue={totals?.reimbursedBills?.total}
             >
-              {/* Retired row: listed only when the period has money on it. */}
-              {Number(totals?.reimbursedBills?.electricReimbursed) !== 0 && (
-                <TotalRow label="Electric - Reimbursed" value={totals?.reimbursedBills?.electricReimbursed} />
-              )}
+              <TotalRow label="Electric - Reimbursed" value={totals?.reimbursedBills?.electricReimbursed} />
               <TotalRow label="Electric - Not Reimbursed" value={totals?.reimbursedBills?.electricNotReimbursed} />
               <TotalRow label="Gas – Charged to Guest" value={totals?.reimbursedBills?.gasReimbursed} />
               <TotalRow label="Gas – Not Charged to Guest" value={totals?.reimbursedBills?.gasNotReimbursed} />
