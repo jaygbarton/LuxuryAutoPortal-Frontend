@@ -37,7 +37,6 @@ const FIELD_LABELS: { [key: string]: string } = {
   // is a manual entry on the All Cars page.
   accountingProfessionalFees: "Accounting & Professional Fees",
   advertizing: "Advertizing",
-  charitableContributions: "Charitable Contributions",
   computerInternet: "Computer & Internet",
   deliveryPostageFreight: "Delivery, Postage & Freight",
   detailShopEquipment: "Detail Shop Equipment",
@@ -63,7 +62,6 @@ const FIELD_LABELS: { [key: string]: string } = {
   securityCameras: "Security Cameras",
   suppliesMaterials: "Supplies & Materials",
   telephone: "Telephone",
-  travel: "Travel",
   // QuickBooks categories (Cathy, 2026-11-25).
   payrollTaxes: "Payroll Taxes",
   detailShopChemicals: "Detail Shop Chemicals",
