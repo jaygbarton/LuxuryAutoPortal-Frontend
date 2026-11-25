@@ -865,11 +865,9 @@ lastSavedNote.current = coHostNote;
       getMonthValue(data.officeSupport, month, "travel") +
       getMonthValue(data.officeSupport, month, "payrollTaxes") +
       getMonthValue(data.officeSupport, month, "detailShopChemicals") +
-      getMonthValue(data.officeSupport, month, "ownerDistributions") +
       getMonthValue(data.officeSupport, month, "storageUnit") +
       getMonthValue(data.officeSupport, month, "utilities") +
       getMonthValue(data.officeSupport, month, "furniture") +
-      getMonthValue(data.officeSupport, month, "quickbooksPaymentsFees") +
       // Approved Office Support receipts (car_id 0), shown on top of the
       // manual value in each row above.
       getCategoryMonthFormTotal("officeSupport", month)
@@ -4317,14 +4315,6 @@ lastSavedNote.current = coHostNote;
                   field="detailShopChemicals"
                 />
                 <CategoryRow
-                  label="Owner Distributions"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "ownerDistributions"),
-                  )}
-                  category="officeSupport"
-                  field="ownerDistributions"
-                />
-                <CategoryRow
                   label="Storage Unit"
                   values={MONTHS.map((_, i) =>
                     getMonthValue(data.officeSupport, i + 1, "storageUnit"),
@@ -4347,14 +4337,6 @@ lastSavedNote.current = coHostNote;
                   )}
                   category="officeSupport"
                   field="furniture"
-                />
-                <CategoryRow
-                  label="QuickBooks Payments Fees"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "quickbooksPaymentsFees"),
-                  )}
-                  category="officeSupport"
-                  field="quickbooksPaymentsFees"
                 />
                 <CategoryRow
                   label="Totals OPERATING EXPENSE (Office Support)"

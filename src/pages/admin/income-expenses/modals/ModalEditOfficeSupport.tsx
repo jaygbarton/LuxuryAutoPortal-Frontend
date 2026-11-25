@@ -67,11 +67,9 @@ const FIELD_LABELS: { [key: string]: string } = {
   // QuickBooks categories (Cathy, 2026-11-25).
   payrollTaxes: "Payroll Taxes",
   detailShopChemicals: "Detail Shop Chemicals",
-  ownerDistributions: "Owner Distributions",
   storageUnit: "Storage Unit",
   utilities: "Utilities",
   furniture: "Furniture",
-  quickbooksPaymentsFees: "QuickBooks Payments Fees",
 };
 
 export default function ModalEditOfficeSupport() {

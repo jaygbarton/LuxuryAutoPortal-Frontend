@@ -954,11 +954,9 @@ export default function TotalsPage() {
                 <TotalRow label="Travel" value={totals?.operatingExpensesOffice?.travel} />
                 <TotalRow label="Payroll Taxes" value={totals?.operatingExpensesOffice?.payrollTaxes} />
                 <TotalRow label="Detail Shop Chemicals" value={totals?.operatingExpensesOffice?.detailShopChemicals} />
-                <TotalRow label="Owner Distributions" value={totals?.operatingExpensesOffice?.ownerDistributions} />
                 <TotalRow label="Storage Unit" value={totals?.operatingExpensesOffice?.storageUnit} />
                 <TotalRow label="Utilities" value={totals?.operatingExpensesOffice?.utilities} />
                 <TotalRow label="Furniture" value={totals?.operatingExpensesOffice?.furniture} />
-                <TotalRow label="QuickBooks Payments Fees" value={totals?.operatingExpensesOffice?.quickbooksPaymentsFees} />
                 <TotalRow label="Total Office Support" value={totals?.operatingExpensesOffice?.total} separator bold />
               </Section>
             )}
