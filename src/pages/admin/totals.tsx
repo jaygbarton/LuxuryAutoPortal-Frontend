@@ -941,6 +941,7 @@ export default function TotalsPage() {
                 <TotalRow label="Legal & Professional" value={totals?.operatingExpensesOffice?.legalProfessional} />
                 <TotalRow label="Office Expense" value={totals?.operatingExpensesOffice?.officeExpense} />
                 <TotalRow label="Equipment" value={totals?.operatingExpensesOffice?.equipment} />
+                <TotalRow label="Staff Appreciation / Meal" value={totals?.operatingExpensesOffice?.staffAppreciationMeal} />
                 <TotalRow label="Office Rent" value={totals?.operatingExpensesOffice?.officeRent} />
                 <TotalRow label="Parking & Garage" value={totals?.operatingExpensesOffice?.parknJetBooth} />
                 <TotalRow label="Printing" value={totals?.operatingExpensesOffice?.printing} />

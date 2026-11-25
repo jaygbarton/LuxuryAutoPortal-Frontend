@@ -850,6 +850,7 @@ lastSavedNote.current = coHostNote;
       getMonthValue(data.officeSupport, month, "legalProfessional") +
       getMonthValue(data.officeSupport, month, "officeExpense") +
       getMonthValue(data.officeSupport, month, "equipment") +
+      getMonthValue(data.officeSupport, month, "staffAppreciationMeal") +
       getMonthValue(data.officeSupport, month, "officeRent") +
       getMonthValue(data.officeSupport, month, "outsideStaffContractors") +
       getMonthValue(data.officeSupport, month, "parkNJetBooth") +
@@ -4274,6 +4275,14 @@ lastSavedNote.current = coHostNote;
                   )}
                   category="officeSupport"
                   field="equipment"
+                />
+                <CategoryRow
+                  label="Staff Appreciation / Meal"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "staffAppreciationMeal"),
+                  )}
+                  category="officeSupport"
+                  field="staffAppreciationMeal"
                 />
                 {/* QuickBooks categories (Cathy, 2026-11-25) */}
                 <CategoryRow
