@@ -4,7 +4,7 @@ export const reportSections: Record<string, { label: string; title: string }> =
       label: "Owner / management split",
       title: "CAR MANAGEMENT - OWNER SPLIT",
     },
-    incomeExpenses: { label: "Income", title: "INCOME & EXPENSES" },
+    incomeExpenses: { label: "Income", title: "INCOME" },
     incomeDistribution: {
       label: "Income distribution",
       title: "INCOME DISTRIBUTION",

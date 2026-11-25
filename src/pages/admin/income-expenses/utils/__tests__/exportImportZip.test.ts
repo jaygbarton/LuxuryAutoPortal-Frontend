@@ -306,7 +306,7 @@ describe("buildIncomeExpenseCSV", () => {
 
   it("includes all required SECTION markers", () => {
     expect(csv).toContain("SECTION,CO HOSTING ACCESS");
-    expect(csv).toContain("SECTION,INCOME & EXPENSES");
+    expect(csv).toContain("SECTION,INCOME\n");
     expect(csv).toContain("SECTION,OPERATING EXPENSE (Direct Delivery)");
     expect(csv).toContain("SECTION,OPERATING EXPENSE (COGS - Per Vehicle)");
     expect(csv).toContain("SECTION,Parking Fee & Labor Cleaning");
@@ -359,7 +359,7 @@ describe("buildIncomeExpenseCSV", () => {
     // Every section header must start with 'SECTION,' — never raw section name in col-0
     const lines = csv.split("\n");
     const sectionHeaders = [
-      "INCOME & EXPENSES", "OPERATING EXPENSE", "HISTORY", "REIMBURSE"
+      "INCOME", "OPERATING EXPENSE", "HISTORY", "REIMBURSE"
     ];
     for (const line of lines) {
       for (const header of sectionHeaders) {
@@ -500,7 +500,7 @@ describe("exportAllAsZip", () => {
       const zip = new JSZip();
       const archive = await zip.loadAsync(await capturedBlob!.arrayBuffer());
       const csv = await archive.file("data.csv")!.async("string");
-      expect(csv).toContain("SECTION,INCOME & EXPENSES");
+      expect(csv).toContain("SECTION,INCOME\n");
       expect(csv).toContain("SECTION,OPERATING EXPENSE (COGS - Per Vehicle)");
     });
 

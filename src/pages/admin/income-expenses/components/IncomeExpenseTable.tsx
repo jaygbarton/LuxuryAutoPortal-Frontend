@@ -2666,7 +2666,7 @@ lastSavedNote.current = coHostNote;
 
             {/* INCOME & EXPENSES */}
             <CategorySection
-              title="INCOME & EXPENSES"
+              title="INCOME"
               isExpanded={expandedSections.incomeExpenses}
               onToggle={() => toggleSection("incomeExpenses")}
             >

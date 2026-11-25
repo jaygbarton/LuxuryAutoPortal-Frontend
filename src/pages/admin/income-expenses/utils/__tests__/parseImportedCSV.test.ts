@@ -489,3 +489,30 @@ Days Rented,15,0,0,0,0,0,0,0,0,0,0,0`;
     });
   });
 });
+
+describe("INCOME section header (renamed from INCOME & EXPENSES, Cathy 2026-11-25)", () => {
+  it("imports the income rows under the new SECTION,INCOME header", () => {
+    const csv = [
+      "SECTION,INCOME",
+      "Category,Jan 2026,Feb 2026",
+      "Income Car Rentals - Turo (Trip Income),$100.00,$0.00",
+      "Income Delivery,$20.00,$0.00",
+      // The importer needs at least 10 lines.
+      "SECTION,HISTORY",
+      "Category,Jan 2026,Feb 2026",
+      ...Array.from({ length: 6 }, () => "Days Rented,1,0"),
+    ].join("\n");
+    const result = parseImportedCSV(csv);
+    expect(result.success).toBe(true);
+    const rental = result.sections?.incomeExpenses?.find((r: any) => r.category === "Income Car Rentals - Turo (Trip Income)");
+    expect(rental?.month1).toBe(100);
+  });
+
+  it("imports the template's INCOME,Jan-26,... header line", () => {
+    const csv = ["INCOME,Jan-26,Feb-26", "Income Delivery,$15.00,$0.00", ",,", "HISTORY,Jan-26,Feb-26",
+      ...Array.from({ length: 8 }, () => "Days Rented,1,0")].join("\n");
+    const result = parseImportedCSV(csv);
+    const delivery = result.sections?.incomeExpenses?.find((r: any) => r.category === "Income Delivery");
+    expect(delivery?.month1).toBe(15);
+  });
+});
