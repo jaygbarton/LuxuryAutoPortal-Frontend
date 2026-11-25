@@ -2833,15 +2833,6 @@ lastSavedNote.current = coHostNote;
                 hideTotal={true} // Hide total column
               />
               <CategoryRow
-                label="Car Payment"
-                values={MONTHS.map((_, i) =>
-                  getMonthValue(data.cogs, i + 1, "carPayment"),
-                )}
-                category="income"
-                field="carPayment"
-                isEditable={false}
-              />
-              <CategoryRow
                 label="Car Management Total Expenses"
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;

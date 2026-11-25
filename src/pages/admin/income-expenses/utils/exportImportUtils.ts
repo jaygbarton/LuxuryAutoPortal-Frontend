@@ -780,10 +780,6 @@ export function buildIncomeExpenseCSV(
     }
   };
   
-  const calculateCarPayment = (month: number): number => {
-    return getMonthValue(data.cogs, month, "carPayment");
-  };
-  
   const calculateCarManagementTotalExpenses = (month: number): number => {
     // In 30:70 mode: "TOTAL REIMBURSE AND NON-REIMBURSE BILLS" only
     // In 50:50 mode: "TOTAL REIMBURSE AND NON-REIMBURSE BILLS" + ("TOTAL OPERATING EXPENSE (Direct Delivery)" + "TOTAL OPERATING EXPENSE (COGS - Per Vehicle)") * "Car Management Split %"
@@ -937,17 +933,9 @@ export function buildIncomeExpenseCSV(
   });
   csvContent += `$0.00,$0.00,$${negativeBalanceTotal.toFixed(2)}\n`;
   
-  // Formula category - Car Payment (from COGS)
-  csvContent += `Car Payment,`;
-  let carPaymentTotal = 0;
-  MONTHS.forEach((_, idx) => {
-    const monthNum = idx + 1;
-    const value = Number(calculateCarPayment(monthNum)) || 0;
-    csvContent += `$${value.toFixed(2)},`;
-    carPaymentTotal += value;
-  });
-  csvContent += `$0.00,$0.00,$${carPaymentTotal.toFixed(2)}\n`;
-  
+  // The INCOME & EXPENSES "Car Payment" row was removed (Cathy, 2026-11-25);
+  // Car Payment stays in COGS. Old CSVs that still have it import fine (skipped).
+
   // Formula category - Car Management Total Expenses
   csvContent += `Car Management Total Expenses,`;
   let mgmtExpensesTotal = 0;
