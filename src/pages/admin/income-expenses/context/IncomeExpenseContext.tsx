@@ -92,6 +92,7 @@ function getEmptyData(): IncomeExpenseData {
       electricPrepaidIncome: 0,
       smokingFines: 0,
       gasPrepaidIncome: 0,
+      gasPrepaidOwnerIncome: 0,
       skiRacksIncome: 0,
       milesIncome: 0,
       childSeatIncome: 0,

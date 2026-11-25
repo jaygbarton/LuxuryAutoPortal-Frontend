@@ -10,6 +10,7 @@ export type IncomeShareField =
   | "electricPrepaidIncome"
   | "smokingFines"
   | "gasPrepaidIncome"
+  | "gasPrepaidOwnerIncome"
   | "skiRacksIncome"
   | "milesIncome"
   | "childSeatIncome"
@@ -31,6 +32,9 @@ const NOTES_2026: Record<IncomeShareField, string> = {
   electricPrepaidIncome: HOST,
   smokingFines: SMOKING_10_90,
   gasPrepaidIncome: HOST,
+  // Carved out of Rental Income and paid wholly to the owner (2026+ only; the
+  // row is not shown, and the value is refused, for earlier years).
+  gasPrepaidOwnerIncome: OWNER,
   skiRacksIncome: "100% Ski Racks Owner Share",
   milesIncome: OWNER,
   childSeatIncome: HOST,
@@ -53,6 +57,9 @@ const NOTES_LEGACY_50: Record<IncomeShareField, string> = {
   electricPrepaidIncome: HOST,
   smokingFines: HOST,
   gasPrepaidIncome: HOST,
+  // Carved out of Rental Income and paid wholly to the owner (2026+ only; the
+  // row is not shown, and the value is refused, for earlier years).
+  gasPrepaidOwnerIncome: OWNER,
   skiRacksIncome: SHARED_50,
   milesIncome: OWNER,
   childSeatIncome: SHARED_50,
@@ -75,6 +82,9 @@ const NOTES_LEGACY_70: Record<IncomeShareField, string> = {
   electricPrepaidIncome: HOST,
   smokingFines: SMOKING_10_90,
   gasPrepaidIncome: HOST,
+  // Carved out of Rental Income and paid wholly to the owner (2026+ only; the
+  // row is not shown, and the value is refused, for earlier years).
+  gasPrepaidOwnerIncome: OWNER,
   skiRacksIncome: HOST,
   milesIncome: OWNER,
   childSeatIncome: HOST,

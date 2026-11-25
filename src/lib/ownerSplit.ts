@@ -31,6 +31,9 @@ export interface OwnerSplitInputs {
   smokingFines: number;
   gasPrepaidIncome: number;
   skiRacksIncome: number;
+  /** Miles Income PLUS Gas Prepaid Income (100% Owner Share, 2026+): both are
+   *  carved out of rentalIncome and paid wholly to the owner, so callers pass
+   *  their sum here (as computeCarMonthSplits does on the backend). */
   milesIncome: number;
   childSeatIncome: number;
   coolersIncome: number;

@@ -145,6 +145,7 @@ export default function ModalEditIncomeExpense() {
     electricPrepaidIncome: "Electric Prepaid Income",
     smokingFines: "Smoking Fines",
     gasPrepaidIncome: "Gas Prepaid Income",
+    gasPrepaidOwnerIncome: "Gas Prepaid Income (100% Owner Share)",
     skiRacksIncome: "Ski Racks Income",
     milesIncome: "Miles Income",
     childSeatIncome: "Child Seat Income",
@@ -198,6 +199,7 @@ export default function ModalEditIncomeExpense() {
     electricPrepaidIncome: withForm("income", "electricPrepaidIncome", getMonthValue(data.incomeExpenses, month, "electricPrepaidIncome")),
     smokingFines: withForm("income", "smokingFines", getMonthValue(data.incomeExpenses, month, "smokingFines")),
     gasPrepaidIncome: withForm("income", "gasPrepaidIncome", getMonthValue(data.incomeExpenses, month, "gasPrepaidIncome")),
+    gasPrepaidOwnerIncome: getMonthValue(data.incomeExpenses, month, "gasPrepaidOwnerIncome"),
     skiRacksIncome: withForm("income", "skiRacksIncome", getMonthValue(data.incomeExpenses, month, "skiRacksIncome")),
     milesIncome: withForm("income", "milesIncome", getMonthValue(data.incomeExpenses, month, "milesIncome")),
     childSeatIncome: withForm("income", "childSeatIncome", getMonthValue(data.incomeExpenses, month, "childSeatIncome")),
@@ -457,6 +459,10 @@ export default function ModalEditIncomeExpense() {
                     <div className="flex justify-between text-muted-foreground">
                       <span>Gas Prepaid Income:</span>
                       <span>${incomeValues.gasPrepaidIncome.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Gas Prepaid Income (Owner Share):</span>
+                      <span>${incomeValues.gasPrepaidOwnerIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
                       <span>Ski Racks Income:</span>

@@ -548,7 +548,10 @@ export default function EarningsPage() {
     const prevSmokingFines = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "smokingFines");
     const prevGasPrepaidIncome = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "gasPrepaidIncome");
     const prevSkiRacksIncome = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "skiRacksIncome");
-    const prevMilesIncome = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "milesIncome");
+    // Gas Prepaid Income (100% Owner Share, 2026+) is carved out of Rental Income and paid wholly
+    // to the owner, exactly like Miles Income, so the formulas carry it inside the miles term.
+    const prevMilesIncome = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "milesIncome") +
+      getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "gasPrepaidOwnerIncome");
     const prevChildSeatIncome = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "childSeatIncome");
     const prevCoolersIncome = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "coolersIncome");
     const prevInsuranceWreckIncome = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "insuranceWreckIncome");
@@ -654,7 +657,10 @@ export default function EarningsPage() {
       prevSmokingFines = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "smokingFines");
       prevGasPrepaidIncome = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "gasPrepaidIncome");
       prevSkiRacksIncome = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "skiRacksIncome");
-      prevMilesIncome = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "milesIncome");
+      // Gas Prepaid Income (100% Owner Share, 2026+) is carved out of Rental Income and paid wholly
+      // to the owner, exactly like Miles Income, so the formulas carry it inside the miles term.
+      prevMilesIncome = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "milesIncome") +
+        getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "gasPrepaidOwnerIncome");
       prevChildSeatIncome = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "childSeatIncome");
       prevCoolersIncome = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "coolersIncome");
       prevInsuranceWreckIncome = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "insuranceWreckIncome");
@@ -683,7 +689,10 @@ export default function EarningsPage() {
       prevSmokingFines = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "smokingFines");
       prevGasPrepaidIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "gasPrepaidIncome");
       prevSkiRacksIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "skiRacksIncome");
-      prevMilesIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "milesIncome");
+      // Gas Prepaid Income (100% Owner Share, 2026+) is carved out of Rental Income and paid wholly
+      // to the owner, exactly like Miles Income, so the formulas carry it inside the miles term.
+      prevMilesIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "milesIncome") +
+        getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "gasPrepaidOwnerIncome");
       prevChildSeatIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "childSeatIncome");
       prevCoolersIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "coolersIncome");
       prevInsuranceWreckIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "insuranceWreckIncome");
@@ -793,7 +802,10 @@ export default function EarningsPage() {
     const smokingFines = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "smokingFines");
     const gasPrepaidIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "gasPrepaidIncome");
     const skiRacksIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "skiRacksIncome");
-    const milesIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "milesIncome");
+    // Gas Prepaid Income (100% Owner Share, 2026+) is carved out of Rental Income and paid wholly
+    // to the owner, exactly like Miles Income, so the formulas carry it inside the miles term.
+    const milesIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "milesIncome") +
+      getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "gasPrepaidOwnerIncome");
     const childSeatIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "childSeatIncome");
     const coolersIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "coolersIncome");
     const insuranceWreckIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "insuranceWreckIncome");
@@ -959,7 +971,10 @@ export default function EarningsPage() {
     const smokingFines = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "smokingFines");
     const gasPrepaidIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "gasPrepaidIncome");
     const skiRacksIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "skiRacksIncome");
-    const milesIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "milesIncome");
+    // Gas Prepaid Income (100% Owner Share, 2026+) is carved out of Rental Income and paid wholly
+    // to the owner, exactly like Miles Income, so the formulas carry it inside the miles term.
+    const milesIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "milesIncome") +
+      getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "gasPrepaidOwnerIncome");
     const childSeatIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "childSeatIncome");
     const coolersIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "coolersIncome");
     const insuranceWreckIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "insuranceWreckIncome");
@@ -1707,6 +1722,14 @@ export default function EarningsPage() {
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "gasPrepaidIncome"))}
                     category="income" field="gasPrepaidIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
+                  {parseInt(selectedYear, 10) >= 2026 && (
+                    <TableRow
+                      label="Gas Prepaid Income"
+                      splitLabel={shareNote("gasPrepaidOwnerIncome")}
+                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "gasPrepaidOwnerIncome"))}
+                      category="income" field="gasPrepaidOwnerIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                    />
+                  )}
                   <TableRow
                     label="Ski Racks Income"
                     splitLabel={shareNote("skiRacksIncome")}

@@ -786,6 +786,7 @@ export default function TotalsPage() {
               <TotalRow label="Electric Prepaid Income" value={totals?.income?.electricPrepaidIncome} />
               <TotalRow label="Smoking Fines" value={totals?.income?.smokingFines} />
               <TotalRow label="Gas Prepaid Income" value={totals?.income?.gasPrepaidIncome} />
+              <TotalRow label="Gas Prepaid Income (Owner Share)" value={totals?.income?.gasPrepaidOwnerIncome} />
               <TotalRow label="Miles Income" value={totals?.income?.milesIncome} />
               <TotalRow label="Ski Racks Income" value={totals?.income?.skiRacksIncome} />
               <TotalRow label="Child Seat Income" value={totals?.income?.childSeatIncome} />

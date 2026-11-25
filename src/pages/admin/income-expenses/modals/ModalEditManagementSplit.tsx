@@ -71,6 +71,7 @@ export default function ModalEditManagementSplit() {
     electricPrepaidIncome: getMonthValue(data.incomeExpenses, month, "electricPrepaidIncome"),
     smokingFines: getMonthValue(data.incomeExpenses, month, "smokingFines"),
     gasPrepaidIncome: getMonthValue(data.incomeExpenses, month, "gasPrepaidIncome"),
+    gasPrepaidOwnerIncome: getMonthValue(data.incomeExpenses, month, "gasPrepaidOwnerIncome"),
     skiRacksIncome: getMonthValue(data.incomeExpenses, month, "skiRacksIncome"),
     milesIncome: getMonthValue(data.incomeExpenses, month, "milesIncome"),
     childSeatIncome: getMonthValue(data.incomeExpenses, month, "childSeatIncome"),
@@ -286,6 +287,10 @@ export default function ModalEditManagementSplit() {
                 <div className="flex justify-between text-muted-foreground">
                   <span>Gas Prepaid Income:</span>
                   <span>${incomeValues.gasPrepaidIncome.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Gas Prepaid Income (Owner Share):</span>
+                  <span>${incomeValues.gasPrepaidOwnerIncome.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Ski Racks Income:</span>

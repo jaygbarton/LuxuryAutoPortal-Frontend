@@ -396,6 +396,17 @@ describe("buildIncomeExpenseCSV", () => {
     expect(rentalRow?.month1).toBe(1000);
   });
 
+  it("adds Gas Prepaid Income (Owner Share) from 2026 only", () => {
+    expect(csv).not.toContain("Gas Prepaid Income (Owner Share)");
+    const csv2026 = buildIncomeExpenseCSV(data, CAR_INFO, "2026", EMPTY_MONTH_MODES);
+    const result = parseImportedCSV(csv2026);
+    expect(result.success).toBe(true);
+    expect(result.sections?.incomeExpenses?.length).toBe(16);
+    expect(
+      result.sections?.incomeExpenses?.some((r: any) => r.category === "Gas Prepaid Income (Owner Share)"),
+    ).toBe(true);
+  });
+
   it("round-trips COGS Car Payment correctly (not filtered as income formula row)", () => {
     const result = parseImportedCSV(csv);
     const cogsCp = result.sections?.cogs?.find((r: any) => r.category === "Car Payment");

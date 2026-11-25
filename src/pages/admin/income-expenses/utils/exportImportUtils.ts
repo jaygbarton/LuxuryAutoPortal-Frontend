@@ -151,7 +151,10 @@ export function buildIncomeExpenseCSV(
     const smokingFines = getMonthValue(data.incomeExpenses, month, "smokingFines");
     const gasPrepaidIncome = getMonthValue(data.incomeExpenses, month, "gasPrepaidIncome");
     const skiRacksIncome = getMonthValue(data.incomeExpenses, month, "skiRacksIncome");
-    const milesIncome = getMonthValue(data.incomeExpenses, month, "milesIncome");
+    // Gas Prepaid Income (100% Owner Share, 2026+) is carved out of Rental Income and paid wholly
+    // to the owner, exactly like Miles Income, so the formulas carry it inside the miles term.
+    const milesIncome = getMonthValue(data.incomeExpenses, month, "milesIncome") +
+      getMonthValue(data.incomeExpenses, month, "gasPrepaidOwnerIncome");
     const childSeatIncome = getMonthValue(data.incomeExpenses, month, "childSeatIncome");
     const coolersIncome = getMonthValue(data.incomeExpenses, month, "coolersIncome");
     const insuranceWreckIncome = getMonthValue(data.incomeExpenses, month, "insuranceWreckIncome");
@@ -303,7 +306,10 @@ export function buildIncomeExpenseCSV(
     const smokingFines = getMonthValue(data.incomeExpenses, month, "smokingFines");
     const gasPrepaidIncome = getMonthValue(data.incomeExpenses, month, "gasPrepaidIncome");
     const skiRacksIncome = getMonthValue(data.incomeExpenses, month, "skiRacksIncome");
-    const milesIncome = getMonthValue(data.incomeExpenses, month, "milesIncome");
+    // Gas Prepaid Income (100% Owner Share, 2026+) is carved out of Rental Income and paid wholly
+    // to the owner, exactly like Miles Income, so the formulas carry it inside the miles term.
+    const milesIncome = getMonthValue(data.incomeExpenses, month, "milesIncome") +
+      getMonthValue(data.incomeExpenses, month, "gasPrepaidOwnerIncome");
     const childSeatIncome = getMonthValue(data.incomeExpenses, month, "childSeatIncome");
     const coolersIncome = getMonthValue(data.incomeExpenses, month, "coolersIncome");
     const insuranceWreckIncome = getMonthValue(data.incomeExpenses, month, "insuranceWreckIncome");
@@ -549,7 +555,10 @@ export function buildIncomeExpenseCSV(
     const prevSmokingFines = getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "smokingFines");
     const prevGasPrepaidIncome = getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "gasPrepaidIncome");
     const prevSkiRacksIncome = getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "skiRacksIncome");
-    const prevMilesIncome = getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "milesIncome");
+    // Gas Prepaid Income (100% Owner Share, 2026+) is carved out of Rental Income and paid wholly
+    // to the owner, exactly like Miles Income, so the formulas carry it inside the miles term.
+    const prevMilesIncome = getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "milesIncome") +
+      getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "gasPrepaidOwnerIncome");
     const prevChildSeatIncome = getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "childSeatIncome");
     const prevCoolersIncome = getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "coolersIncome");
     const prevInsuranceWreckIncome = getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "insuranceWreckIncome");
@@ -663,7 +672,10 @@ export function buildIncomeExpenseCSV(
       prevSmokingFines = getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "smokingFines");
       prevGasPrepaidIncome = getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "gasPrepaidIncome");
       prevSkiRacksIncome = getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "skiRacksIncome");
-      prevMilesIncome = getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "milesIncome");
+      // Gas Prepaid Income (100% Owner Share, 2026+) is carved out of Rental Income and paid wholly
+      // to the owner, exactly like Miles Income, so the formulas carry it inside the miles term.
+      prevMilesIncome = getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "milesIncome") +
+        getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "gasPrepaidOwnerIncome");
       prevChildSeatIncome = getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "childSeatIncome");
       prevCoolersIncome = getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "coolersIncome");
       prevInsuranceWreckIncome = getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "insuranceWreckIncome");
@@ -693,7 +705,10 @@ export function buildIncomeExpenseCSV(
       prevSmokingFines = getMonthValue(data.incomeExpenses, prevMonth, "smokingFines");
       prevGasPrepaidIncome = getMonthValue(data.incomeExpenses, prevMonth, "gasPrepaidIncome");
       prevSkiRacksIncome = getMonthValue(data.incomeExpenses, prevMonth, "skiRacksIncome");
-      prevMilesIncome = getMonthValue(data.incomeExpenses, prevMonth, "milesIncome");
+      // Gas Prepaid Income (100% Owner Share, 2026+) is carved out of Rental Income and paid wholly
+      // to the owner, exactly like Miles Income, so the formulas carry it inside the miles term.
+      prevMilesIncome = getMonthValue(data.incomeExpenses, prevMonth, "milesIncome") +
+        getMonthValue(data.incomeExpenses, prevMonth, "gasPrepaidOwnerIncome");
       prevChildSeatIncome = getMonthValue(data.incomeExpenses, prevMonth, "childSeatIncome");
       prevCoolersIncome = getMonthValue(data.incomeExpenses, prevMonth, "coolersIncome");
       prevInsuranceWreckIncome = getMonthValue(data.incomeExpenses, prevMonth, "insuranceWreckIncome");
@@ -885,6 +900,8 @@ export function buildIncomeExpenseCSV(
     { field: 'electricPrepaidIncome', label: 'Electric Prepaid Income' },
     { field: 'smokingFines', label: 'Smoking Fines' },
     { field: 'gasPrepaidIncome', label: 'Gas Prepaid Income' },
+    // 100% Owner Share, 2026+ only (the backend refuses it for earlier years).
+    ...(parseInt(year, 10) >= 2026 ? [{ field: 'gasPrepaidOwnerIncome', label: 'Gas Prepaid Income (Owner Share)' }] : []),
     { field: 'skiRacksIncome', label: 'Ski Racks Income' },
     { field: 'milesIncome', label: 'Miles Income' },
     { field: 'childSeatIncome', label: 'Child Seat Income' },

@@ -22,6 +22,8 @@ export interface IncomeExpenseMonth {
   electricPrepaidIncome: number;
   smokingFines: number;
   gasPrepaidIncome: number;
+  /** Gas Prepaid Income — 100% Owner Share (2026+). Inside Rental Income. */
+  gasPrepaidOwnerIncome: number;
   skiRacksIncome: number;
   milesIncome: number;
   childSeatIncome: number;

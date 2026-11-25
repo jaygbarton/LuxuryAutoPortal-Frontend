@@ -1056,10 +1056,17 @@ lastSavedNote.current = coHostNote;
       prevMonth,
       "skiRacksIncome",
     );
+    // Gas Prepaid Income (100% Owner Share, 2026+) is carved out of Rental Income and paid wholly
+    // to the owner, exactly like Miles Income, so the formulas carry it inside the miles term.
     const prevMilesIncome = getPrevYearValue(
       prevYearDecData.incomeExpenses || [],
       prevMonth,
       "milesIncome",
+    ) +
+    getPrevYearValue(
+      prevYearDecData.incomeExpenses || [],
+      prevMonth,
+      "gasPrepaidOwnerIncome",
     );
     const prevChildSeatIncome = getPrevYearValue(
       prevYearDecData.incomeExpenses || [],
@@ -1300,10 +1307,17 @@ lastSavedNote.current = coHostNote;
         prevDec,
         "skiRacksIncome",
       );
+      // Gas Prepaid Income (100% Owner Share, 2026+) is carved out of Rental Income and paid wholly
+      // to the owner, exactly like Miles Income, so the formulas carry it inside the miles term.
       prevMilesIncome = getPrevYearValue(
         prevYearDecData?.incomeExpenses || [],
         prevDec,
         "milesIncome",
+      ) +
+      getPrevYearValue(
+        prevYearDecData?.incomeExpenses || [],
+        prevDec,
+        "gasPrepaidOwnerIncome",
       );
       prevChildSeatIncome = getPrevYearValue(
         prevYearDecData?.incomeExpenses || [],
@@ -1379,10 +1393,17 @@ lastSavedNote.current = coHostNote;
         prevMonth,
         "skiRacksIncome",
       );
+      // Gas Prepaid Income (100% Owner Share, 2026+) is carved out of Rental Income and paid wholly
+      // to the owner, exactly like Miles Income, so the formulas carry it inside the miles term.
       prevMilesIncome = getMonthValue(
         data.incomeExpenses,
         prevMonth,
         "milesIncome",
+      ) +
+      getMonthValue(
+        data.incomeExpenses,
+        prevMonth,
+        "gasPrepaidOwnerIncome",
       );
       prevChildSeatIncome = getMonthValue(
         data.incomeExpenses,
@@ -1570,10 +1591,17 @@ lastSavedNote.current = coHostNote;
       month,
       "skiRacksIncome",
     );
+    // Gas Prepaid Income (100% Owner Share, 2026+) is carved out of Rental Income and paid wholly
+    // to the owner, exactly like Miles Income, so the formulas carry it inside the miles term.
     const milesIncome = getMonthValue(
       data.incomeExpenses,
       month,
       "milesIncome",
+    ) +
+    getMonthValue(
+      data.incomeExpenses,
+      month,
+      "gasPrepaidOwnerIncome",
     );
     const childSeatIncome = getMonthValue(
       data.incomeExpenses,
@@ -1986,10 +2014,17 @@ lastSavedNote.current = coHostNote;
       month,
       "skiRacksIncome",
     );
+    // Gas Prepaid Income (100% Owner Share, 2026+) is carved out of Rental Income and paid wholly
+    // to the owner, exactly like Miles Income, so the formulas carry it inside the miles term.
     const milesIncome = getMonthValue(
       data.incomeExpenses,
       month,
       "milesIncome",
+    ) +
+    getMonthValue(
+      data.incomeExpenses,
+      month,
+      "gasPrepaidOwnerIncome",
     );
     const childSeatIncome = getMonthValue(
       data.incomeExpenses,
@@ -2681,6 +2716,18 @@ lastSavedNote.current = coHostNote;
                 category="income"
                 field="gasPrepaidIncome"
               />
+              {/* Gas Prepaid Income — 100% Owner Share takes effect from 2026. */}
+              {parseInt(year, 10) >= 2026 && (
+                <CategoryRow
+                  label="Gas Prepaid Income"
+                  splitLabel={shareNote("gasPrepaidOwnerIncome")}
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.incomeExpenses, i + 1, "gasPrepaidOwnerIncome"),
+                  )}
+                  category="income"
+                  field="gasPrepaidOwnerIncome"
+                />
+              )}
               <CategoryRow
                 label="Ski Racks Income"
                 splitLabel={shareNote("skiRacksIncome")}
