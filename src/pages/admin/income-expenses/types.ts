@@ -148,6 +148,7 @@ export interface OfficeSupportMonth {
   marketing: number;
   mealsEntertainment: number;
   officeExpense: number;
+  equipment: number;
   officeRent: number;
   outsideStaffContractors: number;
   parkNJetBooth: number;

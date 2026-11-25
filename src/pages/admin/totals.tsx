@@ -942,8 +942,9 @@ export default function TotalsPage() {
                 <TotalRow label="Legal & Professional" value={totals?.operatingExpensesOffice?.legalProfessional} />
                 <TotalRow label="Meals & Entertainment" value={totals?.operatingExpensesOffice?.mealsEntertainment} />
                 <TotalRow label="Office Expense" value={totals?.operatingExpensesOffice?.officeExpense} />
+                <TotalRow label="Equipment" value={totals?.operatingExpensesOffice?.equipment} />
                 <TotalRow label="Office Rent" value={totals?.operatingExpensesOffice?.officeRent} />
-                <TotalRow label="Park n Jet Booth" value={totals?.operatingExpensesOffice?.parknJetBooth} />
+                <TotalRow label="Parking & Garage" value={totals?.operatingExpensesOffice?.parknJetBooth} />
                 <TotalRow label="Printing" value={totals?.operatingExpensesOffice?.printing} />
                 <TotalRow label="Referral" value={totals?.operatingExpensesOffice?.referral} />
                 <TotalRow label="Repairs & Maintenance" value={totals?.operatingExpensesOffice?.repairsMaintenance} />
@@ -960,8 +961,6 @@ export default function TotalsPage() {
                 <TotalRow label="Furniture" value={totals?.operatingExpensesOffice?.furniture} />
                 <TotalRow label="QuickBooks Payments Fees" value={totals?.operatingExpensesOffice?.quickbooksPaymentsFees} />
                 <TotalRow label="Benefits" value={totals?.operatingExpensesOffice?.benefits} />
-                <TotalRow label="Life Insurance" value={totals?.operatingExpensesOffice?.lifeInsurance} />
-                <TotalRow label="Bad Debt" value={totals?.operatingExpensesOffice?.badDebt} />
                 <TotalRow label="Total Office Support" value={totals?.operatingExpensesOffice?.total} separator bold />
               </Section>
             )}

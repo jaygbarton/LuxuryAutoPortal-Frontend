@@ -186,6 +186,7 @@ function getEmptyData(): IncomeExpenseData {
       marketing: 0,
       mealsEntertainment: 0,
       officeExpense: 0,
+      equipment: 0,
       officeRent: 0,
       outsideStaffContractors: 0,
       parkNJetBooth: 0,
