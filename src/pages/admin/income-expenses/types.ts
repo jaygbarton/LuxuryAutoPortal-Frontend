@@ -139,6 +139,11 @@ export interface OfficeSupportMonth {
   laborSoftware: number;
   laborHumanResources: number;
   laborMarketing: number;
+  laborSellingCarsCommission: number;
+  laborStaffCleaningDetailing: number;
+  laborStaffCommissions: number;
+  laborStaffDrivers: number;
+  laborStaffInspection: number;
   legalProfessional: number;
   marketing: number;
   mealsEntertainment: number;
