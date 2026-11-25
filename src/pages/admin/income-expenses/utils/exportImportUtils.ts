@@ -881,9 +881,9 @@ export function buildIncomeExpenseCSV(
   csvContent += `$0.00,$0.00,$${ownerSplitTotal.toFixed(2)}\n\n`;
   
   // ========================================
-  // SECTION 2: INCOME & EXPENSES
+  // SECTION 2: INCOME (was INCOME & EXPENSES; both import)
   // ========================================
-  csvContent += `SECTION,INCOME & EXPENSES\n`;
+  csvContent += `SECTION,INCOME\n`;
   csvContent += `Category,`;
   MONTHS.forEach((month) => {
     csvContent += `${month} ${year},`;
@@ -1851,6 +1851,7 @@ export function parseImportedCSV(
       // the trailing cells contain month labels rather than dollar values.
       const normalized = firstCell.replace(/\s+/g, ' ').trim();
       const KNOWN_LEGACY_SECTION_NAMES = [
+        'INCOME',
         'INCOME & EXPENSES',
         'INCOME AND EXPENSES',
         'OPERATING EXPENSE (DIRECT DELIVERY)',
@@ -1909,7 +1910,7 @@ export function parseImportedCSV(
           currentSection = 'CO HOSTING ACCESS';
           continue;
         }
-        if (sectionLabel.includes('INCOME') && sectionLabel.includes('EXPENSES')) {
+        if (sectionLabel.trim() === 'INCOME' || (sectionLabel.includes('INCOME') && sectionLabel.includes('EXPENSES'))) {
           currentSection = 'INCOME & EXPENSES';
           continue;
         }
@@ -1972,6 +1973,7 @@ export function parseImportedCSV(
         firstCell.includes('REIMBURSE AND NON-REIMBURSE') ||
         firstCell.includes('PARKING FEE & LABOR') ||
         (firstCell.includes('OPERATING EXPENSE') && (firstCell.includes('COGS') || firstCell.includes('DIRECT DELIVERY'))) ||
+        firstCell === 'INCOME' ||
         firstCell.includes('INCOME & EXPENSES') ||
         firstCell.includes('INCOME AND EXPENSES');
 

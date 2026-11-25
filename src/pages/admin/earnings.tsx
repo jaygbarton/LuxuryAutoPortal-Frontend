@@ -1686,9 +1686,9 @@ export default function EarningsPage() {
                   />
                 </CategorySection>
 
-                {/* INCOME AND EXPENSES */}
+                {/* INCOME (formerly INCOME AND EXPENSES) */}
                 <CategorySection
-                  title="INCOME AND EXPENSES"
+                  title="INCOME"
                   isExpanded={expandedSections.incomeExpenses}
                   onToggle={() => toggleSection("incomeExpenses")}
                   hideZeroSubcategories={isClient}
