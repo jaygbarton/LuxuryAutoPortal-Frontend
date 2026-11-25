@@ -801,7 +801,6 @@ export default function TotalsPage() {
               <TotalRow label="Car Management Total Expenses" value={totals?.income?.carManagementTotalExpenses} separator bold />
               <TotalRow label="Car Owner Total Expenses" value={totals?.income?.carOwnerTotalExpenses} bold />
               <TotalRow label="Total Expenses" value={totals?.income?.totalExpenses} separator bold />
-              <TotalRow label="Car Payment" value={totals?.income?.carPayment} bold />
               <TotalRow label="Total Profit" value={totals?.income?.totalProfit} bold />
             </Section>
 
