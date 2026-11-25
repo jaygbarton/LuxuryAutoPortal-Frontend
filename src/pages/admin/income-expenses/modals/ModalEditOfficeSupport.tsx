@@ -54,6 +54,7 @@ const FIELD_LABELS: { [key: string]: string } = {
   legalProfessional: "Legal & Professional",
   officeExpense: "Office Expense",
   equipment: "Equipment",
+  staffAppreciationMeal: "Staff Appreciation / Meal",
   officeRent: "Office Rent",
   parkNJetBooth: "Parking & Garage",
   printing: "Printing",
