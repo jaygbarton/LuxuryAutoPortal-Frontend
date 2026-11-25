@@ -851,6 +851,7 @@ lastSavedNote.current = coHostNote;
       getMonthValue(data.officeSupport, month, "legalProfessional") +
       getMonthValue(data.officeSupport, month, "mealsEntertainment") +
       getMonthValue(data.officeSupport, month, "officeExpense") +
+      getMonthValue(data.officeSupport, month, "equipment") +
       getMonthValue(data.officeSupport, month, "officeRent") +
       getMonthValue(data.officeSupport, month, "outsideStaffContractors") +
       getMonthValue(data.officeSupport, month, "parkNJetBooth") +
@@ -871,8 +872,6 @@ lastSavedNote.current = coHostNote;
       getMonthValue(data.officeSupport, month, "furniture") +
       getMonthValue(data.officeSupport, month, "quickbooksPaymentsFees") +
       getMonthValue(data.officeSupport, month, "benefits") +
-      getMonthValue(data.officeSupport, month, "lifeInsurance") +
-      getMonthValue(data.officeSupport, month, "badDebt") +
       // Approved Office Support receipts (car_id 0), shown on top of the
       // manual value in each row above.
       getCategoryMonthFormTotal("officeSupport", month)
@@ -4195,7 +4194,7 @@ lastSavedNote.current = coHostNote;
                   field="officeRent"
                 />
                 <CategoryRow
-                  label="Park n Jet Booth"
+                  label="Parking & Garage"
                   values={MONTHS.map((_, i) =>
                     getMonthValue(data.officeSupport, i + 1, "parkNJetBooth"),
                   )}
@@ -4306,6 +4305,14 @@ lastSavedNote.current = coHostNote;
                   category="officeSupport"
                   field="officeExpense"
                 />
+                <CategoryRow
+                  label="Equipment"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "equipment"),
+                  )}
+                  category="officeSupport"
+                  field="equipment"
+                />
                 {/* QuickBooks categories (Cathy, 2026-11-25) */}
                 <CategoryRow
                   label="Payroll Taxes"
@@ -4370,22 +4377,6 @@ lastSavedNote.current = coHostNote;
                   )}
                   category="officeSupport"
                   field="benefits"
-                />
-                <CategoryRow
-                  label="Life Insurance"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "lifeInsurance"),
-                  )}
-                  category="officeSupport"
-                  field="lifeInsurance"
-                />
-                <CategoryRow
-                  label="Bad Debt"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "badDebt"),
-                  )}
-                  category="officeSupport"
-                  field="badDebt"
                 />
                 <CategoryRow
                   label="Totals OPERATING EXPENSE (Office Support)"
