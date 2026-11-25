@@ -233,6 +233,8 @@ export interface IncomeExpenseData {
     parkingFeeLabor: DynamicSubcategory[];
     reimbursedBills: DynamicSubcategory[];
   };
+  /** All Cars only: INCOME DISTRIBUTION sums per month, each car with its own % (backend). */
+  incomeDistribution?: { month: number; mgmt: Record<string, number>; owner: Record<string, number> }[];
 }
 
 export interface EditingCell {

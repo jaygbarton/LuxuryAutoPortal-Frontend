@@ -1,4 +1,5 @@
 import { optionKeywords } from "@/lib/select-search";
+import { DISTRIBUTION_ROWS, fleetShareNote, type DistributionField } from "./income-expenses/utils/incomeDistribution";
 import React, { useState, useRef, useEffect } from "react";
 import { useRoute, useLocation, useSearch } from "wouter";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
@@ -791,7 +792,7 @@ export default function TotalsPage() {
               <TotalRow label="Income Ski Racks" value={totals?.income?.skiRacksIncome} />
               <TotalRow label="Income Car Seats" value={totals?.income?.childSeatIncome} />
               <TotalRow label="Income Coolers/Camp Chairs" value={totals?.income?.coolersIncome} />
-              <TotalRow label="Income Insurance & Client Wrecks" value={totals?.income?.incomeInsurance} />
+              <TotalRow label="Income Turo Claims & Insurance Payments" value={totals?.income?.incomeInsurance} />
               <TotalRow label="Income Other Turo" value={totals?.income?.otherIncome} />
               <TotalRow label="Income Guest Cancellation" value={totals?.income?.guestCancellationIncome} />
               <TotalRow label="Income Gas Reimbursed" value={totals?.income?.gasReimbursementIncome} />
@@ -803,6 +804,53 @@ export default function TotalsPage() {
               <TotalRow label="Total Expenses" value={totals?.income?.totalExpenses} separator bold />
               <TotalRow label="Total Profit" value={totals?.income?.totalProfit} bold />
             </Section>
+
+            {/* 2b. INCOME DISTRIBUTION (Cathy, 2026-11-25): each income row split
+                between Car Management and the Car Owner, every car with its
+                own % (backend incomeDistribution), before expenses. */}
+            {(() => {
+              const from = parseInt(debouncedFilters.fromYear, 10);
+              const to = parseInt(debouncedFilters.toYear, 10);
+              const years = Number.isFinite(from) && Number.isFinite(to) && to >= from
+                ? Array.from({ length: to - from + 1 }, (_, i) => from + i)
+                : [];
+              const dist = totals?.incomeDistribution;
+              const sideRows = (side: "mgmt" | "owner") =>
+                DISTRIBUTION_ROWS.filter(
+                  ({ field }) =>
+                    field !== "tripIncome" &&
+                    (field !== "gasPrepaidOwnerIncome" || years.some((y) => y >= 2026)) &&
+                    years.some((y) => fleetShareNote(field, y, side) !== null),
+                );
+              const label = (side: "mgmt" | "owner", field: DistributionField, text: string) => {
+                // The % is named only when the period is one year.
+                if (years.length !== 1) return text;
+                const note = fleetShareNote(field, years[0], side);
+                if (!note) return text;
+                return `${text} (${isAllCarsReport ? note : note.replace("each car's %", "car's %")})`;
+              };
+              const sideTotal = (side: "mgmt" | "owner") =>
+                sideRows(side).reduce((sum, { field }) => sum + (Number(dist?.[side]?.[field]) || 0), 0);
+              const block = (side: "mgmt" | "owner", heading: string, totalLabel: string) => (
+                <>
+                  <div className="pt-3 pb-1 px-2 text-xs font-semibold text-foreground">{heading}</div>
+                  {sideRows(side).map(({ field, label: text }) => (
+                    <TotalRow key={`${side}-${field}`} label={label(side, field, text)} value={dist?.[side]?.[field] ?? 0} indent />
+                  ))}
+                  <TotalRow label={totalLabel} value={sideTotal(side)} separator bold />
+                </>
+              );
+              return (
+                <Section title="INCOME DISTRIBUTION">
+                  {block("mgmt", "Car Management Income", "Total Car Management Income")}
+                  {block("owner", "Car Owner Income", "Total Car Owner Income")}
+                  <p className="px-2 pt-2 text-xs text-muted-foreground">
+                    Income only, before expenses. Each side lists the income rows it receives a share of. Trip income is
+                    split in the Car Management and Car Owner Split.
+                  </p>
+                </Section>
+              );
+            })()}
 
             {/* 3. Operating Expenses — Direct Delivery */}
             <Section
