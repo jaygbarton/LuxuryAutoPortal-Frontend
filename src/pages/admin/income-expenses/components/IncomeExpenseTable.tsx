@@ -841,7 +841,6 @@ lastSavedNote.current = coHostNote;
       getMonthValue(data.officeSupport, month, "duesSubscription") +
       getMonthValue(data.officeSupport, month, "laborSales") +
       getMonthValue(data.officeSupport, month, "laborSoftware") +
-      getMonthValue(data.officeSupport, month, "laborHumanResources") +
       getMonthValue(data.officeSupport, month, "laborMarketing") +
       getMonthValue(data.officeSupport, month, "legalProfessional") +
       getMonthValue(data.officeSupport, month, "mealsEntertainment") +
@@ -4106,26 +4105,6 @@ lastSavedNote.current = coHostNote;
                   field="duesSubscription"
                 />
                 <CategoryRow
-                  label="Labor - Human Resources"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(
-                      data.officeSupport,
-                      i + 1,
-                      "laborHumanResources",
-                    ),
-                  )}
-                  category="officeSupport"
-                  field="laborHumanResources"
-                />
-                <CategoryRow
-                  label="Labor - Marketing"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "laborMarketing"),
-                  )}
-                  category="officeSupport"
-                  field="laborMarketing"
-                />
-                <CategoryRow
                   label="Office Rent"
                   values={MONTHS.map((_, i) =>
                     getMonthValue(data.officeSupport, i + 1, "officeRent"),
@@ -4297,6 +4276,14 @@ lastSavedNote.current = coHostNote;
                   )}
                   category="officeSupport"
                   field="wagesHumanResources"
+                />
+                <CategoryRow
+                  label="Wages - Marketing"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "laborMarketing"),
+                  )}
+                  category="officeSupport"
+                  field="laborMarketing"
                 />
                 <CategoryRow
                   label="Wages - Owner"

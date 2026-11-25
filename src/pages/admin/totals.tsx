@@ -929,8 +929,6 @@ export default function TotalsPage() {
                 <TotalRow label="Delivery, Postage & Freight" value={totals?.operatingExpensesOffice?.deliveryPostageFreight} />
                 <TotalRow label="Detail Shop Equipment" value={totals?.operatingExpensesOffice?.detailShopEquipment} />
                 <TotalRow label="Dues & Subscription" value={totals?.operatingExpensesOffice?.duesSubscription} />
-                <TotalRow label="Labor - Human Resources" value={totals?.operatingExpensesOffice?.laborHumanResources} />
-                <TotalRow label="Labor - Marketing" value={totals?.operatingExpensesOffice?.laborMarketing} />
                 <TotalRow label="Labor - Sales" value={totals?.operatingExpensesOffice?.laborSales} />
                 <TotalRow label="Labor - Software" value={totals?.operatingExpensesOffice?.laborSoftware} />
                 <TotalRow label="Legal & Professional" value={totals?.operatingExpensesOffice?.legalProfessional} />
@@ -950,6 +948,7 @@ export default function TotalsPage() {
                 <TotalRow label="Wages - Cleaning" value={totals?.operatingExpensesOffice?.wagesCleaning} />
                 <TotalRow label="Wages - Drivers" value={totals?.operatingExpensesOffice?.wagesDrivers} />
                 <TotalRow label="Wages - Human Resources" value={totals?.operatingExpensesOffice?.wagesHumanResources} />
+                <TotalRow label="Wages - Marketing" value={totals?.operatingExpensesOffice?.laborMarketing} />
                 <TotalRow label="Wages - Owner" value={totals?.operatingExpensesOffice?.wagesOwner} />
                 <TotalRow label="Payroll Taxes" value={totals?.operatingExpensesOffice?.payrollTaxes} />
                 <TotalRow label="Detail Shop Chemicals" value={totals?.operatingExpensesOffice?.detailShopChemicals} />
