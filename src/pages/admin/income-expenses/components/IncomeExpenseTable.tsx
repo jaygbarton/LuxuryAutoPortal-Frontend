@@ -861,7 +861,6 @@ lastSavedNote.current = coHostNote;
       getMonthValue(data.officeSupport, month, "suppliesMaterials") +
       getMonthValue(data.officeSupport, month, "taxesLicense") +
       getMonthValue(data.officeSupport, month, "telephone") +
-      getMonthValue(data.officeSupport, month, "travel") +
       getMonthValue(data.officeSupport, month, "payrollTaxes") +
       getMonthValue(data.officeSupport, month, "detailShopChemicals") +
       getMonthValue(data.officeSupport, month, "storageUnit") +
@@ -4247,14 +4246,6 @@ lastSavedNote.current = coHostNote;
                   )}
                   category="officeSupport"
                   field="telephone"
-                />
-                <CategoryRow
-                  label="Travel"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.officeSupport, i + 1, "travel"),
-                  )}
-                  category="officeSupport"
-                  field="travel"
                 />
                 <CategoryRow
                   label="Legal & Professional"

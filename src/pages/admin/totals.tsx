@@ -950,7 +950,6 @@ export default function TotalsPage() {
                 <TotalRow label="Supplies & Materials" value={totals?.operatingExpensesOffice?.suppliesMaterials} />
                 <TotalRow label="Taxes & License" value={totals?.operatingExpensesOffice?.taxesLicense} />
                 <TotalRow label="Telephone" value={totals?.operatingExpensesOffice?.telephone} />
-                <TotalRow label="Travel" value={totals?.operatingExpensesOffice?.travel} />
                 <TotalRow label="Payroll Taxes" value={totals?.operatingExpensesOffice?.payrollTaxes} />
                 <TotalRow label="Detail Shop Chemicals" value={totals?.operatingExpensesOffice?.detailShopChemicals} />
                 <TotalRow label="Storage Unit" value={totals?.operatingExpensesOffice?.storageUnit} />

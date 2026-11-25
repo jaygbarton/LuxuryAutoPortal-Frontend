@@ -62,7 +62,6 @@ const FIELD_LABELS: { [key: string]: string } = {
   securityCameras: "Security Cameras",
   suppliesMaterials: "Supplies & Materials",
   telephone: "Telephone",
-  travel: "Travel",
   // QuickBooks categories (Cathy, 2026-11-25).
   payrollTaxes: "Payroll Taxes",
   detailShopChemicals: "Detail Shop Chemicals",
