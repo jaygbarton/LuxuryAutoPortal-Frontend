@@ -2666,7 +2666,6 @@ function TableRow({
             : (
               <span title={isPartial ? `Partial total — ${missingMonths.join(", ")} need${missingMonths.length === 1 ? "s" : ""} review and ${missingMonths.length === 1 ? "is" : "are"} not included.` : undefined}>
                 {isInteger ? total.toString() : formatCurrency(total)}
-                {isPartial && "*"}
               </span>
             )}
       </td>

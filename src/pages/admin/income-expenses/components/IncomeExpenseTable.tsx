@@ -5752,7 +5752,7 @@ function CategoryRow({
                 .map((m) => MONTHS[m - 1])
                 .join(", ")} need${unavailableMonths.length === 1 ? "s" : ""} review and ${unavailableMonths.length === 1 ? "is" : "are"} not included.`}
             >
-              {formatTotal()}*
+              {formatTotal()}
             </span>
           ) : hasUnavailable ? (
             <span
