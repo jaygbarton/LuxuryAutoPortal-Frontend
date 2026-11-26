@@ -78,6 +78,7 @@ export default function ModalEditManagementSplit() {
     coolersIncome: getMonthValue(data.incomeExpenses, month, "coolersIncome"),
     insuranceWreckIncome: getMonthValue(data.incomeExpenses, month, "insuranceWreckIncome"),
     otherIncome: getMonthValue(data.incomeExpenses, month, "otherIncome"),
+    otherCreditIncome: getMonthValue(data.incomeExpenses, month, "otherCreditIncome"),
     guestCancellationIncome: getMonthValue(data.incomeExpenses, month, "guestCancellationIncome"),
     gasReimbursementIncome: getMonthValue(data.incomeExpenses, month, "gasReimbursementIncome"),
     onTripChargingIncome: getMonthValue(data.incomeExpenses, month, "onTripChargingIncome"),
@@ -138,6 +139,7 @@ export default function ModalEditManagementSplit() {
     parkingAirport: getMonthValue(data.reimbursedBills, month, "parkingAirport"),
     uberLyftLimeNotReimbursed: getMonthValue(data.reimbursedBills, month, "uberLyftLimeNotReimbursed"),
     uberLyftLimeReimbursed: getMonthValue(data.reimbursedBills, month, "uberLyftLimeReimbursed"),
+    creditToCarOwner: getMonthValue(data.reimbursedBills, month, "creditToCarOwner"),
   };
   
   // Calculate totals
@@ -315,6 +317,10 @@ export default function ModalEditManagementSplit() {
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Other Turo:</span>
                   <span>${incomeValues.otherIncome.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Income Other Credit:</span>
+                  <span>${incomeValues.otherCreditIncome.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Guest Cancellation:</span>
@@ -561,6 +567,10 @@ export default function ModalEditManagementSplit() {
                 <div className="flex justify-between text-muted-foreground">
                   <span>Uber/Lyft/Lime - Reimbursed:</span>
                   <span>${reimbursedBillsValues.uberLyftLimeReimbursed.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Credit to Car Owner:</span>
+                  <span>${reimbursedBillsValues.creditToCarOwner.toFixed(2)}</span>
                 </div>
                 {dynamicSubcategories.reimbursedBills.map((subcat) => {
                   const monthValue = subcat.values.find((v: any) => v.month === month);

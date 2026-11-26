@@ -131,6 +131,7 @@ export default function ModalEditReimbursedBills() {
     parkingAirport: "Parking Airport",
     uberLyftLimeNotReimbursed: "Uber/Lyft/Lime - Not Reimbursed (added)",
     uberLyftLimeReimbursed: "Uber/Lyft/Lime - Reimbursed (added)",
+    creditToCarOwner: "Credit to Car Owner",
   };
 
   const fieldName = fieldNames[editingCell.field] || editingCell.field;

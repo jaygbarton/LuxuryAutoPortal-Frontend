@@ -191,6 +191,7 @@ const OCR_FIELD_OPTIONS: { value: string; label: string }[] = [
   { value: "reimbursedBills.parkingAirport", label: "Reimbursed Bills · Parking Airport" },
   { value: "reimbursedBills.uberLyftLimeReimbursed", label: "Reimbursed Bills · Uber/Lyft/Lime - Reimbursed" },
   { value: "reimbursedBills.uberLyftLimeNotReimbursed", label: "Reimbursed Bills · Uber/Lyft/Lime - Not Reimbursed" },
+  { value: "reimbursedBills.creditToCarOwner", label: "Reimbursed Bills · Credit to Car Owner" },
 ];
 
 export interface ReceiptOcrItem {

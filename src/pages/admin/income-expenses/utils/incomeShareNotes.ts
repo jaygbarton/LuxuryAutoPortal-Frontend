@@ -18,6 +18,7 @@ export type IncomeShareField =
   | "insuranceWreckIncome"
   | "otherIncome"
   | "guestCancellationIncome"
+  | "otherCreditIncome"
   | "gasReimbursementIncome"
   | "onTripChargingIncome"
   | "postTripChargingIncome";
@@ -43,6 +44,7 @@ const NOTES_2026: Record<IncomeShareField, string> = {
   otherIncome: HOST,
   // Not part of Rental Income; always paid 100% to the owner.
   guestCancellationIncome: OWNER,
+  otherCreditIncome: OWNER,
   // Not part of Rental Income; always added in full to the Car Management Split.
   gasReimbursementIncome: HOST,
   // Same rule as Gas Reimbursement Income.
@@ -68,6 +70,7 @@ const NOTES_LEGACY_50: Record<IncomeShareField, string> = {
   otherIncome: SHARED_50,
   // Not part of Rental Income; always paid 100% to the owner.
   guestCancellationIncome: OWNER,
+  otherCreditIncome: OWNER,
   // Not part of Rental Income; always added in full to the Car Management Split.
   gasReimbursementIncome: HOST,
   // Same rule as Gas Reimbursement Income.
@@ -93,6 +96,7 @@ const NOTES_LEGACY_70: Record<IncomeShareField, string> = {
   otherIncome: HOST,
   // Not part of Rental Income; always paid 100% to the owner.
   guestCancellationIncome: OWNER,
+  otherCreditIncome: OWNER,
   // Not part of Rental Income; always added in full to the Car Management Split.
   gasReimbursementIncome: HOST,
   // Same rule as Gas Reimbursement Income.

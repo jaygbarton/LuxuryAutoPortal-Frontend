@@ -152,6 +152,7 @@ export default function ModalEditIncomeExpense() {
     coolersIncome: "Income Coolers/Camp Chairs",
     insuranceWreckIncome: "Income Turo Claims & Insurance Payments",
     otherIncome: "Income Other Turo",
+    otherCreditIncome: "Income Other Credit",
     guestCancellationIncome: "Income Guest Cancellation",
     gasReimbursementIncome: "Income Gas Reimbursed",
     onTripChargingIncome: "Income On-Trip Charging",
@@ -206,6 +207,7 @@ export default function ModalEditIncomeExpense() {
     coolersIncome: withForm("income", "coolersIncome", getMonthValue(data.incomeExpenses, month, "coolersIncome")),
     insuranceWreckIncome: withForm("income", "insuranceWreckIncome", getMonthValue(data.incomeExpenses, month, "insuranceWreckIncome")),
     otherIncome: withForm("income", "otherIncome", getMonthValue(data.incomeExpenses, month, "otherIncome")),
+    otherCreditIncome: withForm("income", "otherCreditIncome", getMonthValue(data.incomeExpenses, month, "otherCreditIncome")),
     guestCancellationIncome: withForm("income", "guestCancellationIncome", getMonthValue(data.incomeExpenses, month, "guestCancellationIncome")),
     gasReimbursementIncome: withForm("income", "gasReimbursementIncome", getMonthValue(data.incomeExpenses, month, "gasReimbursementIncome")),
     onTripChargingIncome: withForm("income", "onTripChargingIncome", getMonthValue(data.incomeExpenses, month, "onTripChargingIncome")),
@@ -266,6 +268,7 @@ export default function ModalEditIncomeExpense() {
     parkingAirport: withForm("reimbursedBills", "parkingAirport", getMonthValue(data.reimbursedBills, month, "parkingAirport")),
     uberLyftLimeNotReimbursed: withForm("reimbursedBills", "uberLyftLimeNotReimbursed", getMonthValue(data.reimbursedBills, month, "uberLyftLimeNotReimbursed")),
     uberLyftLimeReimbursed: withForm("reimbursedBills", "uberLyftLimeReimbursed", getMonthValue(data.reimbursedBills, month, "uberLyftLimeReimbursed")),
+    creditToCarOwner: withForm("reimbursedBills", "creditToCarOwner", getMonthValue(data.reimbursedBills, month, "creditToCarOwner")),
   } : null;
   
   // Calculate totals
@@ -487,6 +490,10 @@ export default function ModalEditIncomeExpense() {
                     <div className="flex justify-between text-muted-foreground">
                       <span>Income Other Turo:</span>
                       <span>${incomeValues.otherIncome.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Income Other Credit:</span>
+                      <span>${incomeValues.otherCreditIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
                       <span>Income Guest Cancellation:</span>
@@ -733,6 +740,10 @@ export default function ModalEditIncomeExpense() {
                     <div className="flex justify-between text-muted-foreground">
                       <span>Uber/Lyft/Lime - Reimbursed:</span>
                       <span>${reimbursedBillsValues.uberLyftLimeReimbursed.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Credit to Car Owner:</span>
+                      <span>${reimbursedBillsValues.creditToCarOwner.toFixed(2)}</span>
                     </div>
                     {dynamicSubcategories.reimbursedBills.map((subcat) => {
                       const monthValue = subcat.values.find((v: any) => v.month === month);

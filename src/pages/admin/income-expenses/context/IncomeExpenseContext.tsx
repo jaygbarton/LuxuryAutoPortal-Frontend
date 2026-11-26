@@ -100,6 +100,7 @@ function getEmptyData(): IncomeExpenseData {
       insuranceWreckIncome: 0,
       otherIncome: 0,
       guestCancellationIncome: 0,
+      otherCreditIncome: 0,
       gasReimbursementIncome: 0,
       onTripChargingIncome: 0,
       postTripChargingIncome: 0,
@@ -159,6 +160,7 @@ function getEmptyData(): IncomeExpenseData {
       parkingAirport: 0,
       uberLyftLimeNotReimbursed: 0,
       uberLyftLimeReimbursed: 0,
+      creditToCarOwner: 0,
     })),
     officeSupport: emptyMonthData.map((m) => ({
       ...m,
