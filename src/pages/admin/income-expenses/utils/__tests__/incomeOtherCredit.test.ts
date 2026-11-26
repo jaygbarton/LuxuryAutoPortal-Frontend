@@ -4,8 +4,8 @@ import { DISTRIBUTION_ROWS } from "../incomeDistribution";
 import { EBITDA_ADDITIONAL_INCOME_FIELDS } from "../ebitda";
 
 // Income Other Credit (Cathy, 2026-11-26): 100% Owner Share, outside Rental
-// Income, like Income Guest Cancellation. Callers pass it inside the
-// guestCancellationIncome input of computeOwnerSplit (both are owner add-ons).
+// Income. Callers pass it as computeOwnerSplit's otherCreditIncome input; it
+// is added on top and never subtracted from the rental pool.
 
 describe("Income Other Credit", () => {
   it("adds in full to the Car Owner Split", () => {
@@ -17,7 +17,7 @@ describe("Income Other Credit", () => {
       totalDirectDelivery: 0, totalCogs: 0, totalParkingFeeLabor: 0,
     };
     expect(computeOwnerSplit({ ...base, guestCancellationIncome: 0 })).toBe(500);
-    expect(computeOwnerSplit({ ...base, guestCancellationIncome: 100 })).toBe(600);
+    expect(computeOwnerSplit({ ...base, guestCancellationIncome: 0, otherCreditIncome: 100 })).toBe(600);
   });
 
   it("is a 100% Car Owner row right after Income Other Turo in the Income Distribution", () => {
@@ -25,7 +25,8 @@ describe("Income Other Credit", () => {
     expect(DISTRIBUTION_ROWS[i + 1]).toEqual({ field: "otherCreditIncome", label: "Income Other Credit" });
   });
 
-  it("counts in EBITDA Total Income like Guest Cancellation", () => {
+  it("counts in EBITDA Total Income (outside Rental Income); Guest Cancellation does not", () => {
     expect(EBITDA_ADDITIONAL_INCOME_FIELDS).toContain("otherCreditIncome");
+    expect(EBITDA_ADDITIONAL_INCOME_FIELDS).not.toContain("guestCancellationIncome");
   });
 });

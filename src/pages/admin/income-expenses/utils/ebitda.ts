@@ -3,8 +3,10 @@
  * as if GLA owned it (owner payouts are not an expense here).
  *
  *   Total Income   = Rental Income + the additional income rows that sit
- *                    OUTSIDE Rental Income (Guest Cancellation, Other Credit, Gas
- *                    Reimbursement, On-/Post-Trip Charging). Their costs
+ *                    OUTSIDE Rental Income (Other Credit, Gas Reimbursement,
+ *                    On-/Post-Trip Charging). Guest Cancellation is inside
+ *                    Rental Income (carved out like Miles), so it is not
+ *                    added again. Their costs
  *                    (e.g. Gas – Charged to Guest) are already in expenses.
  *   Total Expenses = Car Management + Car Owner car expenses + Office Support
  *                    − Car Payment. A car payment is loan principal (not an
@@ -15,7 +17,6 @@
  *   EBITDA Margin  = EBITDA / Total Income
  */
 export const EBITDA_ADDITIONAL_INCOME_FIELDS = [
-  "guestCancellationIncome",
   "otherCreditIncome",
   "gasReimbursementIncome",
   "onTripChargingIncome",

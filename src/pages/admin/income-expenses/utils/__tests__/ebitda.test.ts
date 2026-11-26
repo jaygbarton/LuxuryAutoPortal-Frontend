@@ -2,11 +2,12 @@ import { describe, it, expect } from "vitest";
 import { ebitdaIncome, ebitdaExpenses } from "../ebitda";
 
 describe("All Cars EBITDA", () => {
-  it("Total Income adds the four additional income rows to Rental Income", () => {
+  it("Total Income adds the additional income rows outside Rental Income", () => {
     expect(ebitdaIncome({
-      rentalIncome: 10000, guestCancellationIncome: 200, gasReimbursementIncome: 150,
+      rentalIncome: 10000, otherCreditIncome: 25, gasReimbursementIncome: 150,
       onTripChargingIncome: 40, postTripChargingIncome: 60, otherIncome: 999,
-    })).toBe(10450); // Other Income is inside Rental Income already
+      guestCancellationIncome: 200,
+    })).toBe(10275); // Other Income and Guest Cancellation are inside Rental Income already
   });
 
   it("Total Expenses leaves Car Payment out", () => {

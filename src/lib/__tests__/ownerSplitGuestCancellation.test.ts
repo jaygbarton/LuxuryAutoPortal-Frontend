@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { computeOwnerSplit, type OwnerSplitInputs } from "../ownerSplit";
 import { incomeShareNote } from "@/pages/admin/income-expenses/utils/incomeShareNotes";
 
-// Guest Cancellation Income: 100% owner, NOT part of Rental Income — added on
-// top of the Car Owner Split in every branch. Mirrors the backend's
+// Guest Cancellation Income works like Miles Income (Cathy, 2026-11-26): it is
+// carved out of Rental Income (subtracted from the rental pool) and paid 100%
+// to the Car Owner Split in every branch. Mirrors the backend's
 // computeCarMonthSplits (guestCancellationIncomeSplit.test.ts there).
 const base: OwnerSplitInputs = {
   year: 2026, mode: 50, ownerPercent: 0.5, skiRacksOwner: "GLA",
@@ -16,15 +17,22 @@ const base: OwnerSplitInputs = {
 describe("computeOwnerSplit — Guest Cancellation Income", () => {
   it.each([
     // [year, mode, ownerPercent, expected] — rental 1000, GCI 100
-    [2026, 50, 0.5, 600], // 1000*0.5 + 100
-    [2026, 70, 0.7, 800], // 1000*0.7 + 100
-    [2025, 50, 0.5, 600],
-    [2025, 70, 0.7, 800],
-  ] as const)("%i mode %i adds it 100% to the owner", (year, mode, ownerPercent, expected) => {
+    [2026, 50, 0.5, 550], // (1000 - 100)*0.5 + 100
+    [2026, 70, 0.7, 730], // (1000 - 100)*0.7 + 100
+    [2025, 50, 0.5, 550],
+    [2025, 70, 0.7, 730],
+  ] as const)("%i mode %i carves it out of rental and pays it 100% to the owner", (year, mode, ownerPercent, expected) => {
     expect(computeOwnerSplit({ ...base, year, mode, ownerPercent, guestCancellationIncome: 100 })).toBeCloseTo(expected, 2);
   });
 
-  it("is not deducted from the rental pool (zero GCI leaves the split unchanged)", () => {
+  it("gives the same split as the same amount of Miles Income", () => {
+    for (const [year, mode, ownerPercent] of [[2026, 50, 0.5], [2026, 70, 0.7], [2025, 50, 0.5], [2025, 70, 0.7]] as const) {
+      expect(computeOwnerSplit({ ...base, year, mode, ownerPercent, guestCancellationIncome: 80 }))
+        .toBeCloseTo(computeOwnerSplit({ ...base, year, mode, ownerPercent, milesIncome: 80 }), 2);
+    }
+  });
+
+  it("zero GCI leaves the split unchanged", () => {
     expect(computeOwnerSplit(base)).toBeCloseTo(500, 2);
   });
 });

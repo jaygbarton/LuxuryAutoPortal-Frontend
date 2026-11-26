@@ -10,7 +10,8 @@ describe("distributeIncomeMonth", () => {
       year: 2026,
       values: { rentalIncome: 2000, deliveryIncome: 100, milesIncome: 50, smokingFines: 50, guestCancellationIncome: 40, gasReimbursementIncome: 25 },
     })!;
-    expect(d.tripIncome).toMatchObject({ amount: 1800, mgmt: 900, owner: 900 });
+    // 2000 - 100 delivery - 50 miles - 50 smoking - 40 guest cancellation = 1760.
+    expect(d.tripIncome).toMatchObject({ amount: 1760, mgmt: 880, owner: 880 });
     expect(d.deliveryIncome).toMatchObject({ mgmt: 100, owner: 0 });
     expect(d.milesIncome).toMatchObject({ mgmt: 0, owner: 50 });
     expect(d.smokingFines).toMatchObject({ mgmt: 45, owner: 5, mgmtPercent: 90, ownerPercent: 10 });
@@ -25,7 +26,8 @@ describe("distributeIncomeMonth", () => {
       insuranceWreckIncome: 300, otherIncome: 7.33, guestCancellationIncome: 88, gasReimbursementIncome: 19.99,
       onTripChargingIncome: 10, postTripChargingIncome: 5,
     };
-    const totalIncome = values.rentalIncome + values.guestCancellationIncome + values.gasReimbursementIncome +
+    // Guest Cancellation is inside Rental Income (carved out like Miles Income).
+    const totalIncome = values.rentalIncome + values.gasReimbursementIncome +
       values.onTripChargingIncome + values.postTripChargingIncome;
     for (const year of [2021, 2025, 2026]) {
       for (const mode of [50, 70] as const) {

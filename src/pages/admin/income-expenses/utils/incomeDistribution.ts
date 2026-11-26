@@ -57,7 +57,7 @@ export const DISTRIBUTION_ROWS: { field: DistributionField; label: string }[] = 
 ];
 
 /** Rows carved out of "Income Car Rentals - Turo" before the trip split. */
-const CARVED_OUT: Exclude<DistributionField, "tripIncome" | "guestCancellationIncome" | "otherCreditIncome" | "gasReimbursementIncome" | "onTripChargingIncome" | "postTripChargingIncome">[] = [
+const CARVED_OUT: Exclude<DistributionField, "tripIncome" | "otherCreditIncome" | "gasReimbursementIncome" | "onTripChargingIncome" | "postTripChargingIncome">[] = [
   "deliveryIncome",
   "electricPrepaidIncome",
   "smokingFines",
@@ -69,6 +69,8 @@ const CARVED_OUT: Exclude<DistributionField, "tripIncome" | "guestCancellationIn
   "coolersIncome",
   "insuranceWreckIncome",
   "otherIncome",
+  // Carved out of Rental Income like Miles Income (Cathy, 2026-11-26).
+  "guestCancellationIncome",
 ];
 
 export interface DistributionMonthInput {
