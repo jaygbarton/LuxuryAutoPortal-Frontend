@@ -2135,6 +2135,7 @@ export default function EarningsPage() {
                     />
                   </CategorySection>
 
+                {/* Only Total Payout is highlighted here (Cathy, 2026-11-26). */}
                 {/* INCOME AND EXPENSES SUMMARY (Cathy, 2026-11-26): the owner's
                     income, all of the car's expenses, the negative balance, and
                     Total Payout, the final Car Owner Split (what is payable to
@@ -2147,23 +2148,20 @@ export default function EarningsPage() {
                   <TableRow
                     label="Total Car Owner Income"
                     values={MONTHS.map((_, i) => totalCarOwnerIncome(i + 1))}
-                    isHighlighted
                   />
                   <TableRow
                     label="Total Expenses"
                     values={MONTHS.map((_, i) => totalCarExpenses(i + 1))}
-                    isHighlighted
                   />
                   <TableRow
                     label="Negative Balance Carry Over"
                     values={MONTHS.map((_, i) => calculateNegativeBalanceCarryOver(i + 1))}
                     hideTotal
-                    isHighlighted
                   />
                   <TableRow
                     label="Total Payout"
                     values={MONTHS.map((_, i) => calculateCarOwnerSplit(i + 1))}
-                    isTotal
+                    isHighlighted
                   />
                 </CategorySection>
 

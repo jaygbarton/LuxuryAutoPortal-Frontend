@@ -31,9 +31,11 @@ describe("Earnings INCOME AND EXPENSES SUMMARY", () => {
     }
   });
 
-  it("highlights Total Expenses and Negative Balance Carry Over", () => {
-    expect(rowTag(rowAt("Total Expenses", summary))).toContain("isHighlighted");
-    expect(rowTag(rowAt("Negative Balance Carry Over", summary))).toContain("isHighlighted");
+  it("highlights only Total Payout", () => {
+    for (const l of ["Total Car Owner Income", "Total Expenses", "Negative Balance Carry Over"]) {
+      expect(rowTag(rowAt(l, summary))).not.toContain("isHighlighted");
+    }
+    expect(rowTag(rowAt("Total Payout", summary))).toContain("isHighlighted");
   });
 
   it("uses the statement's Total Expenses and pays out the Car Owner Split", () => {
