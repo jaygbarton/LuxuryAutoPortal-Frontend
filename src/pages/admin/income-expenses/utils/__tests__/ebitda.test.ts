@@ -2,12 +2,12 @@ import { describe, it, expect } from "vitest";
 import { ebitdaIncome, ebitdaExpenses } from "../ebitda";
 
 describe("All Cars EBITDA", () => {
-  it("Total Income adds the additional income rows outside Rental Income", () => {
+  it("Total Income = Trip Income + Gas Reimbursed + EV On-/Post-Trip Charging Reimbursed", () => {
     expect(ebitdaIncome({
       rentalIncome: 10000, otherCreditIncome: 25, gasReimbursementIncome: 150,
       onTripChargingIncome: 40, postTripChargingIncome: 60, otherIncome: 999,
       guestCancellationIncome: 200,
-    })).toBe(10275); // Other Income and Guest Cancellation are inside Rental Income already
+    })).toBe(10250); // Other Income and Guest Cancellation are inside Rental Income; Other Credit is the owner's
   });
 
   it("Total Expenses leaves Car Payment out", () => {
