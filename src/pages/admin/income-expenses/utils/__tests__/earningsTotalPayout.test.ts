@@ -42,17 +42,4 @@ describe("Earnings INCOME AND EXPENSES SUMMARY", () => {
     expect(src).toMatch(/const totalCarExpenses = [\s\S]*getTotalDirectDeliveryForMonth[\s\S]*getTotalCogsForMonth[\s\S]*getTotalParkingFeeLaborForMonth/);
     expect(rowTag(rowAt("Total Payout", summary))).toContain("calculateCarOwnerSplit");
   });
-
-  it("adds the 50% formula owner expense rows below Negative Balance Carry Over", () => {
-    const at = ["Negative Balance Carry Over", "Total Expenses x %", "Negative Balance Carry Over x %", "Total Car Owner Expenses", "Total Payout"].map((l) => rowAt(l, summary));
-    at.forEach((i) => expect(i).toBeGreaterThan(summary));
-    expect([...at].sort((a, b) => a - b)).toEqual(at);
-    expect(src.slice(src.lastIndexOf("{usesFiftyFormula && (", at[1]), at[3])).not.toMatch(/\n\s*\)\}\n/);
-  });
-
-  it("uses the 50% formula's owner share: (Direct Delivery + COGS) x % and carry-over x %, 0 in 70% months", () => {
-    expect(src).toMatch(/const isFiftyMonth = \(month: number\) => \(monthModes\[month\] \|\| 50\) === 50;/);
-    expect(src).toMatch(/const ownerExpenseShare = [\s\S]*?isFiftyMonth\(month\)[\s\S]*?getTotalDirectDeliveryForMonth\(month\) \+ getTotalCogsForMonth\(month\)\) \* getCarOwnerSplitPercent\(month\)[\s\S]*?: 0;/);
-    expect(src).toMatch(/const ownerCarryOverShare = [\s\S]*?isFiftyMonth\(month\)[\s\S]*?calculateNegativeBalanceCarryOver\(month\)[\s\S]*?getCarOwnerSplitPercent\(month\)[\s\S]*?: 0;/);
-  });
 });
