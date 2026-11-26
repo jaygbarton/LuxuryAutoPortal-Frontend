@@ -24,7 +24,7 @@ export type IncomeShareField =
   | "postTripChargingIncome";
 
 /**
- * The "Income Shares (included in Trip Income)" rows (Cathy, 2026-11-26):
+ * The "Income Shares" rows (Cathy, 2026-11-26):
  * add-on income that is already inside Income Car Rentals - Turo (Trip
  * Income), carved out of it only to show who keeps each piece. Matches the
  * CARVED_OUT list in incomeDistribution.ts. Income Other Credit and the
