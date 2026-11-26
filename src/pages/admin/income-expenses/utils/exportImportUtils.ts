@@ -1229,15 +1229,15 @@ export function buildIncomeExpenseCSV(
   csvContent += `YER,YER SPLIT,TOTAL\n`;
   
   const reimbursedFields = [
-    { field: 'electricReimbursed', label: 'Electric - Reimbursed' },
-    { field: 'electricNotReimbursed', label: 'Electric - Not Reimbursed' },
-    { field: 'gasReimbursed', label: 'Gas – Charged to Guest' },
-    { field: 'gasNotReimbursed', label: 'Gas – Not Charged to Guest' },
-    { field: 'gasServiceRun', label: 'Gas - Service Run' },
-    { field: 'parkingAirport', label: 'Parking Airport' },
-    { field: 'uberLyftLimeNotReimbursed', label: 'Uber/Lyft/Lime - Not Reimbursed' },
-    { field: 'uberLyftLimeReimbursed', label: 'Uber/Lyft/Lime - Reimbursed' },
-    { field: 'creditToCarOwner', label: 'Credit to Car Owner' },
+    { field: 'electricReimbursed', label: 'Expenses Electric - Reimbursed' },
+    { field: 'electricNotReimbursed', label: 'Expenses Electric - Not Reimbursed' },
+    { field: 'gasReimbursed', label: 'Expenses Gas – Charged to Guest' },
+    { field: 'gasNotReimbursed', label: 'Expenses Gas – Not Charged to Guest' },
+    { field: 'gasServiceRun', label: 'Expenses Gas - Service Run' },
+    { field: 'parkingAirport', label: 'Expenses Parking Airport' },
+    { field: 'uberLyftLimeNotReimbursed', label: 'Expenses Uber/Lyft/Lime - Not Reimbursed' },
+    { field: 'uberLyftLimeReimbursed', label: 'Expenses Uber/Lyft/Lime - Reimbursed' },
+    { field: 'creditToCarOwner', label: 'Expenses Credit to Car Owner' },
   ];
   
   reimbursedFields.forEach(({ field, label }) => {

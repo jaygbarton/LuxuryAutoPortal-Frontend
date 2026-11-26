@@ -63,6 +63,13 @@ export const EMPLOYEE_ALLOWED_ROW_LABELS = [
   "Uber/Lyft/Lime - Reimbursed",
   "Uber/Lyft/Lime - Not Reimbursed (added)",
   "Uber/Lyft/Lime - Reimbursed (added)",
+  // Same rows with the "Expenses" prefix (Cathy, 2026-11-26).
+  "Expenses Gas – Charged to Guest",
+  "Expenses Gas – Not Charged to Guest",
+  "Expenses Gas - Service Run",
+  "Expenses Parking Airport",
+  "Expenses Uber/Lyft/Lime - Not Reimbursed (added)",
+  "Expenses Uber/Lyft/Lime - Reimbursed (added)",
 ];
 
 const ALLOWED_SECTION_SET = new Set(

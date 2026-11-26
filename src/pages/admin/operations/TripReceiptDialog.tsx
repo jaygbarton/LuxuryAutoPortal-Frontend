@@ -65,7 +65,8 @@ export function TripReceiptDialog({ taskId, bookingKey, scheduleDate, kind = "pa
     queryFn: async () => responseJson<Options>(await fetch(buildApiUrl("/api/expense-form-submissions/options"), { credentials: "include" })),
   });
   const fields = options.data?.data.categoryFields?.reimbursedBills ?? [];
-  const fieldLabel = isFuel ? /^gas\s*[-–]?\s*(reimbursed|charged\s+to\s+guest)$/i : /^parking\s*[-–]?\s*airport$/i;
+  // Optional "Expenses " prefix on the bills rows (Cathy, 2026-11-26).
+  const fieldLabel = isFuel ? /^(expenses\s+)?gas\s*[-–]?\s*(reimbursed|charged\s+to\s+guest)$/i : /^(expenses\s+)?parking\s*[-–]?\s*airport$/i;
   const parkingField = fields.find((f) => fieldLabel.test(f.label.trim()))?.value;
   const employees = options.data?.data.employees ?? [], cars = options.data?.data.cars ?? [];
   useEffect(() => {

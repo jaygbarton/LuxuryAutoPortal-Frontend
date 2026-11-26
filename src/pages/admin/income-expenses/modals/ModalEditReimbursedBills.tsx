@@ -123,15 +123,15 @@ export default function ModalEditReimbursedBills() {
   if (!editingCell || editingCell.category !== "reimbursedBills") return null;
 
   const fieldNames: { [key: string]: string } = {
-    electricReimbursed: "Electric - Reimbursed",
-    electricNotReimbursed: "Electric - Not Reimbursed",
-    gasReimbursed: "Gas – Charged to Guest",
-    gasNotReimbursed: "Gas – Not Charged to Guest",
-    gasServiceRun: "Gas - Service Run",
-    parkingAirport: "Parking Airport",
-    uberLyftLimeNotReimbursed: "Uber/Lyft/Lime - Not Reimbursed (added)",
-    uberLyftLimeReimbursed: "Uber/Lyft/Lime - Reimbursed (added)",
-    creditToCarOwner: "Credit to Car Owner",
+    electricReimbursed: "Expenses Electric - Reimbursed",
+    electricNotReimbursed: "Expenses Electric - Not Reimbursed",
+    gasReimbursed: "Expenses Gas – Charged to Guest",
+    gasNotReimbursed: "Expenses Gas – Not Charged to Guest",
+    gasServiceRun: "Expenses Gas - Service Run",
+    parkingAirport: "Expenses Parking Airport",
+    uberLyftLimeNotReimbursed: "Expenses Uber/Lyft/Lime - Not Reimbursed (added)",
+    uberLyftLimeReimbursed: "Expenses Uber/Lyft/Lime - Reimbursed (added)",
+    creditToCarOwner: "Expenses Credit to Car Owner",
   };
 
   const fieldName = fieldNames[editingCell.field] || editingCell.field;

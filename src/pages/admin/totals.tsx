@@ -981,15 +981,15 @@ export default function TotalsPage() {
               title="REIMBURSED & NON-REIMBURSED BILLS"
               totalValue={totals?.reimbursedBills?.total}
             >
-              <TotalRow label="Electric - Reimbursed" value={totals?.reimbursedBills?.electricReimbursed} />
-              <TotalRow label="Electric - Not Reimbursed" value={totals?.reimbursedBills?.electricNotReimbursed} />
-              <TotalRow label="Gas – Charged to Guest" value={totals?.reimbursedBills?.gasReimbursed} />
-              <TotalRow label="Gas – Not Charged to Guest" value={totals?.reimbursedBills?.gasNotReimbursed} />
-              <TotalRow label="Gas - Service Run" value={totals?.reimbursedBills?.gasServiceRun} />
-              <TotalRow label="Parking Airport" value={totals?.reimbursedBills?.parkingAirport} />
-              <TotalRow label="Uber/Lyft/Lime - Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeReimbursed} />
-              <TotalRow label="Uber/Lyft/Lime - Not Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeNotReimbursed} />
-              <TotalRow label="Credit to Car Owner" value={totals?.reimbursedBills?.creditToCarOwner} />
+              <TotalRow label="Expenses Electric - Reimbursed" value={totals?.reimbursedBills?.electricReimbursed} />
+              <TotalRow label="Expenses Electric - Not Reimbursed" value={totals?.reimbursedBills?.electricNotReimbursed} />
+              <TotalRow label="Expenses Gas – Charged to Guest" value={totals?.reimbursedBills?.gasReimbursed} />
+              <TotalRow label="Expenses Gas – Not Charged to Guest" value={totals?.reimbursedBills?.gasNotReimbursed} />
+              <TotalRow label="Expenses Gas - Service Run" value={totals?.reimbursedBills?.gasServiceRun} />
+              <TotalRow label="Expenses Parking Airport" value={totals?.reimbursedBills?.parkingAirport} />
+              <TotalRow label="Expenses Uber/Lyft/Lime - Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeReimbursed} />
+              <TotalRow label="Expenses Uber/Lyft/Lime - Not Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeNotReimbursed} />
+              <TotalRow label="Expenses Credit to Car Owner" value={totals?.reimbursedBills?.creditToCarOwner} />
               <SubcategoryRows rows={totals?.reimbursedBills?.subcategories} />
               <TotalRow label="Total Reimbursed & Non-Reimbursed Bills" value={totals?.reimbursedBills?.total} separator bold />
             </Section>

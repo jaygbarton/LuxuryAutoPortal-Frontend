@@ -185,13 +185,13 @@ const OCR_FIELD_OPTIONS: { value: string; label: string }[] = [
   { value: "directDelivery.parkingAirport", label: "Direct Delivery · Parking Airport Reimbursed" },
   { value: "directDelivery.parkingAirportNotReimbursed", label: "Direct Delivery · Parking Airport Not Reimbursed" },
   { value: "directDelivery.uberLyftLime", label: "Direct Delivery · Uber/Lyft/Lime" },
-  { value: "reimbursedBills.gasReimbursed", label: "Reimbursed Bills · Gas – Charged to Guest" },
-  { value: "reimbursedBills.gasNotReimbursed", label: "Reimbursed Bills · Gas – Not Charged to Guest" },
-  { value: "reimbursedBills.gasServiceRun", label: "Reimbursed Bills · Gas - Service Run" },
-  { value: "reimbursedBills.parkingAirport", label: "Reimbursed Bills · Parking Airport" },
-  { value: "reimbursedBills.uberLyftLimeReimbursed", label: "Reimbursed Bills · Uber/Lyft/Lime - Reimbursed" },
-  { value: "reimbursedBills.uberLyftLimeNotReimbursed", label: "Reimbursed Bills · Uber/Lyft/Lime - Not Reimbursed" },
-  { value: "reimbursedBills.creditToCarOwner", label: "Reimbursed Bills · Credit to Car Owner" },
+  { value: "reimbursedBills.gasReimbursed", label: "Reimbursed Bills · Expenses Gas – Charged to Guest" },
+  { value: "reimbursedBills.gasNotReimbursed", label: "Reimbursed Bills · Expenses Gas – Not Charged to Guest" },
+  { value: "reimbursedBills.gasServiceRun", label: "Reimbursed Bills · Expenses Gas - Service Run" },
+  { value: "reimbursedBills.parkingAirport", label: "Reimbursed Bills · Expenses Parking Airport" },
+  { value: "reimbursedBills.uberLyftLimeReimbursed", label: "Reimbursed Bills · Expenses Uber/Lyft/Lime - Reimbursed" },
+  { value: "reimbursedBills.uberLyftLimeNotReimbursed", label: "Reimbursed Bills · Expenses Uber/Lyft/Lime - Not Reimbursed" },
+  { value: "reimbursedBills.creditToCarOwner", label: "Reimbursed Bills · Expenses Credit to Car Owner" },
 ];
 
 export interface ReceiptOcrItem {

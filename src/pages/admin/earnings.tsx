@@ -2119,47 +2119,47 @@ export default function EarningsPage() {
                     onToggle={() => toggleSection("reimbursedBills")}
                   >
                     <TableRow
-                      label="Electric - Reimbursed"
+                      label="Expenses Electric - Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "electricReimbursed"))}
                       category="reimbursedBills" field="electricReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
-                      label="Electric - Not Reimbursed"
+                      label="Expenses Electric - Not Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "electricNotReimbursed"))}
                       category="reimbursedBills" field="electricNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
-                      label="Gas – Charged to Guest"
+                      label="Expenses Gas – Charged to Guest"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasReimbursed"))}
                       category="reimbursedBills" field="gasReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
-                      label="Gas – Not Charged to Guest"
+                      label="Expenses Gas – Not Charged to Guest"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasNotReimbursed"))}
                       category="reimbursedBills" field="gasNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
-                      label="Gas - Service Run"
+                      label="Expenses Gas - Service Run"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasServiceRun"))}
                       category="reimbursedBills" field="gasServiceRun" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
-                      label="Parking Airport"
+                      label="Expenses Parking Airport"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "parkingAirport"))}
                       category="reimbursedBills" field="parkingAirport" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
-                      label="Uber/Lyft/Lime - Not Reimbursed"
+                      label="Expenses Uber/Lyft/Lime - Not Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "uberLyftLimeNotReimbursed"))}
                       category="reimbursedBills" field="uberLyftLimeNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
-                      label="Uber/Lyft/Lime - Reimbursed"
+                      label="Expenses Uber/Lyft/Lime - Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "uberLyftLimeReimbursed"))}
                       category="reimbursedBills" field="uberLyftLimeReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
-                      label="Credit to Car Owner"
+                      label="Expenses Credit to Car Owner"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "creditToCarOwner"))}
                       category="reimbursedBills" field="creditToCarOwner" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />

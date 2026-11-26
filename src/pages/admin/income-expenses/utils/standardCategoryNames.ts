@@ -75,6 +75,16 @@ export const STANDARD_CATEGORY_NAMES: Record<string, string[]> = {
     "Parking Airport",
     "Uber/Lyft/Lime - Not Reimbursed",
     "Uber/Lyft/Lime - Reimbursed",
+    // Same rows with the "Expenses" prefix (Cathy, 2026-11-26).
+    "Expenses Electric - Reimbursed",
+    "Expenses Electric - Not Reimbursed",
+    "Expenses Gas – Charged to Guest",
+    "Expenses Gas – Not Charged to Guest",
+    "Expenses Gas - Service Run",
+    "Expenses Parking Airport",
+    "Expenses Uber/Lyft/Lime - Not Reimbursed",
+    "Expenses Uber/Lyft/Lime - Reimbursed",
+    "Expenses Credit to Car Owner",
   ],
 };
 

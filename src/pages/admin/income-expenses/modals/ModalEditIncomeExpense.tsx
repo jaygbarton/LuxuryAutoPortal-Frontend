@@ -710,39 +710,39 @@ export default function ModalEditIncomeExpense() {
                   <div className="text-primary text-xs font-semibold mb-2">REIMBURSE AND NON-REIMBURSE BILLS</div>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Electric - Reimbursed:</span>
+                      <span>Expenses Electric - Reimbursed:</span>
                       <span>${reimbursedBillsValues.electricReimbursed.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Electric - Not Reimbursed:</span>
+                      <span>Expenses Electric - Not Reimbursed:</span>
                       <span>${reimbursedBillsValues.electricNotReimbursed.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Gas – Charged to Guest:</span>
+                      <span>Expenses Gas – Charged to Guest:</span>
                       <span>${reimbursedBillsValues.gasReimbursed.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Gas – Not Charged to Guest:</span>
+                      <span>Expenses Gas – Not Charged to Guest:</span>
                       <span>${reimbursedBillsValues.gasNotReimbursed.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Gas - Service Run:</span>
+                      <span>Expenses Gas - Service Run:</span>
                       <span>${reimbursedBillsValues.gasServiceRun.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Parking Airport:</span>
+                      <span>Expenses Parking Airport:</span>
                       <span>${reimbursedBillsValues.parkingAirport.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Uber/Lyft/Lime - Not Reimbursed:</span>
+                      <span>Expenses Uber/Lyft/Lime - Not Reimbursed:</span>
                       <span>${reimbursedBillsValues.uberLyftLimeNotReimbursed.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Uber/Lyft/Lime - Reimbursed:</span>
+                      <span>Expenses Uber/Lyft/Lime - Reimbursed:</span>
                       <span>${reimbursedBillsValues.uberLyftLimeReimbursed.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Credit to Car Owner:</span>
+                      <span>Expenses Credit to Car Owner:</span>
                       <span>${reimbursedBillsValues.creditToCarOwner.toFixed(2)}</span>
                     </div>
                     {dynamicSubcategories.reimbursedBills.map((subcat) => {
