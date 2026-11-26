@@ -331,11 +331,11 @@ export default function ModalEditManagementSplit() {
                   <span>${incomeValues.gasReimbursementIncome.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Income On-Trip Charging:</span>
+                  <span>Income EV On-Trip Charging Reimbursed:</span>
                   <span>${incomeValues.onTripChargingIncome.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Income Post-Trip Charging:</span>
+                  <span>Income EV Post-Trip Charging Reimbursed:</span>
                   <span>${incomeValues.postTripChargingIncome.toFixed(2)}</span>
                 </div>
               </div>

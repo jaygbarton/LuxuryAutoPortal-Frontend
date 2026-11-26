@@ -155,8 +155,8 @@ export default function ModalEditIncomeExpense() {
     otherCreditIncome: "Income Other Credit",
     guestCancellationIncome: "Income Guest Cancellation",
     gasReimbursementIncome: "Income Gas Reimbursed",
-    onTripChargingIncome: "Income On-Trip Charging",
-    postTripChargingIncome: "Income Post-Trip Charging",
+    onTripChargingIncome: "Income EV On-Trip Charging Reimbursed",
+    postTripChargingIncome: "Income EV Post-Trip Charging Reimbursed",
     negativeBalanceCarryOver: "Negative Balance Carry Over",
     carPayment: "Car Payment",
     carManagementTotalExpenses: "Car Management Total Expenses",
@@ -504,11 +504,11 @@ export default function ModalEditIncomeExpense() {
                       <span>${incomeValues.gasReimbursementIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Income On-Trip Charging:</span>
+                      <span>Income EV On-Trip Charging Reimbursed:</span>
                       <span>${incomeValues.onTripChargingIncome.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Income Post-Trip Charging:</span>
+                      <span>Income EV Post-Trip Charging Reimbursed:</span>
                       <span>${incomeValues.postTripChargingIncome.toFixed(2)}</span>
                     </div>
                   </div>

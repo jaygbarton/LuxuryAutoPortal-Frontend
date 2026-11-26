@@ -1717,6 +1717,20 @@ export default function EarningsPage() {
                     label="Income Car Rentals - Turo (Trip Income)"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "rentalIncome"))}
                     category="income" field="rentalIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                    isHighlighted
+                  />
+                  {/* Sub-categories A–Z under Trip Income, as on the I&E page (2026-11-26). */}
+                  <TableRow
+                    label="Income Car Seats"
+                    splitLabel={shareNote("childSeatIncome")}
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "childSeatIncome"))}
+                    category="income" field="childSeatIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                  />
+                  <TableRow
+                    label="Income Coolers/Camp Chairs"
+                    splitLabel={shareNote("coolersIncome")}
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "coolersIncome"))}
+                    category="income" field="coolersIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Income Delivery"
@@ -1729,12 +1743,6 @@ export default function EarningsPage() {
                     splitLabel={shareNote("electricPrepaidIncome")}
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "electricPrepaidIncome"))}
                     category="income" field="electricPrepaidIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Income Smoking Fines"
-                    splitLabel={shareNote("smokingFines")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "smokingFines"))}
-                    category="income" field="smokingFines" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Income Gas Prepaid"
@@ -1751,10 +1759,10 @@ export default function EarningsPage() {
                     />
                   )}
                   <TableRow
-                    label="Income Ski Racks"
-                    splitLabel={shareNote("skiRacksIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "skiRacksIncome"))}
-                    category="income" field="skiRacksIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                    label="Income Guest Cancellation"
+                    splitLabel={shareNote("guestCancellationIncome")}
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "guestCancellationIncome"))}
+                    category="income" field="guestCancellationIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Income Miles"
@@ -1763,22 +1771,10 @@ export default function EarningsPage() {
                     category="income" field="milesIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
-                    label="Income Car Seats"
-                    splitLabel={shareNote("childSeatIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "childSeatIncome"))}
-                    category="income" field="childSeatIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Income Coolers/Camp Chairs"
-                    splitLabel={shareNote("coolersIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "coolersIncome"))}
-                    category="income" field="coolersIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Income Turo Claims & Insurance Payments"
-                    splitLabel={shareNote("insuranceWreckIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "insuranceWreckIncome"))}
-                    category="income" field="insuranceWreckIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                    label="Income Other Credit"
+                    splitLabel={shareNote("otherCreditIncome")}
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "otherCreditIncome"))}
+                    category="income" field="otherCreditIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Income Other Turo"
@@ -1787,16 +1783,30 @@ export default function EarningsPage() {
                     category="income" field="otherIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
-                    label="Income Other Credit"
-                    splitLabel={shareNote("otherCreditIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "otherCreditIncome"))}
-                    category="income" field="otherCreditIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                    label="Income Ski Racks"
+                    splitLabel={shareNote("skiRacksIncome")}
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "skiRacksIncome"))}
+                    category="income" field="skiRacksIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
-                    label="Income Guest Cancellation"
-                    splitLabel={shareNote("guestCancellationIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "guestCancellationIncome"))}
-                    category="income" field="guestCancellationIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                    label="Income Smoking Fines"
+                    splitLabel={shareNote("smokingFines")}
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "smokingFines"))}
+                    category="income" field="smokingFines" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                  />
+                  <TableRow
+                    label="Income Turo Claims & Insurance Payments"
+                    splitLabel={shareNote("insuranceWreckIncome")}
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "insuranceWreckIncome"))}
+                    category="income" field="insuranceWreckIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                  />
+                  {/* Reimbursed Income (Cathy, 2026-11-26): the 100% Host Share
+                      reimbursement rows, grouped under their own sub-heading. */}
+                  <SubheaderRow
+                    label="Reimbursed Income"
+                    hasValues={(["gasReimbursementIncome", "onTripChargingIncome", "postTripChargingIncome"] as const).some((field) =>
+                      MONTHS.some((_, i) =>
+                        Math.abs(getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, field) + getFormAmount("income", field, i + 1)) >= 0.005))}
                   />
                   <TableRow
                     label="Income Gas Reimbursed"
@@ -1805,13 +1815,13 @@ export default function EarningsPage() {
                     category="income" field="gasReimbursementIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
-                    label="Income On-Trip Charging"
+                    label="Income EV On-Trip Charging Reimbursed"
                     splitLabel={shareNote("onTripChargingIncome")}
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "onTripChargingIncome"))}
                     category="income" field="onTripChargingIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
-                    label="Income Post-Trip Charging"
+                    label="Income EV Post-Trip Charging Reimbursed"
                     splitLabel={shareNote("postTripChargingIncome")}
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "postTripChargingIncome"))}
                     category="income" field="postTripChargingIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
@@ -2503,6 +2513,21 @@ export default function EarningsPage() {
 }
 
 // Helper Components
+
+/** A sub-heading inside a section (e.g. INCOME → Reimbursed Income). On the
+ *  client view (hideIfZero, set by CategorySection) it is dropped when none of
+ *  its rows carry money, the same as those rows. */
+function SubheaderRow({ label, hasValues = true, hideIfZero = false }: { label: string; hasValues?: boolean; hideIfZero?: boolean }) {
+  if (hideIfZero && !hasValues) return null;
+  return (
+    <tr className="bg-muted/60 border-b border-border">
+      <td colSpan={14} className="md:sticky md:left-0 z-[3] px-3 py-1.5 text-xs font-semibold text-foreground">
+        {label}
+      </td>
+    </tr>
+  );
+}
+
 interface CategorySectionProps {
   title: string;
   isExpanded: boolean;
@@ -2566,6 +2591,8 @@ interface TableRowProps {
   totalOverride?: number | null;
   /** When true, skip rendering if every month (including form amounts) is $0. */
   hideIfZero?: boolean;
+  /** Gold-highlighted row, e.g. Income Car Rentals - Turo (Trip Income). */
+  isHighlighted?: boolean;
 }
 
 function TableRow({
@@ -2584,6 +2611,7 @@ function TableRow({
   hideIfZero = false,
   partialTotal = false,
   totalOverride,
+  isHighlighted = false,
 }: TableRowProps) {
   // For Negative Balance Carry Over, display absolute value (remove minus sign)
   const isNegativeBalance = label === "Negative Balance Carry Over";
@@ -2605,11 +2633,15 @@ function TableRow({
   return (
     <tr className={cn(
       "border-b border-border transition-colors",
-      isTotal && "bg-background font-semibold"
+      isTotal && "bg-background font-semibold",
+      isHighlighted && "bg-[#D3BC8D]/20 font-semibold"
     )}>
       <td className={cn(
         "px-3 py-2 text-xs md:sticky md:left-0 z-[3] border-r border-border",
-        isTotal ? "text-primary bg-background" : "text-muted-foreground bg-card"
+        isTotal ? "text-primary bg-background" : "text-muted-foreground bg-card",
+        // Opaque sticky cell, tinted with an inset shadow so the highlight
+        // still reads under horizontal scroll.
+        isHighlighted && "text-[#B8860B] font-semibold shadow-[inset_0_0_0_9999px_rgba(211,188,141,0.2)]"
       )}>
         {/* Label + share note sit inline on one line, matching the Income &
             Expenses table's CategoryRow. Previously the note was `block`, which
