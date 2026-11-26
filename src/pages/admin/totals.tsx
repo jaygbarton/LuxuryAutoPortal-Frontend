@@ -932,6 +932,7 @@ export default function TotalsPage() {
                 <TotalRow label="Delivery, Postage & Freight" value={totals?.operatingExpensesOffice?.deliveryPostageFreight} />
                 <TotalRow label="Detail Shop Equipment" value={totals?.operatingExpensesOffice?.detailShopEquipment} />
                 <TotalRow label="Dues & Subscription" value={totals?.operatingExpensesOffice?.duesSubscription} />
+                <TotalRow label="EV Charges" value={totals?.operatingExpensesOffice?.evCharges} />
                 <TotalRow label="Labor Outside & Staff Contractors" value={totals?.operatingExpensesOffice?.outsideStaffContractors} />
                 <TotalRow label="Labor Selling Cars Commission" value={totals?.operatingExpensesOffice?.laborSellingCarsCommission} />
                 <TotalRow label="Labor Staff Cleaning & Detailing" value={totals?.operatingExpensesOffice?.laborStaffCleaningDetailing} />
