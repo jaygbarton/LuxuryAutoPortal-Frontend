@@ -1724,7 +1724,7 @@ export default function EarningsPage() {
                       piece. The sub-heading stops owners reading them as income
                       on top of Trip Income. A–Z, as on the I&E page. */}
                   <SubheaderRow
-                    label="Income Shares (included in Trip Income)"
+                    label="Income Shares"
                     hasValues={INCOME_SHARE_FIELDS.some((field) =>
                       MONTHS.some((_, i) =>
                         Math.abs(getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, field) + getFormAmount("income", field, i + 1)) >= 0.005))}
@@ -2742,7 +2742,10 @@ function TableRow({
       })}
       <td className={cn(
         "text-right px-2 py-2 text-xs font-semibold border-l border-border bg-card md:sticky md:right-0 z-[3]",
-        hideTotal ? "text-muted-foreground" : isTotal ? "text-primary" : total !== 0 ? "text-[#B8860B]" : "text-muted-foreground"
+        hideTotal ? "text-muted-foreground" : isTotal ? "text-primary" : total !== 0 ? "text-[#B8860B]" : "text-muted-foreground",
+        // Trip Income's Total highlighted like the rest of its row (Cathy,
+        // 2026-11-26); the opaque sticky cell is tinted with an inset shadow.
+        isHighlighted && "text-[#B8860B] font-bold shadow-[inset_0_0_0_9999px_rgba(211,188,141,0.2)]"
       )}>
         {hideTotal
           ? null

@@ -2711,7 +2711,7 @@ lastSavedNote.current = coHostNote;
                   Sub-categories A–Z. */}
               <tr className="bg-muted/60">
                 <td colSpan={14} className="md:sticky md:left-0 px-2 py-1.5 text-xs font-semibold text-foreground">
-                  Income Shares (included in Trip Income)
+                  Income Shares
                 </td>
               </tr>
               <CategoryRow
@@ -5885,6 +5885,9 @@ function CategoryRow({
           className={cn(
             "md:sticky md:right-0 md:z-20 border-l border-border px-1 py-1 text-right text-foreground font-bold text-xs",
             isTotal ? "bg-background" : "bg-card",
+            // Trip Income's Total highlighted like the rest of its row (Cathy,
+            // 2026-11-26); the opaque sticky cell is tinted with an inset shadow.
+            isHighlighted && "text-[#B8860B] shadow-[inset_0_0_0_9999px_rgba(211,188,141,0.2)]",
           )}
         >
           {isLoading ? (

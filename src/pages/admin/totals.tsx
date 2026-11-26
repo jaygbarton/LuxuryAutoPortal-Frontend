@@ -62,6 +62,8 @@ interface TotalRowProps {
   separator?: boolean;
   indent?: boolean;
   negative?: boolean;
+  /** Gold highlight, as Trip Income on the I&E page (Cathy, 2026-11-26). */
+  highlighted?: boolean;
 }
 
 /**
@@ -72,7 +74,7 @@ interface TotalRowProps {
 const HideZeroRowsContext = React.createContext(false);
 
 
-function TotalRow({ label, value, isCurrency = true, bold, separator, indent, negative }: TotalRowProps) {
+function TotalRow({ label, value, isCurrency = true, bold, separator, indent, negative, highlighted }: TotalRowProps) {
   const hideZeroRows = React.useContext(HideZeroRowsContext);
   const num = typeof value === "string" ? parseFloat(value as string) : Number(value);
   const isNeg = negative || num < 0;
@@ -82,17 +84,19 @@ function TotalRow({ label, value, isCurrency = true, bold, separator, indent, ne
       "flex items-center justify-between py-1.5 px-2 rounded-sm min-w-0",
       separator && "border-t border-border pt-3 mt-1",
       bold && "font-semibold",
-      indent && "pl-4"
+      indent && "pl-4",
+      highlighted && "bg-[#D3BC8D]/20 font-semibold"
     )}>
       <span className={cn(
         "text-sm truncate mr-4 flex-1 min-w-0",
-        bold ? "text-foreground" : "text-muted-foreground"
+        highlighted ? "text-[#B8860B] font-semibold" : bold ? "text-foreground" : "text-muted-foreground"
       )}>
         {label}
       </span>
       <span className={cn(
         "text-sm font-mono tabular-nums whitespace-nowrap",
         bold ? "font-semibold text-foreground" : "text-foreground",
+        highlighted && "font-semibold text-[#B8860B]",
         isNeg && "text-red-600 dark:text-red-400"
       )}>
         {isCurrency ? formatCurrency(value) : formatNumber(value)}
@@ -782,10 +786,10 @@ export default function TotalsPage() {
               title="INCOME / PROFIT & LOSS"
               totalValue={totals?.income?.totalProfit}
             >
-              <TotalRow label="Income Car Rentals - Turo (Trip Income)" value={totals?.income?.rentalIncome} />
+              <TotalRow label="Income Car Rentals - Turo (Trip Income)" value={totals?.income?.rentalIncome} highlighted />
               {/* Income Shares (Cathy, 2026-11-26): already part of Trip Income,
                   carved out to show who keeps each piece. A–Z, as on I&E. */}
-              <div className="px-2 pt-2 pb-1 text-xs font-semibold text-foreground">Income Shares (included in Trip Income)</div>
+              <div className="px-2 pt-2 pb-1 text-xs font-semibold text-foreground">Income Shares</div>
               <TotalRow label="Income Car Seats" value={totals?.income?.childSeatIncome} indent />
               <TotalRow label="Income Coolers/Camp Chairs" value={totals?.income?.coolersIncome} indent />
               <TotalRow label="Income Delivery" value={totals?.income?.deliveryIncome} indent />
