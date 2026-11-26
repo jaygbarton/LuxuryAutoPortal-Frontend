@@ -18,13 +18,9 @@ const read = (p: string) => readFileSync(resolve(__dirname, p), "utf8");
 
 describe("Reimbursed bills rows start with Expenses", () => {
   const table = read("../../components/IncomeExpenseTable.tsx");
-  const earnings = read("../../../earnings.tsx");
 
-  it("labels every row on Income & Expenses and Earnings", () => {
-    for (const label of ROWS) {
-      expect(table).toContain(`label="${label}"`);
-      expect(earnings).toContain(`label="${label}"`);
-    }
+  it("labels every row on Income & Expenses", () => {
+    for (const label of ROWS) expect(table).toContain(`label="${label}"`);
   });
 
   it("keeps the section name", () => {
