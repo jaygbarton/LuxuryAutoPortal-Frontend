@@ -21,7 +21,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { useFormAmounts } from "@/pages/admin/income-expenses/utils/useFormAmounts";
 import ReceiptViewerModal from "@/pages/admin/income-expenses/components/ReceiptViewerModal";
 import { findStandardCategoryMatch } from "@/pages/admin/income-expenses/utils/standardCategoryNames";
-import { CO_HOST_EXPENSES_HEADING, GLA_EXPENSES_HEADING, isCoHostExpenseName } from "@/pages/admin/income-expenses/utils/coHostExpenses";
+import { isCoHostExpenseName } from "@/pages/admin/income-expenses/utils/coHostExpenses";
 import { dynamicFieldValue } from "@/pages/admin/income-expenses/utils/expenseFormLink";
 import { INCOME_SHARE_FIELDS, incomeShareNote, type IncomeShareField } from "@/pages/admin/income-expenses/utils/incomeShareNotes";
 import { formatAmount } from "@/lib/formatAmount";
@@ -84,6 +84,8 @@ export default function EarningsPage() {
     reimbursedBills: true,
   });
   const [uploadingChart, setUploadingChart] = useState<{ [month: number]: boolean }>({});
+  // Statement-of-Account sections on Earnings, collapsed by key (2026-11-26).
+  const [collapsedStatement, setCollapsedStatement] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -122,6 +124,25 @@ export default function EarningsPage() {
   });
 
   const car = carData?.data;
+
+  // Income and expenses in the Statement of Account layout (Cathy, 2026-11-26).
+  const { data: statementData, isLoading: isStatementLoading } = useQuery<{
+    success: boolean;
+    data: { year: number; blocks: EarningsStatementBlock[] };
+  }>({
+    queryKey: ["/api/cars", carId, "statement-of-account/data", selectedYear],
+    queryFn: async () => {
+      const response = await fetch(
+        buildApiUrl(`/api/cars/${carId}/statement-of-account/data?year=${selectedYear}`),
+        { credentials: "include" },
+      );
+      if (!response.ok) throw new Error("Failed to load income and expenses");
+      return response.json();
+    },
+    enabled: !!carId && !!selectedYear,
+    retry: false,
+  });
+  const statementBlocks = statementData?.data?.blocks ?? [];
 
   // Fetch income-expenses data
   const { data: incomeExpenseData, isLoading: isIncomeExpenseLoading } = useQuery<{
@@ -1722,414 +1743,29 @@ export default function EarningsPage() {
                   />
                 </CategorySection>
 
-                {/* INCOME (formerly INCOME AND EXPENSES) */}
-                <CategorySection
-                  title="INCOME"
-                  isExpanded={expandedSections.incomeExpenses}
-                  onToggle={() => toggleSection("incomeExpenses")}
-                  hideZeroSubcategories
-                >
-                  <TableRow
-                    label="Income Car Rentals - Turo (Trip Income)"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "rentalIncome"))}
-                    category="income" field="rentalIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    isHighlighted
-                  />
-                  {/* Income Shares (Cathy, 2026-11-26): these rows are already part
-                      of Trip Income, carved out of it to show who keeps each
-                      piece. The sub-heading stops owners reading them as income
-                      on top of Trip Income. A–Z, as on the I&E page. */}
-                  <SubheaderRow
-                    label="Income Shares"
-                    hasValues={INCOME_SHARE_FIELDS.some((field) =>
-                      MONTHS.some((_, i) =>
-                        Math.abs(getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, field) + getFormAmount("income", field, i + 1)) >= 0.005))}
-                  />
-                  <TableRow
-                    label="Income Car Seats"
-                    splitLabel={shareNote("childSeatIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "childSeatIncome"))}
-                    category="income" field="childSeatIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Income Coolers/Camp Chairs"
-                    splitLabel={shareNote("coolersIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "coolersIncome"))}
-                    category="income" field="coolersIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Income Delivery"
-                    splitLabel={shareNote("deliveryIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "deliveryIncome"))}
-                    category="income" field="deliveryIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Income Electric Prepaid"
-                    splitLabel={shareNote("electricPrepaidIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "electricPrepaidIncome"))}
-                    category="income" field="electricPrepaidIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Income Gas Prepaid"
-                    splitLabel={shareNote("gasPrepaidIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "gasPrepaidIncome"))}
-                    category="income" field="gasPrepaidIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  {parseInt(selectedYear, 10) >= 2026 && (
-                    <TableRow
-                      label="Income Gas Prepaid"
-                      splitLabel={shareNote("gasPrepaidOwnerIncome")}
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "gasPrepaidOwnerIncome"))}
-                      category="income" field="gasPrepaidOwnerIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                {/* Income and expenses laid out like the Statement of Account,
+                    with the same numbers (Cathy, 2026-11-26). Rows come from
+                    the statement itself (/statement-of-account/data), so
+                    Earnings and the statement can never disagree. GLA Payment
+                    and Balance are left out. CAR OWNER SPLIT stays above. */}
+                {isStatementLoading ? (
+                  <tr>
+                    <td colSpan={14} className="px-3 py-4 text-xs text-muted-foreground">Loading income and expenses…</td>
+                  </tr>
+                ) : statementBlocks.length === 0 ? (
+                  <tr>
+                    <td colSpan={14} className="px-3 py-4 text-xs text-muted-foreground">No income or expenses recorded for {selectedYear}.</td>
+                  </tr>
+                ) : (
+                  statementBlocks.map((block, bi) => (
+                    <StatementBlockRows
+                      key={`${block.year}-${bi}`}
+                      block={block}
+                      sectionKey={`b${bi}`}
+                      isExpanded={(key) => !collapsedStatement[key]}
+                      onToggle={(key) => setCollapsedStatement((prev) => ({ ...prev, [key]: !prev[key] }))}
                     />
-                  )}
-                  <TableRow
-                    label="Income Guest Cancellation"
-                    splitLabel={shareNote("guestCancellationIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "guestCancellationIncome"))}
-                    category="income" field="guestCancellationIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Income Miles"
-                    splitLabel={shareNote("milesIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "milesIncome"))}
-                    category="income" field="milesIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Income Other Turo"
-                    splitLabel={shareNote("otherIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "otherIncome"))}
-                    category="income" field="otherIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Income Ski Racks"
-                    splitLabel={shareNote("skiRacksIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "skiRacksIncome"))}
-                    category="income" field="skiRacksIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Income Smoking Fines"
-                    splitLabel={shareNote("smokingFines")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "smokingFines"))}
-                    category="income" field="smokingFines" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Income Turo Claims & Insurance Payments"
-                    splitLabel={shareNote("insuranceWreckIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "insuranceWreckIncome"))}
-                    category="income" field="insuranceWreckIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  {/* Income Other Credit is NOT part of Trip Income: a credit GLA
-                      pays the car owner (Cathy, 2026-11-26), so it sits outside
-                      Income Shares under its own sub-heading. */}
-                  <SubheaderRow
-                    label="Owner Credit (not in Trip Income)"
-                    hasValues={MONTHS.some((_, i) =>
-                      Math.abs(getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "otherCreditIncome") + getFormAmount("income", "otherCreditIncome", i + 1)) >= 0.005)}
-                  />
-                  <TableRow
-                    label="Income Other Credit"
-                    splitLabel={shareNote("otherCreditIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "otherCreditIncome"))}
-                    category="income" field="otherCreditIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  {/* Reimbursed Income (Gas Reimbursed, EV On-Trip / Post-Trip
-                      Charging Reimbursed) is not shown on Earnings (Cathy,
-                      2026-11-26); it stays on Income & Expenses. */}
-                  <TableRow
-                    label="Negative Balance Carry Over"
-                    values={MONTHS.map((_, i) => calculateNegativeBalanceCarryOver(i + 1))}
-                    hideTotal
-                  />
-                </CategorySection>
-
-                {/* OPERATING EXPENSE (Direct Delivery) — client-visible per
-                    Cathy (2026-07-20), reversing the 2026-07-08 "hide from
-                    clients" change. */}
-                <CategorySection
-                  title="OPERATING EXPENSE (DIRECT DELIVERY)"
-                  isExpanded={expandedSections.directDelivery}
-                  onToggle={() => toggleSection("directDelivery")}
-                  hideZeroSubcategories
-                >
-                  {/* Retired row: shown only when it already holds money. */}
-                  {MONTHS.some((_, i) =>
-                    getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "laborCarCleaning") !== 0 ||
-                    getFormAmount("directDelivery", "laborCarCleaning", i + 1) !== 0,
-                  ) && (
-                  <TableRow
-                    label="Labor - Cleaning"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "laborCarCleaning"))}
-                    category="directDelivery" field="laborCarCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  )}
-                  <TableRow
-                    label="Labor - Delivery"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "laborDelivery"))}
-                    category="directDelivery" field="laborDelivery" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Parking Airport Reimbursed"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "parkingAirport"))}
-                    category="directDelivery" field="parkingAirport" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Parking Airport Not Reimbursed"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "parkingAirportNotReimbursed"))}
-                    category="directDelivery" field="parkingAirportNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  {/* Retired row: shown only when it already holds money. */}
-                  {MONTHS.some((_, i) =>
-                    getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "parkingLot") !== 0 ||
-                    getFormAmount("directDelivery", "parkingLot", i + 1) !== 0,
-                  ) && (
-                  <TableRow
-                    label="Parking - Lot"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "parkingLot"))}
-                    category="directDelivery" field="parkingLot" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  )}
-                  <TableRow
-                    label="Uber/Lyft/Lime"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "uberLyftLime"))}
-                    category="directDelivery" field="uberLyftLime" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  {renderDynamicRows("directDelivery")}
-                  <TableRow
-                    label="TOTAL OPERATING EXPENSE (Direct Delivery)"
-                    values={MONTHS.map((_, i) => getTotalDirectDeliveryForMonth(i + 1))}
-                    isTotal
-                  />
-                </CategorySection>
-
-                {/* OPERATING EXPENSE (COGS - Per Vehicle) — client-visible per
-                    Cathy (2026-07-20), reversing the 2026-07-08 "hide from
-                    clients" change. */}
-                <CategorySection
-                  title="OPERATING EXPENSE (COGS - PER VEHICLE)"
-                  isExpanded={expandedSections.cogs}
-                  onToggle={() => toggleSection("cogs")}
-                  hideZeroSubcategories
-                >
-                  <TableRow
-                    label="Auto Body Shop / Wreck"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "autoBodyShopWreck"))}
-                    category="cogs" field="autoBodyShopWreck" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Alignment"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "alignment"))}
-                    category="cogs" field="alignment" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Battery"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "battery"))}
-                    category="cogs" field="battery" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Brakes"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "brakes"))}
-                    category="cogs" field="brakes" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Car Payment"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "carPayment"))}
-                    category="cogs" field="carPayment" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Car Insurance"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "carInsurance"))}
-                    category="cogs" field="carInsurance" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Car Seats"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "carSeats"))}
-                    category="cogs" field="carSeats" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Cleaning Supplies / Tools"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "cleaningSuppliesTools"))}
-                    category="cogs" field="cleaningSuppliesTools" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Emissions"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "emissions"))}
-                    category="cogs" field="emissions" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="GPS System"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "gpsSystem"))}
-                    category="cogs" field="gpsSystem" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Key & Fob"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "keyFob"))}
-                    category="cogs" field="keyFob" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Labor - Cleaning"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "laborCleaning"))}
-                    category="cogs" field="laborCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="License & Registration"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "licenseRegistration"))}
-                    category="cogs" field="licenseRegistration" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Mechanic"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "mechanic"))}
-                    category="cogs" field="mechanic" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Oil/Lube"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "oilLube"))}
-                    category="cogs" field="oilLube" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Parts"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "parts"))}
-                    category="cogs" field="parts" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Ski Racks"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "skiRacks"))}
-                    category="cogs" field="skiRacks" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Tickets & Tolls"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "tickets"))}
-                    category="cogs" field="tickets" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Tired Air Station"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "tiredAirStation"))}
-                    category="cogs" field="tiredAirStation" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Tires"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "tires"))}
-                    category="cogs" field="tires" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Towing / Impound Fees"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "towingImpoundFees"))}
-                    category="cogs" field="towingImpoundFees" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Uber/Lyft/Lime"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "uberLyftLime"))}
-                    category="cogs" field="uberLyftLime" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Windshield"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "windshield"))}
-                    category="cogs" field="windshield" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Wipers"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "wipers"))}
-                    category="cogs" field="wipers" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  {renderDynamicRows("cogs")}
-                  <TableRow
-                    label="TOTAL OPERATING EXPENSE (COGS - Per Vehicle)"
-                    values={MONTHS.map((_, i) => getTotalCogsForMonth(i + 1))}
-                    isTotal
-                  />
-                </CategorySection>
-
-                {/* GLA PARKING FEE & LABOR CLEANING — client-visible per Cathy
-                    (2026-07-10), reversing the 2026-07-08 "hide from clients"
-                    change for this section specifically. The internal
-                    "Parking Airport Average Per Trip - GLA" breakdown below
-                    stays admin-only. */}
-                <CategorySection
-                    title="GLA PARKING FEE & LABOR CLEANING"
-                    isExpanded={expandedSections.parkingFeeLabor}
-                    onToggle={() => toggleSection("parkingFeeLabor")}
-                  >
-                    <TableRow
-                      label="GLA Parking Fee"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.parkingFeeLabor || [], i + 1, "glaParkingFee"))}
-                      category="parkingFeeLabor" field="glaParkingFee" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Labor - Cleaning"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.parkingFeeLabor || [], i + 1, "laborCleaning"))}
-                      category="parkingFeeLabor" field="laborCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    {renderDynamicRows("parkingFeeLabor")}
-                  </CategorySection>
-
-                {/* REIMBURSED AND NON-REIMBURSED BILLS — GLA-internal. Hidden
-                    from clients (and from View as Client, which reports
-                    isAdmin false) so the client-facing Earnings table never
-                    shows internal reimbursed/non-reimbursed bill lines. */}
-                {isAdmin && (
-                <CategorySection
-                    title="REIMBURSED AND NON-REIMBURSED BILLS"
-                    isExpanded={expandedSections.reimbursedBills}
-                    onToggle={() => toggleSection("reimbursedBills")}
-                  >
-                    {/* GLA Expenses / Co-Host Expenses sub-headings (Cathy, 2026-11-26). */}
-                    <SubheaderRow label={GLA_EXPENSES_HEADING} />
-                    <TableRow
-                      label="Expenses Electric - Reimbursed"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "electricReimbursed"))}
-                      category="reimbursedBills" field="electricReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Expenses Electric - Not Reimbursed"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "electricNotReimbursed"))}
-                      category="reimbursedBills" field="electricNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Expenses Gas – Charged to Guest"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasReimbursed"))}
-                      category="reimbursedBills" field="gasReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Expenses Gas – Not Charged to Guest"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasNotReimbursed"))}
-                      category="reimbursedBills" field="gasNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Expenses Gas - Service Run"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasServiceRun"))}
-                      category="reimbursedBills" field="gasServiceRun" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Expenses Parking Airport"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "parkingAirport"))}
-                      category="reimbursedBills" field="parkingAirport" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Expenses Uber/Lyft/Lime - Not Reimbursed"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "uberLyftLimeNotReimbursed"))}
-                      category="reimbursedBills" field="uberLyftLimeNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Expenses Uber/Lyft/Lime - Reimbursed"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "uberLyftLimeReimbursed"))}
-                      category="reimbursedBills" field="uberLyftLimeReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Expenses Credit to Car Owner"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "creditToCarOwner"))}
-                      category="reimbursedBills" field="creditToCarOwner" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    {renderDynamicRows("reimbursedBills", "gla")}
-                    {dynamicSubcategories.reimbursedBills.some((s: any) => findStandardCategoryMatch("reimbursedBills", s.name) == null && isCoHostExpenseName(s.name)) && (
-                      <SubheaderRow label={CO_HOST_EXPENSES_HEADING} />
-                    )}
-                    {renderDynamicRows("reimbursedBills", "coHost")}
-                    <TableRow
-                      label="TOTAL REIMBURSED AND NON-REIMBURSED BILLS"
-                      values={MONTHS.map((_, i) => getTotalReimbursedBillsForMonth(i + 1))}
-                      isTotal
-                    />
-                  </CategorySection>
+                  ))
                 )}
 
                 {/* HISTORY — client-visible */}
@@ -2522,6 +2158,115 @@ export default function EarningsPage() {
 /** A sub-heading inside a section (e.g. INCOME → Reimbursed Income). On the
  *  client view (hideIfZero, set by CategorySection) it is dropped when none of
  *  its rows carry money, the same as those rows. */
+// ---- Statement of Account layout (Cathy, 2026-11-26) ----------------------
+
+interface StatementLine {
+  label: string;
+  note?: string;
+  monthly: number[];
+  total: number;
+}
+
+/** A Statement of Account year block, without GLA Payment and Balance. */
+interface EarningsStatementBlock {
+  year: number;
+  splitLabel: string;
+  monthIncluded: boolean[];
+  ownerSplitPercentages: number[];
+  income: {
+    lines: StatementLine[];
+    total: StatementLine;
+    ownerSplit: StatementLine;
+    ownerIncome: { lines: StatementLine[]; total: StatementLine } | null;
+  };
+  fiftyFifty: { netIncome: StatementLine; ownerShare: StatementLine; ownerAddons: StatementLine[] } | null;
+  directDeliveryExpenses: StatementLine[];
+  cogsExpenses: StatementLine[];
+  parkingFeeLabor: { lines: StatementLine[]; total: StatementLine };
+  negativeBalanceCarryOver: StatementLine;
+  totalPayout: StatementLine;
+}
+
+function StatementLineRow({ line, isTotal }: { line: StatementLine; isTotal?: boolean }) {
+  return (
+    <TableRow
+      label={line.label}
+      splitLabel={line.note}
+      values={line.monthly}
+      totalOverride={line.total}
+      isTotal={isTotal}
+    />
+  );
+}
+
+const NO_RECORDED_EXPENSES: StatementLine = { label: "No Recorded Expenses", monthly: new Array(12).fill(0), total: 0 };
+
+/**
+ * One Statement of Account year block as Earnings rows, in the statement's
+ * order: INCOME (lines, Total Income, the owner's % row, owner add-ons),
+ * OPERATING EXPENSES (Direct Delivery), (COGS Per Vehicle), GLA PARKING FEE &
+ * LABOR CLEANING, then Negative Balance Carry Over, the 50/50 rows, and the
+ * total payout. No GLA Payment or Balance.
+ */
+function StatementBlockRows({
+  block,
+  sectionKey,
+  isExpanded,
+  onToggle,
+}: {
+  block: EarningsStatementBlock;
+  sectionKey: string;
+  isExpanded: (key: string) => boolean;
+  onToggle: (key: string) => void;
+}) {
+  const key = (name: string) => `${sectionKey}-${name}`;
+  const section = (name: string, title: string, children: React.ReactNode) => (
+    <CategorySection title={title} isExpanded={isExpanded(key(name))} onToggle={() => onToggle(key(name))}>
+      {children}
+    </CategorySection>
+  );
+  const lines = (list: StatementLine[]) =>
+    (list.length === 0 ? [NO_RECORDED_EXPENSES] : list).map((line, i) => <StatementLineRow key={`${line.label}-${i}`} line={line} />);
+  return (
+    <>
+      {section("income", `INCOME (${block.year} ${block.splitLabel})`, (
+        <>
+          {block.income.lines.map((line, i) => <StatementLineRow key={`${line.label}-${i}`} line={line} />)}
+          {!block.fiftyFifty && (
+            <>
+              <StatementLineRow line={block.income.total} isTotal />
+              <StatementLineRow line={block.income.ownerSplit} isTotal />
+              {block.income.ownerIncome && (
+                <>
+                  {block.income.ownerIncome.lines.map((line, i) => <StatementLineRow key={`${line.label}-${i}`} line={line} />)}
+                  <StatementLineRow line={block.income.ownerIncome.total} isTotal />
+                </>
+              )}
+            </>
+          )}
+        </>
+      ))}
+      {section("dd", "OPERATING EXPENSES (Direct Delivery)", lines(block.directDeliveryExpenses))}
+      {section("cogs", "OPERATING EXPENSES (COGS Per Vehicle)", lines(block.cogsExpenses))}
+      {section("pfl", "GLA PARKING FEE & LABOR CLEANING", (
+        <>
+          {lines(block.parkingFeeLabor.lines)}
+          <StatementLineRow line={block.parkingFeeLabor.total} isTotal />
+        </>
+      ))}
+      <StatementLineRow line={block.negativeBalanceCarryOver} />
+      {block.fiftyFifty && (
+        <>
+          <StatementLineRow line={block.fiftyFifty.netIncome} isTotal />
+          <StatementLineRow line={block.fiftyFifty.ownerShare} isTotal />
+          {block.fiftyFifty.ownerAddons.map((line, i) => <StatementLineRow key={`${line.label}-${i}`} line={line} />)}
+        </>
+      )}
+      <StatementLineRow line={block.totalPayout} isTotal />
+    </>
+  );
+}
+
 function SubheaderRow({ label, hasValues = true, hideIfZero = false }: { label: string; hasValues?: boolean; hideIfZero?: boolean }) {
   if (hideIfZero && !hasValues) return null;
   return (
