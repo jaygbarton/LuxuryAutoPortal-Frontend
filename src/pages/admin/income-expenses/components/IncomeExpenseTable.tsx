@@ -2707,7 +2707,14 @@ lastSavedNote.current = coHostNote;
                 field="rentalIncome"
                 isHighlighted
               />
-              {/* Sub-categories A–Z under Trip Income (Cathy, 2026-11-26). */}
+              {/* Income Shares (Cathy, 2026-11-26): these rows are already part
+                  of Trip Income, carved out of it to show who keeps each piece.
+                  Sub-categories A–Z. */}
+              <tr className="bg-muted/60">
+                <td colSpan={14} className="md:sticky md:left-0 px-2 py-1.5 text-xs font-semibold text-foreground">
+                  Income Shares (included in Trip Income)
+                </td>
+              </tr>
               <CategoryRow
                 label="Income Car Seats"
                 splitLabel={shareNote("childSeatIncome")}
@@ -2788,15 +2795,6 @@ lastSavedNote.current = coHostNote;
                 field="milesIncome"
               />
               <CategoryRow
-                label="Income Other Credit"
-                splitLabel={shareNote("otherCreditIncome")}
-                values={MONTHS.map((_, i) =>
-                  getMonthValue(data.incomeExpenses, i + 1, "otherCreditIncome"),
-                )}
-                category="income"
-                field="otherCreditIncome"
-              />
-              <CategoryRow
                 label="Income Other Turo"
                 splitLabel={shareNote("otherIncome")}
                 values={MONTHS.map((_, i) =>
@@ -2835,6 +2833,22 @@ lastSavedNote.current = coHostNote;
                 )}
                 category="income"
                 field="insuranceWreckIncome"
+              />
+              {/* Income Other Credit is NOT part of Trip Income: a credit GLA
+                  pays the car owner (Cathy, 2026-11-26). */}
+              <tr className="bg-muted/60">
+                <td colSpan={14} className="md:sticky md:left-0 px-2 py-1.5 text-xs font-semibold text-foreground">
+                  Owner Credit (not in Trip Income)
+                </td>
+              </tr>
+              <CategoryRow
+                label="Income Other Credit"
+                splitLabel={shareNote("otherCreditIncome")}
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.incomeExpenses, i + 1, "otherCreditIncome"),
+                )}
+                category="income"
+                field="otherCreditIncome"
               />
               {/* Reimbursed Income (Cathy, 2026-11-26): the 100% Host Share
                   reimbursement rows, grouped under their own sub-heading. */}

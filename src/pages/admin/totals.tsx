@@ -783,20 +783,24 @@ export default function TotalsPage() {
               totalValue={totals?.income?.totalProfit}
             >
               <TotalRow label="Income Car Rentals - Turo (Trip Income)" value={totals?.income?.rentalIncome} />
-              {/* Sub-categories A–Z under Trip Income, as on the I&E page (2026-11-26). */}
-              <TotalRow label="Income Car Seats" value={totals?.income?.childSeatIncome} />
-              <TotalRow label="Income Coolers/Camp Chairs" value={totals?.income?.coolersIncome} />
-              <TotalRow label="Income Delivery" value={totals?.income?.deliveryIncome} />
-              <TotalRow label="Income Electric Prepaid" value={totals?.income?.electricPrepaidIncome} />
-              <TotalRow label="Income Gas Prepaid" value={totals?.income?.gasPrepaidIncome} />
-              <TotalRow label="Income Gas Prepaid (Owner Share)" value={totals?.income?.gasPrepaidOwnerIncome} />
-              <TotalRow label="Income Guest Cancellation" value={totals?.income?.guestCancellationIncome} />
-              <TotalRow label="Income Miles" value={totals?.income?.milesIncome} />
-              <TotalRow label="Income Other Credit" value={totals?.income?.otherCreditIncome} />
-              <TotalRow label="Income Other Turo" value={totals?.income?.otherIncome} />
-              <TotalRow label="Income Ski Racks" value={totals?.income?.skiRacksIncome} />
-              <TotalRow label="Income Smoking Fines" value={totals?.income?.smokingFines} />
-              <TotalRow label="Income Turo Claims & Insurance Payments" value={totals?.income?.incomeInsurance} />
+              {/* Income Shares (Cathy, 2026-11-26): already part of Trip Income,
+                  carved out to show who keeps each piece. A–Z, as on I&E. */}
+              <div className="px-2 pt-2 pb-1 text-xs font-semibold text-foreground">Income Shares (included in Trip Income)</div>
+              <TotalRow label="Income Car Seats" value={totals?.income?.childSeatIncome} indent />
+              <TotalRow label="Income Coolers/Camp Chairs" value={totals?.income?.coolersIncome} indent />
+              <TotalRow label="Income Delivery" value={totals?.income?.deliveryIncome} indent />
+              <TotalRow label="Income Electric Prepaid" value={totals?.income?.electricPrepaidIncome} indent />
+              <TotalRow label="Income Gas Prepaid" value={totals?.income?.gasPrepaidIncome} indent />
+              <TotalRow label="Income Gas Prepaid (Owner Share)" value={totals?.income?.gasPrepaidOwnerIncome} indent />
+              <TotalRow label="Income Guest Cancellation" value={totals?.income?.guestCancellationIncome} indent />
+              <TotalRow label="Income Miles" value={totals?.income?.milesIncome} indent />
+              <TotalRow label="Income Other Turo" value={totals?.income?.otherIncome} indent />
+              <TotalRow label="Income Ski Racks" value={totals?.income?.skiRacksIncome} indent />
+              <TotalRow label="Income Smoking Fines" value={totals?.income?.smokingFines} indent />
+              <TotalRow label="Income Turo Claims & Insurance Payments" value={totals?.income?.incomeInsurance} indent />
+              {/* Income Other Credit is not part of Trip Income (Cathy, 2026-11-26). */}
+              <div className="px-2 pt-2 pb-1 text-xs font-semibold text-foreground">Owner Credit (not in Trip Income)</div>
+              <TotalRow label="Income Other Credit" value={totals?.income?.otherCreditIncome} indent />
               {/* Reimbursed Income group, after the A–Z rows (Cathy, 2026-11-26). */}
               <div className="px-2 pt-2 pb-1 text-xs font-semibold text-foreground">Reimbursed Income</div>
               <TotalRow label="Income Gas Reimbursed" value={totals?.income?.gasReimbursementIncome} indent />

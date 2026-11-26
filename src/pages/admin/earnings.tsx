@@ -22,7 +22,7 @@ import { useFormAmounts } from "@/pages/admin/income-expenses/utils/useFormAmoun
 import ReceiptViewerModal from "@/pages/admin/income-expenses/components/ReceiptViewerModal";
 import { findStandardCategoryMatch } from "@/pages/admin/income-expenses/utils/standardCategoryNames";
 import { dynamicFieldValue } from "@/pages/admin/income-expenses/utils/expenseFormLink";
-import { incomeShareNote, type IncomeShareField } from "@/pages/admin/income-expenses/utils/incomeShareNotes";
+import { INCOME_SHARE_FIELDS, incomeShareNote, type IncomeShareField } from "@/pages/admin/income-expenses/utils/incomeShareNotes";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -1719,7 +1719,16 @@ export default function EarningsPage() {
                     category="income" field="rentalIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     isHighlighted
                   />
-                  {/* Sub-categories A–Z under Trip Income, as on the I&E page (2026-11-26). */}
+                  {/* Income Shares (Cathy, 2026-11-26): these rows are already part
+                      of Trip Income, carved out of it to show who keeps each
+                      piece. The sub-heading stops owners reading them as income
+                      on top of Trip Income. A–Z, as on the I&E page. */}
+                  <SubheaderRow
+                    label="Income Shares (included in Trip Income)"
+                    hasValues={INCOME_SHARE_FIELDS.some((field) =>
+                      MONTHS.some((_, i) =>
+                        Math.abs(getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, field) + getFormAmount("income", field, i + 1)) >= 0.005))}
+                  />
                   <TableRow
                     label="Income Car Seats"
                     splitLabel={shareNote("childSeatIncome")}
@@ -1771,12 +1780,6 @@ export default function EarningsPage() {
                     category="income" field="milesIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
-                    label="Income Other Credit"
-                    splitLabel={shareNote("otherCreditIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "otherCreditIncome"))}
-                    category="income" field="otherCreditIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
                     label="Income Other Turo"
                     splitLabel={shareNote("otherIncome")}
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "otherIncome"))}
@@ -1800,32 +1803,52 @@ export default function EarningsPage() {
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "insuranceWreckIncome"))}
                     category="income" field="insuranceWreckIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
-                  {/* Reimbursed Income (Cathy, 2026-11-26): the 100% Host Share
-                      reimbursement rows, grouped under their own sub-heading. */}
+                  {/* Income Other Credit is NOT part of Trip Income: a credit GLA
+                      pays the car owner (Cathy, 2026-11-26), so it sits outside
+                      Income Shares under its own sub-heading. */}
                   <SubheaderRow
-                    label="Reimbursed Income"
-                    hasValues={(["gasReimbursementIncome", "onTripChargingIncome", "postTripChargingIncome"] as const).some((field) =>
-                      MONTHS.some((_, i) =>
-                        Math.abs(getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, field) + getFormAmount("income", field, i + 1)) >= 0.005))}
+                    label="Owner Credit (not in Trip Income)"
+                    hasValues={MONTHS.some((_, i) =>
+                      Math.abs(getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "otherCreditIncome") + getFormAmount("income", "otherCreditIncome", i + 1)) >= 0.005)}
                   />
                   <TableRow
-                    label="Income Gas Reimbursed"
-                    splitLabel={shareNote("gasReimbursementIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "gasReimbursementIncome"))}
-                    category="income" field="gasReimbursementIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                    label="Income Other Credit"
+                    splitLabel={shareNote("otherCreditIncome")}
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "otherCreditIncome"))}
+                    category="income" field="otherCreditIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
-                  <TableRow
-                    label="Income EV On-Trip Charging Reimbursed"
-                    splitLabel={shareNote("onTripChargingIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "onTripChargingIncome"))}
-                    category="income" field="onTripChargingIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
-                  <TableRow
-                    label="Income EV Post-Trip Charging Reimbursed"
-                    splitLabel={shareNote("postTripChargingIncome")}
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "postTripChargingIncome"))}
-                    category="income" field="postTripChargingIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                  />
+                  {/* Reimbursed Income (Cathy, 2026-11-26): the 100% Host Share
+                      reimbursement rows, grouped under their own sub-heading.
+                      Hidden from car owners (Cathy, 2026-11-26); gated on
+                      isClient so View as Client hides it too. */}
+                  {!isClient && (
+                    <>
+                    <SubheaderRow
+                      label="Reimbursed Income"
+                      hasValues={(["gasReimbursementIncome", "onTripChargingIncome", "postTripChargingIncome"] as const).some((field) =>
+                        MONTHS.some((_, i) =>
+                          Math.abs(getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, field) + getFormAmount("income", field, i + 1)) >= 0.005))}
+                    />
+                    <TableRow
+                      label="Income Gas Reimbursed"
+                      splitLabel={shareNote("gasReimbursementIncome")}
+                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "gasReimbursementIncome"))}
+                      category="income" field="gasReimbursementIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                    />
+                    <TableRow
+                      label="Income EV On-Trip Charging Reimbursed"
+                      splitLabel={shareNote("onTripChargingIncome")}
+                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "onTripChargingIncome"))}
+                      category="income" field="onTripChargingIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                    />
+                    <TableRow
+                      label="Income EV Post-Trip Charging Reimbursed"
+                      splitLabel={shareNote("postTripChargingIncome")}
+                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "postTripChargingIncome"))}
+                      category="income" field="postTripChargingIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                    />
+                    </>
+                  )}
                   <TableRow
                     label="Negative Balance Carry Over"
                     values={MONTHS.map((_, i) => calculateNegativeBalanceCarryOver(i + 1))}
