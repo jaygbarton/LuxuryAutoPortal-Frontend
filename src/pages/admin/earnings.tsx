@@ -1243,24 +1243,6 @@ export default function EarningsPage() {
     }
   };
 
-  // 50% formula (Cathy, 2026-11-26): the month's expenses and negative balance
-  // are split by the Car Owner %, as in computeOwnerSplit's 50% branch:
-  // owner part = (Direct Delivery + COGS) x % and |carry-over| x %. GLA Parking
-  // Fee & Labor Cleaning is not part of the 50% formula. 70% months: 0.
-  const isFiftyMonth = (month: number) => (monthModes[month] || 50) === 50;
-  const ownerExpenseShare = (month: number): number =>
-    isFiftyMonth(month)
-      ? Math.round((getTotalDirectDeliveryForMonth(month) + getTotalCogsForMonth(month)) * getCarOwnerSplitPercent(month)) / 100
-      : 0;
-  const ownerCarryOverShare = (month: number): number =>
-    isFiftyMonth(month)
-      ? Math.round(Math.abs(Math.min(0, calculateNegativeBalanceCarryOver(month))) * getCarOwnerSplitPercent(month)) / 100
-      : 0;
-  // The car uses the 50% formula this year: a 50% month with expenses or a
-  // negative balance.
-  const usesFiftyFormula = MONTHS.some((_, i) => ownerExpenseShare(i + 1) !== 0 || ownerCarryOverShare(i + 1) !== 0);
-  const fiftyPercentNote = percentNote(MONTHS.flatMap((_, i) => (isFiftyMonth(i + 1) && (ownerExpenseShare(i + 1) !== 0 || ownerCarryOverShare(i + 1) !== 0) ? [getCarOwnerSplitPercent(i + 1)] : [])));
-
   // Fetch Turo earnings chart images
   const { data: chartImagesData, refetch: refetchChartImages } = useQuery<{
     success: boolean;
@@ -2176,30 +2158,6 @@ export default function EarningsPage() {
                     values={MONTHS.map((_, i) => calculateNegativeBalanceCarryOver(i + 1))}
                     hideTotal
                   />
-                  {/* 50% formula only (Cathy, 2026-11-26): the 50% formula splits
-                      the expenses and the negative balance between the car owner
-                      and Car Management, so the owner's part is Total Expenses
-                      x % + Negative Balance Carry Over x % = Total Car Owner
-                      Expenses. 70% months are left blank. */}
-                  {usesFiftyFormula && (
-                    <>
-                      <TableRow
-                        label="Total Expenses x %"
-                        splitLabel={fiftyPercentNote}
-                        values={MONTHS.map((_, i) => ownerExpenseShare(i + 1))}
-                      />
-                      <TableRow
-                        label="Negative Balance Carry Over x %"
-                        splitLabel={fiftyPercentNote}
-                        values={MONTHS.map((_, i) => ownerCarryOverShare(i + 1))}
-                      />
-                      <TableRow
-                        label="Total Car Owner Expenses"
-                        values={MONTHS.map((_, i) => Math.round((ownerExpenseShare(i + 1) + ownerCarryOverShare(i + 1)) * 100) / 100)}
-                        isTotal
-                      />
-                    </>
-                  )}
                   <TableRow
                     label="Total Payout"
                     values={MONTHS.map((_, i) => calculateCarOwnerSplit(i + 1))}
