@@ -3825,7 +3825,7 @@ lastSavedNote.current = coHostNote;
               onToggle={() => toggleSection("reimbursedBills")}
             >
               <CategoryRow
-                label="Electric - Reimbursed"
+                label="Expenses Electric - Reimbursed"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(
                     data.reimbursedBills,
@@ -3838,11 +3838,11 @@ lastSavedNote.current = coHostNote;
                 {...rowActions(
                   "reimbursedBills",
                   "electricReimbursed",
-                  "Electric - Reimbursed",
+                  "Expenses Electric - Reimbursed",
                 )}
               />
               <CategoryRow
-                label="Electric - Not Reimbursed"
+                label="Expenses Electric - Not Reimbursed"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(
                     data.reimbursedBills,
@@ -3855,11 +3855,11 @@ lastSavedNote.current = coHostNote;
                 {...rowActions(
                   "reimbursedBills",
                   "electricNotReimbursed",
-                  "Electric - Not Reimbursed",
+                  "Expenses Electric - Not Reimbursed",
                 )}
               />
               <CategoryRow
-                label="Gas – Charged to Guest"
+                label="Expenses Gas – Charged to Guest"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.reimbursedBills, i + 1, "gasReimbursed"),
                 )}
@@ -3868,11 +3868,11 @@ lastSavedNote.current = coHostNote;
                 {...rowActions(
                   "reimbursedBills",
                   "gasReimbursed",
-                  "Gas – Charged to Guest",
+                  "Expenses Gas – Charged to Guest",
                 )}
               />
               <CategoryRow
-                label="Gas – Not Charged to Guest"
+                label="Expenses Gas – Not Charged to Guest"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(
                     data.reimbursedBills,
@@ -3885,11 +3885,11 @@ lastSavedNote.current = coHostNote;
                 {...rowActions(
                   "reimbursedBills",
                   "gasNotReimbursed",
-                  "Gas – Not Charged to Guest",
+                  "Expenses Gas – Not Charged to Guest",
                 )}
               />
               <CategoryRow
-                label="Gas - Service Run"
+                label="Expenses Gas - Service Run"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.reimbursedBills, i + 1, "gasServiceRun"),
                 )}
@@ -3898,11 +3898,11 @@ lastSavedNote.current = coHostNote;
                 {...rowActions(
                   "reimbursedBills",
                   "gasServiceRun",
-                  "Gas - Service Run",
+                  "Expenses Gas - Service Run",
                 )}
               />
               <CategoryRow
-                label="Parking Airport"
+                label="Expenses Parking Airport"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.reimbursedBills, i + 1, "parkingAirport"),
                 )}
@@ -3911,11 +3911,11 @@ lastSavedNote.current = coHostNote;
                 {...rowActions(
                   "reimbursedBills",
                   "parkingAirport",
-                  "Parking Airport",
+                  "Expenses Parking Airport",
                 )}
               />
               <CategoryRow
-                label="Uber/Lyft/Lime - Not Reimbursed (added)"
+                label="Expenses Uber/Lyft/Lime - Not Reimbursed (added)"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(
                     data.reimbursedBills,
@@ -3928,11 +3928,11 @@ lastSavedNote.current = coHostNote;
                 {...rowActions(
                   "reimbursedBills",
                   "uberLyftLimeNotReimbursed",
-                  "Uber/Lyft/Lime - Not Reimbursed",
+                  "Expenses Uber/Lyft/Lime - Not Reimbursed",
                 )}
               />
               <CategoryRow
-                label="Uber/Lyft/Lime - Reimbursed (added)"
+                label="Expenses Uber/Lyft/Lime - Reimbursed (added)"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(
                     data.reimbursedBills,
@@ -3945,11 +3945,11 @@ lastSavedNote.current = coHostNote;
                 {...rowActions(
                   "reimbursedBills",
                   "uberLyftLimeReimbursed",
-                  "Uber/Lyft/Lime - Reimbursed",
+                  "Expenses Uber/Lyft/Lime - Reimbursed",
                 )}
               />
               <CategoryRow
-                label="Credit to Car Owner"
+                label="Expenses Credit to Car Owner"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(
                     data.reimbursedBills,
@@ -3962,7 +3962,7 @@ lastSavedNote.current = coHostNote;
                 {...rowActions(
                   "reimbursedBills",
                   "creditToCarOwner",
-                  "Credit to Car Owner",
+                  "Expenses Credit to Car Owner",
                 )}
               />
               {/* Dynamic Subcategories */}
