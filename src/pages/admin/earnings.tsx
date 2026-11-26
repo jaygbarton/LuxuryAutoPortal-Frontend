@@ -1899,11 +1899,8 @@ export default function EarningsPage() {
                   {/* Reimbursed Income (Gas Reimbursed, EV On-Trip / Post-Trip
                       Charging Reimbursed) is not shown on Earnings (Cathy,
                       2026-11-26); it stays on Income & Expenses. */}
-                  <TableRow
-                    label="Negative Balance Carry Over"
-                    values={MONTHS.map((_, i) => calculateNegativeBalanceCarryOver(i + 1))}
-                    hideTotal
-                  />
+                  {/* Negative Balance Carry Over moved below Total Expenses
+                      (Cathy, 2026-11-26). */}
                 </CategorySection>
 
                 {/* OPERATING EXPENSE (Direct Delivery) — client-visible per
@@ -2123,7 +2120,32 @@ export default function EarningsPage() {
                       category="parkingFeeLabor" field="laborCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     {renderDynamicRows("parkingFeeLabor")}
+                    {/* As on the Statement of Account (Cathy, 2026-11-26): Total
+                        Expenses = Direct Delivery + COGS + GLA Parking Fee &
+                        Labor Cleaning, all of the car's expenses. */}
+                    <TableRow
+                      label="Total Expenses"
+                      values={MONTHS.map((_, i) =>
+                        Math.round((getTotalDirectDeliveryForMonth(i + 1) + getTotalCogsForMonth(i + 1) + getTotalParkingFeeLaborForMonth(i + 1)) * 100) / 100,
+                      )}
+                      isTotal
+                    />
                   </CategorySection>
+
+                {/* Then Negative Balance Carry Over and Total Payout, the final
+                    Car Owner Split: what is payable to the car owner after all
+                    expenses and negative balances (Cathy, 2026-11-26). Outside
+                    the section so they stay visible when it is collapsed. */}
+                <TableRow
+                  label="Negative Balance Carry Over"
+                  values={MONTHS.map((_, i) => calculateNegativeBalanceCarryOver(i + 1))}
+                  hideTotal
+                />
+                <TableRow
+                  label="Total Payout"
+                  values={MONTHS.map((_, i) => calculateCarOwnerSplit(i + 1))}
+                  isTotal
+                />
 
                 {/* REIMBURSED AND NON-REIMBURSED BILLS — GLA-internal. Hidden
                     from clients (and from View as Client, which reports
