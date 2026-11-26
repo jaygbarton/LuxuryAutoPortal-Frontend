@@ -15,6 +15,7 @@ import { api } from "@/lib/api";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import { cn } from "@/lib/utils";
 import { displaysAsZeroCurrency } from "@/lib/displaysAsZeroCurrency";
+import { CO_HOST_EXPENSES_HEADING, GLA_EXPENSES_HEADING, isCoHostExpenseName } from "@/pages/admin/income-expenses/utils/coHostExpenses";
 
 interface CarDetail {
   id: number;
@@ -981,6 +982,8 @@ export default function TotalsPage() {
               title="REIMBURSED & NON-REIMBURSED BILLS"
               totalValue={totals?.reimbursedBills?.total}
             >
+              {/* GLA / Co-Host Expenses sub-headings (Cathy, 2026-11-26). */}
+              <div className="px-2 pt-2 pb-1 text-xs font-semibold text-foreground">{GLA_EXPENSES_HEADING}</div>
               <TotalRow label="Expenses Electric - Reimbursed" value={totals?.reimbursedBills?.electricReimbursed} />
               <TotalRow label="Expenses Electric - Not Reimbursed" value={totals?.reimbursedBills?.electricNotReimbursed} />
               <TotalRow label="Expenses Gas – Charged to Guest" value={totals?.reimbursedBills?.gasReimbursed} />
@@ -990,7 +993,11 @@ export default function TotalsPage() {
               <TotalRow label="Expenses Uber/Lyft/Lime - Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeReimbursed} />
               <TotalRow label="Expenses Uber/Lyft/Lime - Not Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeNotReimbursed} />
               <TotalRow label="Expenses Credit to Car Owner" value={totals?.reimbursedBills?.creditToCarOwner} />
-              <SubcategoryRows rows={totals?.reimbursedBills?.subcategories} />
+              <SubcategoryRows rows={totals?.reimbursedBills?.subcategories?.filter((r: { name: string }) => !isCoHostExpenseName(r.name))} />
+              {totals?.reimbursedBills?.subcategories?.some((r: { name: string }) => isCoHostExpenseName(r.name)) && (
+                <div className="px-2 pt-2 pb-1 text-xs font-semibold text-foreground">{CO_HOST_EXPENSES_HEADING}</div>
+              )}
+              <SubcategoryRows rows={totals?.reimbursedBills?.subcategories?.filter((r: { name: string }) => isCoHostExpenseName(r.name))} />
               <TotalRow label="Total Reimbursed & Non-Reimbursed Bills" value={totals?.reimbursedBills?.total} separator bold />
             </Section>
             )}

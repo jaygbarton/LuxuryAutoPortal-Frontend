@@ -21,6 +21,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { useFormAmounts } from "@/pages/admin/income-expenses/utils/useFormAmounts";
 import ReceiptViewerModal from "@/pages/admin/income-expenses/components/ReceiptViewerModal";
 import { findStandardCategoryMatch } from "@/pages/admin/income-expenses/utils/standardCategoryNames";
+import { CO_HOST_EXPENSES_HEADING, GLA_EXPENSES_HEADING, isCoHostExpenseName } from "@/pages/admin/income-expenses/utils/coHostExpenses";
 import { dynamicFieldValue } from "@/pages/admin/income-expenses/utils/expenseFormLink";
 import { INCOME_SHARE_FIELDS, incomeShareNote, type IncomeShareField } from "@/pages/admin/income-expenses/utils/incomeShareNotes";
 
@@ -1345,9 +1346,11 @@ export default function EarningsPage() {
   // row whose name duplicates a standard row is not shown separately. Approved
   // form submissions for a dynamic row are keyed `db_<metadataId>` (receipts
   // too); the editor modal keys the same row `dynamic-<type>`/`subcategory-<id>`.
-  const renderDynamicRows = (categoryType: "directDelivery" | "cogs" | "parkingFeeLabor" | "reimbursedBills") =>
+  // `only` splits the bills section into GLA / Co-Host Expenses (2026-11-26).
+  const renderDynamicRows = (categoryType: "directDelivery" | "cogs" | "parkingFeeLabor" | "reimbursedBills", only?: "gla" | "coHost") =>
     dynamicSubcategories[categoryType]
       .filter((subcat: any) => findStandardCategoryMatch(categoryType, subcat.name) == null)
+      .filter((subcat: any) => !only || (only === "coHost") === isCoHostExpenseName(subcat.name))
       .map((subcat: any) => (
         <TableRow
           key={`dynamic-${categoryType}-${subcat.id}`}
@@ -2118,6 +2121,8 @@ export default function EarningsPage() {
                     isExpanded={expandedSections.reimbursedBills}
                     onToggle={() => toggleSection("reimbursedBills")}
                   >
+                    {/* GLA Expenses / Co-Host Expenses sub-headings (Cathy, 2026-11-26). */}
+                    <SubheaderRow label={GLA_EXPENSES_HEADING} />
                     <TableRow
                       label="Expenses Electric - Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "electricReimbursed"))}
@@ -2163,7 +2168,11 @@ export default function EarningsPage() {
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "creditToCarOwner"))}
                       category="reimbursedBills" field="creditToCarOwner" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
-                    {renderDynamicRows("reimbursedBills")}
+                    {renderDynamicRows("reimbursedBills", "gla")}
+                    {dynamicSubcategories.reimbursedBills.some((s: any) => findStandardCategoryMatch("reimbursedBills", s.name) == null && isCoHostExpenseName(s.name)) && (
+                      <SubheaderRow label={CO_HOST_EXPENSES_HEADING} />
+                    )}
+                    {renderDynamicRows("reimbursedBills", "coHost")}
                     <TableRow
                       label="TOTAL REIMBURSED AND NON-REIMBURSED BILLS"
                       values={MONTHS.map((_, i) => getTotalReimbursedBillsForMonth(i + 1))}
