@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { INCOME_SHARE_FIELDS } from "../incomeShareNotes";
 import { DISTRIBUTION_ROWS, distributeIncomeMonth, type DistributionMonthInput } from "../incomeDistribution";
 
-// "Income Shares (included in Trip Income)" (Cathy, 2026-11-26): the rows under
+// "Income Shares" (Cathy, 2026-11-26): the rows under
 // it must be exactly the income carved out of Trip Income, so the sub-heading
 // is true. Income Other Credit and the Reimbursed Income rows stay outside.
 const tripAfter = (field: string, amount: number) => {
@@ -39,7 +39,7 @@ describe("Earnings page (car owners)", () => {
   const src = readFileSync(resolve(__dirname, "../../../earnings.tsx"), "utf8");
 
   it("shows the Income Shares and Owner Credit sub-headings", () => {
-    expect(src).toContain('label="Income Shares (included in Trip Income)"');
+    expect(src).toContain('label="Income Shares"');
     expect(src).toContain('label="Owner Credit (not in Trip Income)"');
   });
 
