@@ -1243,6 +1243,10 @@ export default function EarningsPage() {
     }
   };
 
+  // The car uses the 50% formula this year: some month in 50 mode (unset
+  // months are 50, as in the split formula) has expenses.
+  const usesFiftyFormula = MONTHS.some((_, i) => (monthModes[i + 1] || 50) === 50 && Math.abs(totalCarExpenses(i + 1)) >= 0.005);
+
   // Fetch Turo earnings chart images
   const { data: chartImagesData, refetch: refetchChartImages } = useQuery<{
     success: boolean;
@@ -2153,6 +2157,19 @@ export default function EarningsPage() {
                     label="Total Expenses"
                     values={MONTHS.map((_, i) => totalCarExpenses(i + 1))}
                   />
+                  {/* Total Expenses Split (Cathy, 2026-11-26): the car owner's
+                      expenses. Under the 50% formula the expenses are split
+                      between the car owner and Car Management, so this is the
+                      owner's part: (Direct Delivery + COGS) x Car Owner %, as in
+                      the split formula (calculateCarOwnerTotalExpenses). Shown
+                      when the car has a 50% month with expenses this year; a
+                      70% month's owner expenses are the full Total Expenses. */}
+                  {usesFiftyFormula && (
+                    <TableRow
+                      label="Total Expenses Split"
+                      values={MONTHS.map((_, i) => Math.round(calculateCarOwnerTotalExpenses(i + 1) * 100) / 100)}
+                    />
+                  )}
                   <TableRow
                     label="Negative Balance Carry Over"
                     values={MONTHS.map((_, i) => calculateNegativeBalanceCarryOver(i + 1))}

@@ -42,4 +42,13 @@ describe("Earnings INCOME AND EXPENSES SUMMARY", () => {
     expect(src).toMatch(/const totalCarExpenses = [\s\S]*getTotalDirectDeliveryForMonth[\s\S]*getTotalCogsForMonth[\s\S]*getTotalParkingFeeLaborForMonth/);
     expect(rowTag(rowAt("Total Payout", summary))).toContain("calculateCarOwnerSplit");
   });
+
+  it("adds Total Expenses Split below Total Expenses for 50% formula cars", () => {
+    const exp = rowAt("Total Expenses", summary);
+    const split = rowAt("Total Expenses Split", summary);
+    expect(split).toBeGreaterThan(exp);
+    expect(split).toBeLessThan(rowAt("Negative Balance Carry Over", summary));
+    expect(rowTag(split)).toContain("calculateCarOwnerTotalExpenses");
+    expect(src.slice(src.lastIndexOf("{usesFiftyFormula && (", split), split)).not.toContain(")}");
+  });
 });
