@@ -23,6 +23,28 @@ export type IncomeShareField =
   | "onTripChargingIncome"
   | "postTripChargingIncome";
 
+/**
+ * The "Income Shares (included in Trip Income)" rows (Cathy, 2026-11-26):
+ * add-on income that is already inside Income Car Rentals - Turo (Trip
+ * Income), carved out of it only to show who keeps each piece. Matches the
+ * CARVED_OUT list in incomeDistribution.ts. Income Other Credit and the
+ * Reimbursed Income rows are outside Trip Income, so they are not here.
+ */
+export const INCOME_SHARE_FIELDS = [
+  "childSeatIncome",
+  "coolersIncome",
+  "deliveryIncome",
+  "electricPrepaidIncome",
+  "gasPrepaidIncome",
+  "gasPrepaidOwnerIncome",
+  "guestCancellationIncome",
+  "milesIncome",
+  "otherIncome",
+  "skiRacksIncome",
+  "smokingFines",
+  "insuranceWreckIncome",
+] as const satisfies readonly IncomeShareField[];
+
 const HOST = "100% Host Share";
 const OWNER = "100% Owner Share";
 const SMOKING_10_90 = "10% Owner Share, 90% Host Share";
@@ -42,8 +64,10 @@ const NOTES_2026: Record<IncomeShareField, string> = {
   coolersIncome: HOST,
   insuranceWreckIncome: HOST,
   otherIncome: HOST,
-  // Not part of Rental Income; always paid 100% to the owner.
+  // Carved out of Rental Income like Miles Income, paid 100% to the owner
+  // (Cathy, 2026-11-26).
   guestCancellationIncome: OWNER,
+  // Not part of Rental Income; always paid 100% to the owner.
   otherCreditIncome: OWNER,
   // Not part of Rental Income; always added in full to the Car Management Split.
   gasReimbursementIncome: HOST,
@@ -68,8 +92,10 @@ const NOTES_LEGACY_50: Record<IncomeShareField, string> = {
   coolersIncome: SHARED_50,
   insuranceWreckIncome: SHARED_50,
   otherIncome: SHARED_50,
-  // Not part of Rental Income; always paid 100% to the owner.
+  // Carved out of Rental Income like Miles Income, paid 100% to the owner
+  // (Cathy, 2026-11-26).
   guestCancellationIncome: OWNER,
+  // Not part of Rental Income; always paid 100% to the owner.
   otherCreditIncome: OWNER,
   // Not part of Rental Income; always added in full to the Car Management Split.
   gasReimbursementIncome: HOST,
@@ -94,8 +120,10 @@ const NOTES_LEGACY_70: Record<IncomeShareField, string> = {
   coolersIncome: HOST,
   insuranceWreckIncome: HOST,
   otherIncome: HOST,
-  // Not part of Rental Income; always paid 100% to the owner.
+  // Carved out of Rental Income like Miles Income, paid 100% to the owner
+  // (Cathy, 2026-11-26).
   guestCancellationIncome: OWNER,
+  // Not part of Rental Income; always paid 100% to the owner.
   otherCreditIncome: OWNER,
   // Not part of Rental Income; always added in full to the Car Management Split.
   gasReimbursementIncome: HOST,
