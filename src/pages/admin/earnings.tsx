@@ -966,6 +966,19 @@ export default function EarningsPage() {
   };
 
   // Calculate Car Owner Split (exact copy from IncomeExpenseTable)
+  // The car's Car Owner Split % for a month, as the split formula uses it:
+  // the month's stored percent, else the car's default (Cathy, 2026-11-26:
+  // shown to client users under each month instead of the 50/70 mode).
+  const getCarOwnerSplitPercent = (month: number): number => {
+    const ownerRaw = incomeExpenseDataValue?.incomeExpenses?.find(
+      (x: any) => x && x.month === month,
+    )?.carOwnerSplit;
+    const pct = ownerRaw != null
+      ? Number(ownerRaw)
+      : Number(incomeExpenseDataValue?.formulaSetting?.carOwnerSplitPercent ?? 50);
+    return Math.round(pct * 100) / 100;
+  };
+
   const calculateCarOwnerSplit = (month: number): number => {
     // Fall back to the car's configured default (NOT 0) when the percent is
     // unset — see the matching comment in calculateCarManagementSplit above.
@@ -1596,7 +1609,8 @@ export default function EarningsPage() {
             <h1 className="text-xl sm:text-3xl font-serif text-primary italic leading-tight">Earnings</h1>
             {/* Per Cathy (2026-11-12): monthly I&E is finalized on the 20th
                 (1st–15th data entry, 16th–18th payment finalization, 19th–20th buffer). */}
-            <p className="mt-1 text-xs sm:text-sm italic font-medium text-red-600">
+            {/* Same colour as the Car Information heading (Cathy, 2026-11-26). */}
+            <p className="mt-1 text-xs sm:text-sm italic font-medium text-muted-foreground">
               Please be advised that the finalized rental income and detailed expenses for all vehicles will be available every 20th of the month.
             </p>
           </div>
@@ -1640,6 +1654,7 @@ export default function EarningsPage() {
                     const year = parseInt(selectedYear, 10);
                     const showSkiRacksToggle = year >= 2026;
                     const currentMode = monthModes[monthNum] || 50;
+                    const ownerSplitPercent = getCarOwnerSplitPercent(monthNum);
                     const currentSkiRacksOwner = skiRacksOwner[monthNum] || "GLA";
                     const hasSkiRacksIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], monthNum, "skiRacksIncome") > 0;
                     
@@ -1651,7 +1666,18 @@ export default function EarningsPage() {
                         <div className="flex flex-col items-center gap-1 justify-center">
                           <span className="text-foreground text-xs font-medium">{month}</span>
                           <div className="flex items-center justify-center gap-1 h-[24px]">
-                            {/* Mode Toggle (Read-only) - Shows 50:50 or 30:70 split mode */}
+                            {/* Client users see the car's actual Car Owner Split % for
+                                the month instead of the 50/70 rate mode (Cathy,
+                                2026-11-26). Admins and staff keep the mode badge. */}
+                            {isClient ? (
+                              <div
+                                className="px-3 py-0.5 rounded-full text-xs font-semibold cursor-default bg-[#D3BC8D]/30 text-[#B8860B]"
+                                title={`Car Owner Split: ${ownerSplitPercent}%`}
+                              >
+                                {ownerSplitPercent}%
+                              </div>
+                            ) : (
+                            /* Mode Toggle (Read-only) - Shows 50:50 or 30:70 split mode */
                             <div
                               className={cn(
                                 "px-3 py-0.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-default",
@@ -1663,6 +1689,7 @@ export default function EarningsPage() {
                             >
                               {currentMode}
                             </div>
+                            )}
                             {/* Ski Racks Owner Toggle (Read-only) - Only show for years >= 2026 and when ski racks income exists */}
                             {showSkiRacksToggle && hasSkiRacksIncome && (
                               <div
@@ -1691,15 +1718,21 @@ export default function EarningsPage() {
                 {/* CAR MANAGEMENT - OWNER SPLIT — client-visible per Cathy
                     (2026-07-20), reversing the 2026-07-08 "hide from clients"
                     change. */}
+                {/* Client users see only their own split: the section is "CAR
+                    OWNER SPLIT" and the Car Management Split row is hidden
+                    (Cathy, 2026-11-26). Gated on isClient, so View as Client
+                    matches what owners see. */}
                 <CategorySection
-                  title="CAR MANAGEMENT - OWNER SPLIT"
+                  title={isClient ? "CAR OWNER SPLIT" : "CAR MANAGEMENT - OWNER SPLIT"}
                   isExpanded={expandedSections.managementOwner}
                   onToggle={() => toggleSection("managementOwner")}
                 >
-                  <TableRow
-                    label="Car Management Split"
-                    values={MONTHS.map((_, i) => calculateCarManagementSplit(i + 1))}
-                  />
+                  {!isClient && (
+                    <TableRow
+                      label="Car Management Split"
+                      values={MONTHS.map((_, i) => calculateCarManagementSplit(i + 1))}
+                    />
+                  )}
                   <TableRow
                     label="Car Owner Split"
                     values={MONTHS.map((_, i) => calculateCarOwnerSplit(i + 1))}
