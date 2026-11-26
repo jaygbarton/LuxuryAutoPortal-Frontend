@@ -783,22 +783,25 @@ export default function TotalsPage() {
               totalValue={totals?.income?.totalProfit}
             >
               <TotalRow label="Income Car Rentals - Turo (Trip Income)" value={totals?.income?.rentalIncome} />
-              <TotalRow label="Income Delivery" value={totals?.income?.deliveryIncome} />
-              <TotalRow label="Income Electric Prepaid" value={totals?.income?.electricPrepaidIncome} />
-              <TotalRow label="Income Smoking Fines" value={totals?.income?.smokingFines} />
-              <TotalRow label="Income Gas Prepaid" value={totals?.income?.gasPrepaidIncome} />
-              <TotalRow label="Income Gas Prepaid (Owner Share)" value={totals?.income?.gasPrepaidOwnerIncome} />
-              <TotalRow label="Income Miles" value={totals?.income?.milesIncome} />
-              <TotalRow label="Income Ski Racks" value={totals?.income?.skiRacksIncome} />
+              {/* Sub-categories A–Z under Trip Income, as on the I&E page (2026-11-26). */}
               <TotalRow label="Income Car Seats" value={totals?.income?.childSeatIncome} />
               <TotalRow label="Income Coolers/Camp Chairs" value={totals?.income?.coolersIncome} />
-              <TotalRow label="Income Turo Claims & Insurance Payments" value={totals?.income?.incomeInsurance} />
-              <TotalRow label="Income Other Turo" value={totals?.income?.otherIncome} />
-              <TotalRow label="Income Other Credit" value={totals?.income?.otherCreditIncome} />
+              <TotalRow label="Income Delivery" value={totals?.income?.deliveryIncome} />
+              <TotalRow label="Income Electric Prepaid" value={totals?.income?.electricPrepaidIncome} />
+              <TotalRow label="Income Gas Prepaid" value={totals?.income?.gasPrepaidIncome} />
+              <TotalRow label="Income Gas Prepaid (Owner Share)" value={totals?.income?.gasPrepaidOwnerIncome} />
               <TotalRow label="Income Guest Cancellation" value={totals?.income?.guestCancellationIncome} />
-              <TotalRow label="Income Gas Reimbursed" value={totals?.income?.gasReimbursementIncome} />
-              <TotalRow label="Income On-Trip Charging" value={totals?.income?.onTripChargingIncome} />
-              <TotalRow label="Income Post-Trip Charging" value={totals?.income?.postTripChargingIncome} />
+              <TotalRow label="Income Miles" value={totals?.income?.milesIncome} />
+              <TotalRow label="Income Other Credit" value={totals?.income?.otherCreditIncome} />
+              <TotalRow label="Income Other Turo" value={totals?.income?.otherIncome} />
+              <TotalRow label="Income Ski Racks" value={totals?.income?.skiRacksIncome} />
+              <TotalRow label="Income Smoking Fines" value={totals?.income?.smokingFines} />
+              <TotalRow label="Income Turo Claims & Insurance Payments" value={totals?.income?.incomeInsurance} />
+              {/* Reimbursed Income group, after the A–Z rows (Cathy, 2026-11-26). */}
+              <div className="px-2 pt-2 pb-1 text-xs font-semibold text-foreground">Reimbursed Income</div>
+              <TotalRow label="Income Gas Reimbursed" value={totals?.income?.gasReimbursementIncome} indent />
+              <TotalRow label="Income EV On-Trip Charging Reimbursed" value={totals?.income?.onTripChargingIncome} indent />
+              <TotalRow label="Income EV Post-Trip Charging Reimbursed" value={totals?.income?.postTripChargingIncome} indent />
               <TotalRow label="Negative Balance Carry Over" value={0} />
               <TotalRow label="Car Management Total Expenses" value={totals?.income?.carManagementTotalExpenses} separator bold />
               <TotalRow label="Car Owner Total Expenses" value={totals?.income?.carOwnerTotalExpenses} bold />

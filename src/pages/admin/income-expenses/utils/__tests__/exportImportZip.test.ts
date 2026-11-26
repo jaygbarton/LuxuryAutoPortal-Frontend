@@ -931,11 +931,11 @@ describe("buildIncomeExpenseCSV — Gas Reimbursement Income", () => {
     });
   };
 
-  it("exports the row below Guest Cancellation Income", () => {
+  it("exports the row first in the Reimbursed Income group, after the A–Z rows", () => {
     const csv = buildIncomeExpenseCSV(withGas(40), CAR_INFO, "2024", EMPTY_MONTH_MODES);
     const lines = csv.split("\n");
-    const gci = lines.findIndex((l) => l.startsWith("Income Guest Cancellation,"));
-    expect(lines[gci + 1].startsWith("Income Gas Reimbursed,$40.00")).toBe(true);
+    const claims = lines.findIndex((l) => l.startsWith("Income Turo Claims & Insurance Payments,"));
+    expect(lines[claims + 1].startsWith("Income Gas Reimbursed,$40.00")).toBe(true);
   });
 
   it("adds the full amount to the Car Management (Co-Host) Split and Total Car Profit, owner unchanged", () => {
@@ -964,12 +964,12 @@ describe("buildIncomeExpenseCSV — On-Trip / Post-Trip Charging Income", () => 
     });
   };
 
-  it("exports both rows directly below Gas Reimbursement Income", () => {
+  it("exports both rows directly below Income Gas Reimbursed, under their EV names", () => {
     const csv = buildIncomeExpenseCSV(withCharging(15, 25), CAR_INFO, "2024", EMPTY_MONTH_MODES);
     const lines = csv.split("\n");
     const gas = lines.findIndex((l) => l.startsWith("Income Gas Reimbursed,"));
-    expect(lines[gas + 1].startsWith("Income On-Trip Charging,$15.00")).toBe(true);
-    expect(lines[gas + 2].startsWith("Income Post-Trip Charging,$25.00")).toBe(true);
+    expect(lines[gas + 1].startsWith("Income EV On-Trip Charging Reimbursed,$15.00")).toBe(true);
+    expect(lines[gas + 2].startsWith("Income EV Post-Trip Charging Reimbursed,$25.00")).toBe(true);
   });
 
   it("adds the full amounts to the Car Management (Co-Host) Split and Total Car Profit, owner unchanged", () => {

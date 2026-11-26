@@ -20,9 +20,9 @@ describe("Income Other Credit", () => {
     expect(computeOwnerSplit({ ...base, guestCancellationIncome: 0, otherCreditIncome: 100 })).toBe(600);
   });
 
-  it("is a 100% Car Owner row right after Income Other Turo in the Income Distribution", () => {
+  it("is a 100% Car Owner row right before Income Other Turo (A–Z) in the Income Distribution", () => {
     const i = DISTRIBUTION_ROWS.findIndex((r) => r.field === "otherIncome");
-    expect(DISTRIBUTION_ROWS[i + 1]).toEqual({ field: "otherCreditIncome", label: "Income Other Credit" });
+    expect(DISTRIBUTION_ROWS[i - 1]).toEqual({ field: "otherCreditIncome", label: "Income Other Credit" });
   });
 
   it("counts in EBITDA Total Income (outside Rental Income); Guest Cancellation does not", () => {

@@ -38,22 +38,24 @@ export type DistributionField =
 /** Same labels and order as the INCOME & EXPENSES section. */
 export const DISTRIBUTION_ROWS: { field: DistributionField; label: string }[] = [
   { field: "tripIncome", label: "Income Car Rentals - Turo (Trip Income)" },
-  { field: "deliveryIncome", label: "Income Delivery" },
-  { field: "electricPrepaidIncome", label: "Income Electric Prepaid" },
-  { field: "smokingFines", label: "Income Smoking Fines" },
-  { field: "gasPrepaidIncome", label: "Income Gas Prepaid" },
-  { field: "gasPrepaidOwnerIncome", label: "Income Gas Prepaid (Owner Share)" },
-  { field: "skiRacksIncome", label: "Income Ski Racks" },
-  { field: "milesIncome", label: "Income Miles" },
+  // A–Z under Trip Income, as on the I&E page (2026-11-26).
   { field: "childSeatIncome", label: "Income Car Seats" },
   { field: "coolersIncome", label: "Income Coolers/Camp Chairs" },
-  { field: "insuranceWreckIncome", label: "Income Turo Claims & Insurance Payments" },
-  { field: "otherIncome", label: "Income Other Turo" },
-  { field: "otherCreditIncome", label: "Income Other Credit" },
+  { field: "deliveryIncome", label: "Income Delivery" },
+  { field: "electricPrepaidIncome", label: "Income Electric Prepaid" },
+  { field: "gasPrepaidIncome", label: "Income Gas Prepaid" },
+  { field: "gasPrepaidOwnerIncome", label: "Income Gas Prepaid (Owner Share)" },
   { field: "guestCancellationIncome", label: "Income Guest Cancellation" },
+  { field: "milesIncome", label: "Income Miles" },
+  { field: "otherCreditIncome", label: "Income Other Credit" },
+  { field: "otherIncome", label: "Income Other Turo" },
+  { field: "skiRacksIncome", label: "Income Ski Racks" },
+  { field: "smokingFines", label: "Income Smoking Fines" },
+  { field: "insuranceWreckIncome", label: "Income Turo Claims & Insurance Payments" },
+  // Reimbursed Income group, after the A–Z rows (Cathy, 2026-11-26).
   { field: "gasReimbursementIncome", label: "Income Gas Reimbursed" },
-  { field: "onTripChargingIncome", label: "Income On-Trip Charging" },
-  { field: "postTripChargingIncome", label: "Income Post-Trip Charging" },
+  { field: "onTripChargingIncome", label: "Income EV On-Trip Charging Reimbursed" },
+  { field: "postTripChargingIncome", label: "Income EV Post-Trip Charging Reimbursed" },
 ];
 
 /** Rows carved out of "Income Car Rentals - Turo" before the trip split. */

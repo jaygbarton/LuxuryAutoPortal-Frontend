@@ -2704,6 +2704,26 @@ lastSavedNote.current = coHostNote;
                 )}
                 category="income"
                 field="rentalIncome"
+                isHighlighted
+              />
+              {/* Sub-categories A–Z under Trip Income (Cathy, 2026-11-26). */}
+              <CategoryRow
+                label="Income Car Seats"
+                splitLabel={shareNote("childSeatIncome")}
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.incomeExpenses, i + 1, "childSeatIncome"),
+                )}
+                category="income"
+                field="childSeatIncome"
+              />
+              <CategoryRow
+                label="Income Coolers/Camp Chairs"
+                splitLabel={shareNote("coolersIncome")}
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.incomeExpenses, i + 1, "coolersIncome"),
+                )}
+                category="income"
+                field="coolersIncome"
               />
               <CategoryRow
                 label="Income Delivery"
@@ -2728,15 +2748,6 @@ lastSavedNote.current = coHostNote;
                 field="electricPrepaidIncome"
               />
               <CategoryRow
-                label="Income Smoking Fines"
-                splitLabel={shareNote("smokingFines")}
-                values={MONTHS.map((_, i) =>
-                  getMonthValue(data.incomeExpenses, i + 1, "smokingFines"),
-                )}
-                category="income"
-                field="smokingFines"
-              />
-              <CategoryRow
                 label="Income Gas Prepaid"
                 splitLabel={shareNote("gasPrepaidIncome")}
                 values={MONTHS.map((_, i) =>
@@ -2758,13 +2769,13 @@ lastSavedNote.current = coHostNote;
                 />
               )}
               <CategoryRow
-                label="Income Ski Racks"
-                splitLabel={shareNote("skiRacksIncome")}
+                label="Income Guest Cancellation"
+                splitLabel={shareNote("guestCancellationIncome")}
                 values={MONTHS.map((_, i) =>
-                  getMonthValue(data.incomeExpenses, i + 1, "skiRacksIncome"),
+                  getMonthValue(data.incomeExpenses, i + 1, "guestCancellationIncome"),
                 )}
                 category="income"
-                field="skiRacksIncome"
+                field="guestCancellationIncome"
               />
               <CategoryRow
                 label="Income Miles"
@@ -2776,22 +2787,40 @@ lastSavedNote.current = coHostNote;
                 field="milesIncome"
               />
               <CategoryRow
-                label="Income Car Seats"
-                splitLabel={shareNote("childSeatIncome")}
+                label="Income Other Credit"
+                splitLabel={shareNote("otherCreditIncome")}
                 values={MONTHS.map((_, i) =>
-                  getMonthValue(data.incomeExpenses, i + 1, "childSeatIncome"),
+                  getMonthValue(data.incomeExpenses, i + 1, "otherCreditIncome"),
                 )}
                 category="income"
-                field="childSeatIncome"
+                field="otherCreditIncome"
               />
               <CategoryRow
-                label="Income Coolers/Camp Chairs"
-                splitLabel={shareNote("coolersIncome")}
+                label="Income Other Turo"
+                splitLabel={shareNote("otherIncome")}
                 values={MONTHS.map((_, i) =>
-                  getMonthValue(data.incomeExpenses, i + 1, "coolersIncome"),
+                  getMonthValue(data.incomeExpenses, i + 1, "otherIncome"),
                 )}
                 category="income"
-                field="coolersIncome"
+                field="otherIncome"
+              />
+              <CategoryRow
+                label="Income Ski Racks"
+                splitLabel={shareNote("skiRacksIncome")}
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.incomeExpenses, i + 1, "skiRacksIncome"),
+                )}
+                category="income"
+                field="skiRacksIncome"
+              />
+              <CategoryRow
+                label="Income Smoking Fines"
+                splitLabel={shareNote("smokingFines")}
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.incomeExpenses, i + 1, "smokingFines"),
+                )}
+                category="income"
+                field="smokingFines"
               />
               <CategoryRow
                 label="Income Turo Claims & Insurance Payments"
@@ -2806,33 +2835,13 @@ lastSavedNote.current = coHostNote;
                 category="income"
                 field="insuranceWreckIncome"
               />
-              <CategoryRow
-                label="Income Other Turo"
-                splitLabel={shareNote("otherIncome")}
-                values={MONTHS.map((_, i) =>
-                  getMonthValue(data.incomeExpenses, i + 1, "otherIncome"),
-                )}
-                category="income"
-                field="otherIncome"
-              />
-              <CategoryRow
-                label="Income Other Credit"
-                splitLabel={shareNote("otherCreditIncome")}
-                values={MONTHS.map((_, i) =>
-                  getMonthValue(data.incomeExpenses, i + 1, "otherCreditIncome"),
-                )}
-                category="income"
-                field="otherCreditIncome"
-              />
-              <CategoryRow
-                label="Income Guest Cancellation"
-                splitLabel={shareNote("guestCancellationIncome")}
-                values={MONTHS.map((_, i) =>
-                  getMonthValue(data.incomeExpenses, i + 1, "guestCancellationIncome"),
-                )}
-                category="income"
-                field="guestCancellationIncome"
-              />
+              {/* Reimbursed Income (Cathy, 2026-11-26): the 100% Host Share
+                  reimbursement rows, grouped under their own sub-heading. */}
+              <tr className="bg-muted/60">
+                <td colSpan={14} className="md:sticky md:left-0 px-2 py-1.5 text-xs font-semibold text-foreground">
+                  Reimbursed Income
+                </td>
+              </tr>
               <CategoryRow
                 label="Income Gas Reimbursed"
                 splitLabel={shareNote("gasReimbursementIncome")}
@@ -2843,7 +2852,7 @@ lastSavedNote.current = coHostNote;
                 field="gasReimbursementIncome"
               />
               <CategoryRow
-                label="Income On-Trip Charging"
+                label="Income EV On-Trip Charging Reimbursed"
                 splitLabel={shareNote("onTripChargingIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "onTripChargingIncome"),
@@ -2852,7 +2861,7 @@ lastSavedNote.current = coHostNote;
                 field="onTripChargingIncome"
               />
               <CategoryRow
-                label="Income Post-Trip Charging"
+                label="Income EV Post-Trip Charging Reimbursed"
                 splitLabel={shareNote("postTripChargingIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "postTripChargingIncome"),
@@ -5508,6 +5517,8 @@ interface CategoryRowProps {
    *  row's calculation depends on is still in flight. Without this, the row
    *  briefly shows getEmptyData()'s zeroed placeholder as real $0.00. */
   isLoading?: boolean;
+  /** Gold-highlighted row, e.g. Income Car Rentals - Turo (Trip Income). */
+  isHighlighted?: boolean;
 }
 
 function CategoryRow({
@@ -5535,6 +5546,7 @@ function CategoryRow({
   hidden = false,
   onPercentCellClick,
   isLoading = false,
+  isHighlighted = false,
 }: CategoryRowProps) {
   const [location] = useLocation();
   const isEmployeeView = useIsEmployeeView();
@@ -5686,10 +5698,16 @@ function CategoryRow({
       className={cn(
         "border-b border-border",
         isTotal && "bg-background font-semibold",
+        isHighlighted && "bg-[#D3BC8D]/20 font-semibold",
       )}
     >
       <td
-        className="md:sticky md:left-0 md:z-20 bg-card px-2 py-1 text-left text-muted-foreground border-r border-border text-xs"
+        className={cn(
+          "md:sticky md:left-0 md:z-20 bg-card px-2 py-1 text-left text-muted-foreground border-r border-border text-xs",
+          // The sticky label cell needs an opaque background; tint it with an
+          // inset shadow so the highlight still reads under horizontal scroll.
+          isHighlighted && "text-[#B8860B] font-semibold shadow-[inset_0_0_0_9999px_rgba(211,188,141,0.2)]",
+        )}
         title={label}
       >
         {onEdit || onHide ? (
