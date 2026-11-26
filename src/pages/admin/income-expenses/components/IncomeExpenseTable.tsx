@@ -37,6 +37,7 @@ import {
   findStandardCategoryMatch,
   normalizeName,
 } from "../utils/standardCategoryNames";
+import { CO_HOST_EXPENSES_HEADING, GLA_EXPENSES_HEADING, isCoHostExpenseName } from "../utils/coHostExpenses";
 import { ebitdaIncome, ebitdaExpenses } from "../utils/ebitda";
 import {
   useIsEmployeeView,
@@ -3824,6 +3825,14 @@ lastSavedNote.current = coHostNote;
               isExpanded={expandedSections.reimbursedBills}
               onToggle={() => toggleSection("reimbursedBills")}
             >
+              {/* Two sub-headings (Cathy, 2026-11-26): GLA Expenses holds the
+                  standard rows and added rows; Co-Host Expenses holds added
+                  rows whose name says Co-Host (see coHostExpenses.ts). */}
+              <tr className="bg-muted/60">
+                <td colSpan={14} className="md:sticky md:left-0 px-2 py-1.5 text-xs font-semibold text-foreground">
+                  {GLA_EXPENSES_HEADING}
+                </td>
+              </tr>
               <CategoryRow
                 label="Expenses Electric - Reimbursed"
                 values={MONTHS.map((_, i) =>
@@ -3966,7 +3975,7 @@ lastSavedNote.current = coHostNote;
                 )}
               />
               {/* Dynamic Subcategories */}
-              {dynamicSubcategories.reimbursedBills.filter((s) => findStandardCategoryMatch("reimbursedBills", s.name) == null).map((subcat) => (
+              {dynamicSubcategories.reimbursedBills.filter((s) => findStandardCategoryMatch("reimbursedBills", s.name) == null && !isCoHostExpenseName(s.name)).map((subcat) => (
                 <DynamicSubcategoryRow
                   key={subcat.id}
                   subcategory={subcat}
@@ -3989,6 +3998,35 @@ lastSavedNote.current = coHostNote;
               {getOrphanFormRows("reimbursedBills").map((o) => (
                 <OrphanFormRow key={o.field} category="reimbursedBills" field={o.field} monthly={o.monthly} total={o.total} />
               ))}
+              {/* Co-Host Expenses: added rows whose name says Co-Host. */}
+              {dynamicSubcategories.reimbursedBills.some((s) => findStandardCategoryMatch("reimbursedBills", s.name) == null && isCoHostExpenseName(s.name)) && (
+                <>
+                  <tr className="bg-muted/60">
+                    <td colSpan={14} className="md:sticky md:left-0 px-2 py-1.5 text-xs font-semibold text-foreground">
+                      {CO_HOST_EXPENSES_HEADING}
+                    </td>
+                  </tr>
+                  {dynamicSubcategories.reimbursedBills.filter((s) => findStandardCategoryMatch("reimbursedBills", s.name) == null && isCoHostExpenseName(s.name)).map((subcat) => (
+                    <DynamicSubcategoryRow
+                      key={subcat.id}
+                      subcategory={subcat}
+                      categoryType="reimbursedBills"
+                      onEditName={() =>
+                        setEditSubcategoryModal({
+                          open: true,
+                          categoryType: "reimbursedBills",
+                          metadataId: subcat.id,
+                          currentName: subcat.name,
+                          newName: subcat.name,
+                        })
+                      }
+                      onDelete={() => handleDeleteSubcategory("reimbursedBills", subcat.id, subcat.name)}
+                      onUpdateValue={updateDynamicSubcategoryValue}
+                      isReadOnly={isReadOnly}
+                    />
+                  ))}
+                </>
+              )}
               {/* Add Subcategory + Clean Up Duplicates */}
               {!isReadOnly && (
                 <tr>
