@@ -20,11 +20,14 @@ describe("Reimbursed bills rows start with Expenses", () => {
   const table = read("../../components/IncomeExpenseTable.tsx");
   const earnings = read("../../../earnings.tsx");
 
-  it("labels every row on Income & Expenses and Earnings", () => {
-    for (const label of ROWS) {
-      expect(table).toContain(`label="${label}"`);
-      expect(earnings).toContain(`label="${label}"`);
-    }
+  it("labels every row on Income & Expenses", () => {
+    for (const label of ROWS) expect(table).toContain(`label="${label}"`);
+  });
+
+  // The bills section is not on Earnings for any user (Cathy, 2026-11-26).
+  it("does not show the bills section on Earnings", () => {
+    expect(earnings).not.toContain('title="REIMBURSED AND NON-REIMBURSED BILLS"');
+    for (const label of ROWS) expect(earnings).not.toContain(`label="${label}"`);
   });
 
   it("keeps the section name", () => {

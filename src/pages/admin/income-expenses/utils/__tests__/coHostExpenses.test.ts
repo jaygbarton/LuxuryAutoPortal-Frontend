@@ -17,8 +17,8 @@ describe("Co-Host Expenses grouping", () => {
     }
   });
 
-  it("shows both sub-headings on Income & Expenses, Earnings and Totals", () => {
-    for (const p of ["../../components/IncomeExpenseTable.tsx", "../../../earnings.tsx", "../../../totals.tsx"]) {
+  it("shows both sub-headings on Income & Expenses and Totals", () => {
+    for (const p of ["../../components/IncomeExpenseTable.tsx", "../../../totals.tsx"]) {
       const src = readFileSync(resolve(__dirname, p), "utf8");
       expect(src).toContain("GLA_EXPENSES_HEADING");
       expect(src).toContain("CO_HOST_EXPENSES_HEADING");
