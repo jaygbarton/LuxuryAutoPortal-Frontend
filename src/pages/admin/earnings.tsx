@@ -21,6 +21,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { useFormAmounts } from "@/pages/admin/income-expenses/utils/useFormAmounts";
 import ReceiptViewerModal from "@/pages/admin/income-expenses/components/ReceiptViewerModal";
 import { findStandardCategoryMatch } from "@/pages/admin/income-expenses/utils/standardCategoryNames";
+import { DISTRIBUTION_ROWS, distributeIncomeMonth, percentNote } from "@/pages/admin/income-expenses/utils/incomeDistribution";
 import { CO_HOST_EXPENSES_HEADING, GLA_EXPENSES_HEADING, isCoHostExpenseName } from "@/pages/admin/income-expenses/utils/coHostExpenses";
 import { dynamicFieldValue } from "@/pages/admin/income-expenses/utils/expenseFormLink";
 import { INCOME_SHARE_FIELDS, incomeShareNote, type IncomeShareField } from "@/pages/admin/income-expenses/utils/incomeShareNotes";
@@ -313,6 +314,34 @@ export default function EarningsPage() {
   // Get month modes and ski racks owner from income expense data
   const monthModes = incomeExpenseDataValue?.formulaSetting?.monthModes || {};
   const skiRacksOwner = incomeExpenseDataValue?.formulaSetting?.skiRacksOwner || {};
+
+  // Car owner's income per month (Cathy, 2026-11-26), with the same rules as
+  // the I&E INCOME DISTRIBUTION section: the trip income left after the Income
+  // Shares split by the month's %, plus each row's fixed owner share.
+  const ownerIncomeByMonth = MONTHS.map((_, i) => {
+    const month = i + 1;
+    const rows = incomeExpenseDataValue?.incomeExpenses || [];
+    const row = rows.find((x: any) => x && x.month === month);
+    const pct = (stored: any, fallback: number) => (stored != null && stored !== "" ? Number(stored) : fallback);
+    const shown = (field: string) => (Number(getMonthValue(rows, month, field)) || 0) + getFormAmount("income", field, month);
+    const values: Record<string, number> = { rentalIncome: shown("rentalIncome") };
+    for (const { field } of DISTRIBUTION_ROWS) if (field !== "tripIncome") values[field] = shown(field);
+    return distributeIncomeMonth({
+      year: parseInt(selectedYear, 10),
+      mode: monthModes[month] === 70 ? 70 : 50,
+      mgmtPercent: pct(row?.carManagementSplit, incomeExpenseDataValue?.formulaSetting?.carManagementSplitPercent ?? 50),
+      ownerPercent: pct(row?.carOwnerSplit, incomeExpenseDataValue?.formulaSetting?.carOwnerSplitPercent ?? 50),
+      skiRacksOwner: (skiRacksOwner[month] || "GLA") === "GLA" ? "GLA" : "CAR_OWNER",
+      values: values as any,
+    });
+  });
+  // Income Distribution to Car Owner: rows (not trip income) with an owner
+  // share in some month, labelled as on I&E; Gas Prepaid (Owner Share) is
+  // shown as "Income Gas Prepaid" with its owner note.
+  const ownerDistributionRows = DISTRIBUTION_ROWS
+    .filter(({ field }) => field !== "tripIncome")
+    .filter(({ field }) => ownerIncomeByMonth.some((m) => m && Math.abs(m[field].owner) >= 0.005))
+    .map(({ field, label }) => ({ field, label: field === "gasPrepaidOwnerIncome" ? "Income Gas Prepaid" : label }));
   // Who gets each add-on income, for the year's formula (see incomeShareNotes).
   const shareNote = (field: IncomeShareField) =>
     incomeShareNote(field, parseInt(selectedYear, 10), monthModes);
@@ -1818,6 +1847,40 @@ export default function EarningsPage() {
                     splitLabel={shareNote("insuranceWreckIncome")}
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "insuranceWreckIncome"))}
                     category="income" field="insuranceWreckIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                  />
+                  {/* Car owner's income, as on the Statement of Account (Cathy,
+                      2026-11-26): Total Income = Trip Income less the Income
+                      Shares; the owner's % of it; the Income Distribution to Car
+                      Owner rows; and Total Car Owner Income = % Amount +
+                      distribution. Before expenses, like the I&E INCOME
+                      DISTRIBUTION section (same rules: incomeDistribution.ts). */}
+                  <TableRow
+                    label="Total Income"
+                    values={MONTHS.map((_, i) => ownerIncomeByMonth[i]?.tripIncome.amount ?? 0)}
+                    isHighlighted
+                  />
+                  <TableRow
+                    label={percentNote(MONTHS.map((_, i) => ownerIncomeByMonth[i]?.tripIncome.ownerPercent ?? getCarOwnerSplitPercent(i + 1)))}
+                    values={MONTHS.map((_, i) => ownerIncomeByMonth[i]?.tripIncome.owner ?? 0)}
+                    isHighlighted
+                  />
+                  <SubheaderRow label="Income Distribution to Car Owner" hasValues={ownerDistributionRows.length > 0} />
+                  {ownerDistributionRows.map(({ field, label }) => (
+                    <TableRow
+                      key={`owner-dist-${field}`}
+                      label={label}
+                      splitLabel={`${percentNote(ownerIncomeByMonth.filter((m) => m && m[field].owner !== 0).map((m) => m![field].ownerPercent))} Owner Share`}
+                      values={MONTHS.map((_, i) => ownerIncomeByMonth[i]?.[field].owner ?? 0)}
+                    />
+                  ))}
+                  <TableRow
+                    label="Total Car Owner Income"
+                    values={MONTHS.map((_, i) => {
+                      const m = ownerIncomeByMonth[i];
+                      if (!m) return 0;
+                      return Math.round((m.tripIncome.owner + ownerDistributionRows.reduce((sum, { field }) => sum + m[field].owner, 0)) * 100) / 100;
+                    })}
+                    isHighlighted
                   />
                   {/* Income Other Credit is NOT part of Trip Income: a credit GLA
                       pays the car owner (Cathy, 2026-11-26), so it sits outside
