@@ -408,7 +408,8 @@ export default function EarningsPage() {
       getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], month, "gasServiceRun") +
       getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], month, "parkingAirport") +
       getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], month, "uberLyftLimeNotReimbursed") +
-      getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], month, "uberLyftLimeReimbursed")
+      getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], month, "uberLyftLimeReimbursed") +
+      getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], month, "creditToCarOwner")
     );
     const dynamicTotal = dynamicSubcategories.reimbursedBills.reduce((sum, subcat) => {
       const monthValue = subcat.values.find((v: any) => v.month === month);
@@ -556,7 +557,7 @@ export default function EarningsPage() {
     const prevCoolersIncome = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "coolersIncome");
     const prevInsuranceWreckIncome = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "insuranceWreckIncome");
     const prevOtherIncome = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "otherIncome");
-    const prevGuestCancellationIncome = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "guestCancellationIncome");
+    const prevGuestCancellationIncome = (getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "guestCancellationIncome") + getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "otherCreditIncome"));
     const prevNegativeBalanceCarryOver = calculatePrevYearNegativeBalance(prevMonth);
     const prevTotalDirectDelivery = getPrevYearTotalDirectDelivery(prevMonth);
     const prevTotalCogs = getPrevYearTotalCogs(prevMonth);
@@ -665,7 +666,7 @@ export default function EarningsPage() {
       prevCoolersIncome = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "coolersIncome");
       prevInsuranceWreckIncome = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "insuranceWreckIncome");
       prevOtherIncome = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "otherIncome");
-      prevGuestCancellationIncome = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "guestCancellationIncome");
+      prevGuestCancellationIncome = (getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "guestCancellationIncome") + getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "otherCreditIncome"));
       
       prevTotalDirectDelivery = getPrevYearTotalDirectDelivery(prevDec);
       prevTotalCogs = getPrevYearTotalCogs(prevDec);
@@ -698,7 +699,9 @@ export default function EarningsPage() {
       prevInsuranceWreckIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "insuranceWreckIncome");
       prevOtherIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "otherIncome");
       prevGuestCancellationIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "guestCancellationIncome") +
-        getFormAmount("income", "guestCancellationIncome", prevMonth);
+        getFormAmount("income", "guestCancellationIncome", prevMonth) +
+        getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "otherCreditIncome") +
+        getFormAmount("income", "otherCreditIncome", prevMonth);
       
       // Use the calculated value from previous month (recursive call)
       prevNegativeBalanceCarryOver = calculateNegativeBalanceCarryOver(prevMonth);
@@ -981,7 +984,9 @@ export default function EarningsPage() {
     const otherIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "otherIncome");
     // 100% owner and NOT part of Rental Income: added on top, never pooled.
     const guestCancellationIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "guestCancellationIncome") +
-      getFormAmount("income", "guestCancellationIncome", month);
+      getFormAmount("income", "guestCancellationIncome", month) +
+      getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "otherCreditIncome") +
+      getFormAmount("income", "otherCreditIncome", month);
     // Use calculated Negative Balance Carry Over (January 2019 will be 0, other Januaries use previous year's December)
     const negativeBalanceCarryOver = calculateNegativeBalanceCarryOver(month);
     const totalDirectDelivery = getTotalDirectDeliveryForMonth(month);
@@ -1767,6 +1772,12 @@ export default function EarningsPage() {
                     category="income" field="otherIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
+                    label="Income Other Credit"
+                    splitLabel={shareNote("otherCreditIncome")}
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "otherCreditIncome"))}
+                    category="income" field="otherCreditIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                  />
+                  <TableRow
                     label="Income Guest Cancellation"
                     splitLabel={shareNote("guestCancellationIncome")}
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "guestCancellationIncome"))}
@@ -2065,6 +2076,11 @@ export default function EarningsPage() {
                       label="Uber/Lyft/Lime - Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "uberLyftLimeReimbursed"))}
                       category="reimbursedBills" field="uberLyftLimeReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
+                    />
+                    <TableRow
+                      label="Credit to Car Owner"
+                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "creditToCarOwner"))}
+                      category="reimbursedBills" field="creditToCarOwner" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     {renderDynamicRows("reimbursedBills")}
                     <TableRow

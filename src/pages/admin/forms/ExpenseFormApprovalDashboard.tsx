@@ -614,6 +614,7 @@ const CATEGORY_FIELDS: Record<string, { value: string; label: string }[]> = {
       label: "Uber/Lyft/Lime Not Reimbursed",
     },
     { value: "uberLyftLimeReimbursed", label: "Uber/Lyft/Lime Reimbursed" },
+    { value: "creditToCarOwner", label: "Credit to Car Owner" },
   ],
   income: [
     { value: "rentalIncome", label: "Income Car Rentals - Turo (Trip Income)" },
@@ -627,6 +628,7 @@ const CATEGORY_FIELDS: Record<string, { value: string; label: string }[]> = {
     { value: "coolersIncome", label: "Income Coolers/Camp Chairs" },
     { value: "insuranceWreckIncome", label: "Income Turo Claims & Insurance Payments" },
     { value: "otherIncome", label: "Income Other Turo" },
+    { value: "otherCreditIncome", label: "Income Other Credit" },
     { value: "guestCancellationIncome", label: "Income Guest Cancellation" },
     { value: "gasReimbursementIncome", label: "Income Gas Reimbursed" },
     { value: "onTripChargingIncome", label: "Income On-Trip Charging" },

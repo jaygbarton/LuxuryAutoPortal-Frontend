@@ -30,6 +30,7 @@ export type DistributionField =
   | "insuranceWreckIncome"
   | "otherIncome"
   | "guestCancellationIncome"
+  | "otherCreditIncome"
   | "gasReimbursementIncome"
   | "onTripChargingIncome"
   | "postTripChargingIncome";
@@ -48,6 +49,7 @@ export const DISTRIBUTION_ROWS: { field: DistributionField; label: string }[] = 
   { field: "coolersIncome", label: "Income Coolers/Camp Chairs" },
   { field: "insuranceWreckIncome", label: "Income Turo Claims & Insurance Payments" },
   { field: "otherIncome", label: "Income Other Turo" },
+  { field: "otherCreditIncome", label: "Income Other Credit" },
   { field: "guestCancellationIncome", label: "Income Guest Cancellation" },
   { field: "gasReimbursementIncome", label: "Income Gas Reimbursed" },
   { field: "onTripChargingIncome", label: "Income On-Trip Charging" },
@@ -55,7 +57,7 @@ export const DISTRIBUTION_ROWS: { field: DistributionField; label: string }[] = 
 ];
 
 /** Rows carved out of "Income Car Rentals - Turo" before the trip split. */
-const CARVED_OUT: Exclude<DistributionField, "tripIncome" | "guestCancellationIncome" | "gasReimbursementIncome" | "onTripChargingIncome" | "postTripChargingIncome">[] = [
+const CARVED_OUT: Exclude<DistributionField, "tripIncome" | "guestCancellationIncome" | "otherCreditIncome" | "gasReimbursementIncome" | "onTripChargingIncome" | "postTripChargingIncome">[] = [
   "deliveryIncome",
   "electricPrepaidIncome",
   "smokingFines",
@@ -101,7 +103,7 @@ export function shareOf(
   skiRacksOwner: "GLA" | "CAR_OWNER",
 ): [number, number] | "pool" {
   if (field === "tripIncome") return "pool";
-  if (field === "guestCancellationIncome" || field === "milesIncome" || field === "gasPrepaidOwnerIncome") return [0, 100];
+  if (field === "guestCancellationIncome" || field === "otherCreditIncome" || field === "milesIncome" || field === "gasPrepaidOwnerIncome") return [0, 100];
   if (field === "gasReimbursementIncome" || field === "onTripChargingIncome" || field === "postTripChargingIncome") return [100, 0];
   if (year >= 2026) {
     if (field === "smokingFines") return [90, 10];

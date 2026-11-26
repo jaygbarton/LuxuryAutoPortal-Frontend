@@ -31,6 +31,7 @@ export interface IncomeExpenseMonth {
   insuranceWreckIncome: number;
   otherIncome: number;
   guestCancellationIncome: number;
+  otherCreditIncome: number;
   gasReimbursementIncome: number;
   onTripChargingIncome: number;
   postTripChargingIncome: number;
@@ -120,6 +121,7 @@ export interface ReimbursedBillsMonth {
   parkingAirport: number;
   uberLyftLimeNotReimbursed: number;
   uberLyftLimeReimbursed: number;
+  creditToCarOwner: number;
 }
 
 export interface OfficeSupportMonth {

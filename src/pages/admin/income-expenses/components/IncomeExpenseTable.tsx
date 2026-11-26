@@ -796,7 +796,8 @@ lastSavedNote.current = coHostNote;
       rb("gasServiceRun") +
       rb("parkingAirport") +
       rb("uberLyftLimeNotReimbursed") +
-      rb("uberLyftLimeReimbursed");
+      rb("uberLyftLimeReimbursed") +
+      rb("creditToCarOwner");
     const dynamicTotal = dynamicSubcategories.reimbursedBills.reduce(
       (sum, subcat) => {
         const monthValue = subcat.values.find((v: any) => v.month === month);
@@ -1089,7 +1090,8 @@ lastSavedNote.current = coHostNote;
       prevYearDecData.incomeExpenses || [],
       prevMonth,
       "guestCancellationIncome",
-    );
+    ) +
+      getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "otherCreditIncome");
     const prevNegativeBalanceCarryOver =
       calculatePrevYearNegativeBalance(prevMonth);
     const prevTotalDirectDelivery = getPrevYearTotalDirectDelivery(prevMonth);
@@ -1340,7 +1342,8 @@ lastSavedNote.current = coHostNote;
         prevYearDecData?.incomeExpenses || [],
         prevDec,
         "guestCancellationIncome",
-      );
+      ) +
+      getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "otherCreditIncome");
 
       prevTotalDirectDelivery = getPrevYearTotalDirectDelivery(prevDec);
       prevTotalCogs = getPrevYearTotalCogs(prevDec);
@@ -1425,7 +1428,11 @@ lastSavedNote.current = coHostNote;
       // Manual + approved form amount, as computeCarMonthSplits counts it.
       prevGuestCancellationIncome =
         getMonthValue(data.incomeExpenses, prevMonth, "guestCancellationIncome") +
-        getFormAmount("income", "guestCancellationIncome", prevMonth);
+        getFormAmount("income", "guestCancellationIncome", prevMonth) +
+        // Income Other Credit is 100% owner, outside Rental Income — same as
+        // Guest Cancellation (Cathy, 2026-11-26).
+        getMonthValue(data.incomeExpenses, prevMonth, "otherCreditIncome") +
+        getFormAmount("income", "otherCreditIncome", prevMonth);
 
       // Use the calculated value from previous month (recursive call)
       prevNegativeBalanceCarryOver =
@@ -2046,7 +2053,11 @@ lastSavedNote.current = coHostNote;
     // Manual + approved form amount, as computeCarMonthSplits counts it.
     const guestCancellationIncome =
       getMonthValue(data.incomeExpenses, month, "guestCancellationIncome") +
-      getFormAmount("income", "guestCancellationIncome", month);
+      getFormAmount("income", "guestCancellationIncome", month) +
+      // Income Other Credit is 100% owner, outside Rental Income — same as
+      // Guest Cancellation (Cathy, 2026-11-26).
+      getMonthValue(data.incomeExpenses, month, "otherCreditIncome") +
+      getFormAmount("income", "otherCreditIncome", month);
     // Use calculated Negative Balance Carry Over (January 2019 will be 0, other Januaries use previous year's December)
     const negativeBalanceCarryOver = calculateNegativeBalanceCarryOver(month);
     const totalDirectDelivery = getTotalDirectDeliveryForMonth(month);
@@ -2784,6 +2795,15 @@ lastSavedNote.current = coHostNote;
                 field="otherIncome"
               />
               <CategoryRow
+                label="Income Other Credit"
+                splitLabel={shareNote("otherCreditIncome")}
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.incomeExpenses, i + 1, "otherCreditIncome"),
+                )}
+                category="income"
+                field="otherCreditIncome"
+              />
+              <CategoryRow
                 label="Income Guest Cancellation"
                 splitLabel={shareNote("guestCancellationIncome")}
                 values={MONTHS.map((_, i) =>
@@ -2922,6 +2942,10 @@ lastSavedNote.current = coHostNote;
                     data.incomeExpenses,
                     monthNum,
                     "guestCancellationIncome",
+                  ) + getMonthValue(
+                    data.incomeExpenses,
+                    monthNum,
+                    "otherCreditIncome",
                   );
                   // Gas Reimbursement Income is not part of Rental Income
                   // either, so it is added on top as well.
@@ -2939,7 +2963,7 @@ lastSavedNote.current = coHostNote;
                   // include them.
                   const formIncome = isAllCarsView
                     ? 0
-                    : (["guestCancellationIncome", "gasReimbursementIncome", "onTripChargingIncome", "postTripChargingIncome"] as const)
+                    : (["guestCancellationIncome", "otherCreditIncome", "gasReimbursementIncome", "onTripChargingIncome", "postTripChargingIncome"] as const)
                         .reduce((sum, field) => sum + getFormAmount("income", field, monthNum), 0);
                   return rentalIncome + guestCancellationIncome + gasReimbursementIncome + chargingIncome + formIncome - totalExpenses;
                 })}
@@ -3881,6 +3905,23 @@ lastSavedNote.current = coHostNote;
                   "Uber/Lyft/Lime - Reimbursed",
                 )}
               />
+              <CategoryRow
+                label="Credit to Car Owner"
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(
+                    data.reimbursedBills,
+                    i + 1,
+                    "creditToCarOwner",
+                  ),
+                )}
+                category="reimbursedBills"
+                field="creditToCarOwner"
+                {...rowActions(
+                  "reimbursedBills",
+                  "creditToCarOwner",
+                  "Credit to Car Owner",
+                )}
+              />
               {/* Dynamic Subcategories */}
               {dynamicSubcategories.reimbursedBills.filter((s) => findStandardCategoryMatch("reimbursedBills", s.name) == null).map((subcat) => (
                 <DynamicSubcategoryRow
@@ -3993,6 +4034,11 @@ lastSavedNote.current = coHostNote;
                       data.reimbursedBills,
                       monthNum,
                       "uberLyftLimeReimbursed",
+                    ) +
+                    getMonthValue(
+                      data.reimbursedBills,
+                      monthNum,
+                      "creditToCarOwner",
                     );
                   const dynamicTotal =
                     dynamicSubcategories.reimbursedBills.reduce(

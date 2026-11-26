@@ -794,6 +794,7 @@ export default function TotalsPage() {
               <TotalRow label="Income Coolers/Camp Chairs" value={totals?.income?.coolersIncome} />
               <TotalRow label="Income Turo Claims & Insurance Payments" value={totals?.income?.incomeInsurance} />
               <TotalRow label="Income Other Turo" value={totals?.income?.otherIncome} />
+              <TotalRow label="Income Other Credit" value={totals?.income?.otherCreditIncome} />
               <TotalRow label="Income Guest Cancellation" value={totals?.income?.guestCancellationIncome} />
               <TotalRow label="Income Gas Reimbursed" value={totals?.income?.gasReimbursementIncome} />
               <TotalRow label="Income On-Trip Charging" value={totals?.income?.onTripChargingIncome} />
@@ -976,6 +977,7 @@ export default function TotalsPage() {
               <TotalRow label="Parking Airport" value={totals?.reimbursedBills?.parkingAirport} />
               <TotalRow label="Uber/Lyft/Lime - Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeReimbursed} />
               <TotalRow label="Uber/Lyft/Lime - Not Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeNotReimbursed} />
+              <TotalRow label="Credit to Car Owner" value={totals?.reimbursedBills?.creditToCarOwner} />
               <SubcategoryRows rows={totals?.reimbursedBills?.subcategories} />
               <TotalRow label="Total Reimbursed & Non-Reimbursed Bills" value={totals?.reimbursedBills?.total} separator bold />
             </Section>

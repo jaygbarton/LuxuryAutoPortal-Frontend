@@ -389,7 +389,7 @@ describe("buildIncomeExpenseCSV", () => {
   it("round-trips through parseImportedCSV successfully", () => {
     const result = parseImportedCSV(csv);
     expect(result.success).toBe(true);
-    expect(result.sections?.incomeExpenses?.length).toBe(15); // 11 income rows + Guest Cancellation, Gas Reimbursement, On-Trip & Post-Trip Charging
+    expect(result.sections?.incomeExpenses?.length).toBe(16); // 11 income rows + Other Credit, Guest Cancellation, Gas Reimbursement, On-Trip & Post-Trip Charging
     const rentalRow = result.sections?.incomeExpenses?.find(
       (r: any) => r.category === "Income Car Rentals - Turo (Trip Income)"
     );
@@ -401,7 +401,7 @@ describe("buildIncomeExpenseCSV", () => {
     const csv2026 = buildIncomeExpenseCSV(data, CAR_INFO, "2026", EMPTY_MONTH_MODES);
     const result = parseImportedCSV(csv2026);
     expect(result.success).toBe(true);
-    expect(result.sections?.incomeExpenses?.length).toBe(16);
+    expect(result.sections?.incomeExpenses?.length).toBe(17);
     expect(
       result.sections?.incomeExpenses?.some((r: any) => r.category === "Income Gas Prepaid (Owner Share)"),
     ).toBe(true);

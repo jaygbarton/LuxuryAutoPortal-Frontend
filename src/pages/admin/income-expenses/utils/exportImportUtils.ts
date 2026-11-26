@@ -118,7 +118,8 @@ export function buildIncomeExpenseCSV(
       getMonthValue(data.reimbursedBills, month, "gasServiceRun") +
       getMonthValue(data.reimbursedBills, month, "parkingAirport") +
       getMonthValue(data.reimbursedBills, month, "uberLyftLimeNotReimbursed") +
-      getMonthValue(data.reimbursedBills, month, "uberLyftLimeReimbursed")
+      getMonthValue(data.reimbursedBills, month, "uberLyftLimeReimbursed") +
+      getMonthValue(data.reimbursedBills, month, "creditToCarOwner")
     );
     const dynamicTotal = (dynamicSubcategories?.reimbursedBills || []).reduce((sum: number, subcat: any) => {
       const monthValue = subcat.values?.find((v: any) => v.month === month);
@@ -315,7 +316,8 @@ export function buildIncomeExpenseCSV(
     const insuranceWreckIncome = getMonthValue(data.incomeExpenses, month, "insuranceWreckIncome");
     const otherIncome = getMonthValue(data.incomeExpenses, month, "otherIncome");
     // 100% owner and NOT part of Rental Income: added on top, never pooled.
-    const guestCancellationIncome = getMonthValue(data.incomeExpenses, month, "guestCancellationIncome");
+    const guestCancellationIncome = getMonthValue(data.incomeExpenses, month, "guestCancellationIncome") +
+      getMonthValue(data.incomeExpenses, month, "otherCreditIncome");
     // Use the calculated Negative Balance Carry Over (not stored in data) - MUST match page logic
     const negativeBalanceCarryOver = calculateNegativeBalanceCarryOver(month);
     const totalDirectDelivery = getTotalDirectDeliveryForMonth(month);
@@ -563,7 +565,7 @@ export function buildIncomeExpenseCSV(
     const prevCoolersIncome = getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "coolersIncome");
     const prevInsuranceWreckIncome = getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "insuranceWreckIncome");
     const prevOtherIncome = getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "otherIncome");
-    const prevGuestCancellationIncome = getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "guestCancellationIncome");
+    const prevGuestCancellationIncome = (getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "guestCancellationIncome") + getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "otherCreditIncome"));
     const prevNegativeBalanceCarryOver = calculatePrevYearNegativeBalance(prevMonth);
     const prevTotalDirectDelivery = getPrevYearTotalDirectDelivery(prevMonth);
     const prevTotalCogs = getPrevYearTotalCogs(prevMonth);
@@ -680,7 +682,7 @@ export function buildIncomeExpenseCSV(
       prevCoolersIncome = getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "coolersIncome");
       prevInsuranceWreckIncome = getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "insuranceWreckIncome");
       prevOtherIncome = getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "otherIncome");
-      prevGuestCancellationIncome = getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "guestCancellationIncome");
+      prevGuestCancellationIncome = (getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "guestCancellationIncome") + getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "otherCreditIncome"));
       
       prevTotalDirectDelivery = getPrevYearTotalDirectDelivery(prevDec);
       prevTotalCogs = getPrevYearTotalCogs(prevDec);
@@ -713,7 +715,8 @@ export function buildIncomeExpenseCSV(
       prevCoolersIncome = getMonthValue(data.incomeExpenses, prevMonth, "coolersIncome");
       prevInsuranceWreckIncome = getMonthValue(data.incomeExpenses, prevMonth, "insuranceWreckIncome");
       prevOtherIncome = getMonthValue(data.incomeExpenses, prevMonth, "otherIncome");
-      prevGuestCancellationIncome = getMonthValue(data.incomeExpenses, prevMonth, "guestCancellationIncome");
+      prevGuestCancellationIncome = getMonthValue(data.incomeExpenses, prevMonth, "guestCancellationIncome") +
+      getMonthValue(data.incomeExpenses, prevMonth, "otherCreditIncome");
       
       // Use the calculated value from previous month (recursive call)
       prevNegativeBalanceCarryOver = calculateNegativeBalanceCarryOver(prevMonth);
@@ -904,6 +907,7 @@ export function buildIncomeExpenseCSV(
     { field: 'coolersIncome', label: 'Income Coolers/Camp Chairs' },
     { field: 'insuranceWreckIncome', label: 'Income Turo Claims & Insurance Payments' },
     { field: 'otherIncome', label: 'Income Other Turo' },
+    { field: 'otherCreditIncome', label: 'Income Other Credit' },
     { field: 'guestCancellationIncome', label: 'Income Guest Cancellation' },
     { field: 'gasReimbursementIncome', label: 'Income Gas Reimbursed' },
     { field: 'onTripChargingIncome', label: 'Income On-Trip Charging' },
@@ -982,13 +986,15 @@ export function buildIncomeExpenseCSV(
     const totalExpenses = mgmt + owner;
     // Guest Cancellation Income is not part of Rental Income — added on top.
     const guestCancellationIncome = Number(getMonthValue(data.incomeExpenses, monthNum, "guestCancellationIncome")) || 0;
+    // Income Other Credit is outside Rental Income too — added on top.
+    const otherCreditIncome = Number(getMonthValue(data.incomeExpenses, monthNum, "otherCreditIncome")) || 0;
     // Gas Reimbursement Income is not part of Rental Income either — added on top.
     const gasReimbursementIncome = Number(getMonthValue(data.incomeExpenses, monthNum, "gasReimbursementIncome")) || 0;
     // On-Trip / Post-Trip Charging Income: likewise outside Rental Income.
     const chargingIncome =
       (Number(getMonthValue(data.incomeExpenses, monthNum, "onTripChargingIncome")) || 0) +
       (Number(getMonthValue(data.incomeExpenses, monthNum, "postTripChargingIncome")) || 0);
-    const value = rentalIncome + guestCancellationIncome + gasReimbursementIncome + chargingIncome - totalExpenses;
+    const value = rentalIncome + guestCancellationIncome + otherCreditIncome + gasReimbursementIncome + chargingIncome - totalExpenses;
     csvContent += `$${value.toFixed(2)},`;
     totalProfitTotal += value;
   });
@@ -1217,6 +1223,7 @@ export function buildIncomeExpenseCSV(
     { field: 'parkingAirport', label: 'Parking Airport' },
     { field: 'uberLyftLimeNotReimbursed', label: 'Uber/Lyft/Lime - Not Reimbursed' },
     { field: 'uberLyftLimeReimbursed', label: 'Uber/Lyft/Lime - Reimbursed' },
+    { field: 'creditToCarOwner', label: 'Credit to Car Owner' },
   ];
   
   reimbursedFields.forEach(({ field, label }) => {
