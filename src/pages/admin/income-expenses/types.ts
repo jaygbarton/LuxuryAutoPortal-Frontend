@@ -178,6 +178,8 @@ export interface OfficeSupportMonth {
   storageUnit: number;
   utilities: number;
   furniture: number;
+  // EV Charges = QuickBooks Auto:Electric Charge (Cathy, 2026-11-26).
+  evCharges: number;
   quickbooksPaymentsFees: number;
   benefits: number;
   lifeInsurance: number;

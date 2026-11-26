@@ -41,6 +41,8 @@ const FIELD_LABELS: { [key: string]: string } = {
   deliveryPostageFreight: "Delivery, Postage & Freight",
   detailShopEquipment: "Detail Shop Equipment",
   duesSubscription: "Dues & Subscription",
+  // QuickBooks Auto:Electric Charge (Cathy, 2026-11-26).
+  evCharges: "EV Charges",
   outsideStaffContractors: "Labor Outside & Staff Contractors",
   laborSellingCarsCommission: "Labor Selling Cars Commission",
   laborStaffCleaningDetailing: "Labor Staff Cleaning & Detailing",

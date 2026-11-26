@@ -215,6 +215,7 @@ function getEmptyData(): IncomeExpenseData {
       storageUnit: 0,
       utilities: 0,
       furniture: 0,
+      evCharges: 0,
       quickbooksPaymentsFees: 0,
       benefits: 0,
       lifeInsurance: 0,

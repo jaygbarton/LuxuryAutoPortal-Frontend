@@ -839,6 +839,7 @@ lastSavedNote.current = coHostNote;
       getMonthValue(data.officeSupport, month, "deliveryPostageFreight") +
       getMonthValue(data.officeSupport, month, "detailShopEquipment") +
       getMonthValue(data.officeSupport, month, "duesSubscription") +
+      getMonthValue(data.officeSupport, month, "evCharges") +
       getMonthValue(data.officeSupport, month, "laborSales") +
       getMonthValue(data.officeSupport, month, "laborSoftware") +
       getMonthValue(data.officeSupport, month, "laborMarketing") +
@@ -4161,6 +4162,16 @@ lastSavedNote.current = coHostNote;
                   )}
                   category="officeSupport"
                   field="duesSubscription"
+                />
+                {/* QuickBooks Auto:Electric Charge: Tesla Supercharger, Tesla
+                    subscriptions and other EV charging (Cathy, 2026-11-26). */}
+                <CategoryRow
+                  label="EV Charges"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.officeSupport, i + 1, "evCharges"),
+                  )}
+                  category="officeSupport"
+                  field="evCharges"
                 />
                 <CategoryRow
                   label="Labor Outside & Staff Contractors"
