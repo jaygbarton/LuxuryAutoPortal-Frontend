@@ -38,10 +38,12 @@ describe("Income Shares group", () => {
 describe("Earnings page (car owners)", () => {
   const src = readFileSync(resolve(__dirname, "../../../earnings.tsx"), "utf8");
 
-  // Earnings shows income and expenses in the Statement of Account layout
-  // (Cathy, 2026-11-26), which has no Reimbursed Income rows.
+  it("shows the Income Shares and Owner Credit sub-headings", () => {
+    expect(src).toContain('label="Income Shares"');
+    expect(src).toContain('label="Owner Credit (not in Trip Income)"');
+  });
+
   it("does not show Reimbursed Income on Earnings", () => {
     expect(src).not.toContain('label="Reimbursed Income"');
-    expect(src).toContain("/statement-of-account/data");
   });
 });
