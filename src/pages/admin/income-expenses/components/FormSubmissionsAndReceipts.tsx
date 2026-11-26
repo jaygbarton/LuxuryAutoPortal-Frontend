@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { formatAmount } from "@/lib/formatAmount";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const CATEGORY_LABELS: Record<string, string> = {
@@ -118,7 +119,7 @@ export default function FormSubmissionsAndReceipts({ carId, year, className }: F
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
-                        {formatFieldLabel(sub.field)} — ${Number(sub.amount).toFixed(2)}
+                        {formatFieldLabel(sub.field)} — ${formatAmount(Number(sub.amount))}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {sub.employeeName} • {MONTHS[Number(sub.month) - 1]} • {CATEGORY_LABELS[sub.category] || sub.category}

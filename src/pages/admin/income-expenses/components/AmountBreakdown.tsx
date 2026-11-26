@@ -15,6 +15,7 @@ import React from "react";
 import { Label } from "@/components/ui/label";
 import { Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatAmount } from "@/lib/formatAmount";
 
 interface AmountBreakdownProps {
   formAmount: number;
@@ -44,18 +45,18 @@ export default function AmountBreakdown({ formAmount, manualAmount, className }:
             )}
           </span>
           <span className={cn("tabular-nums", hasForm ? "text-primary font-medium" : "text-muted-foreground")}>
-            ${formAmount.toFixed(2)}
+            ${formatAmount(formAmount)}
           </span>
         </div>
 
         <div className="flex justify-between items-center">
           <span className="text-muted-foreground">Manual Amount</span>
-          <span className="tabular-nums text-foreground">${manualAmount.toFixed(2)}</span>
+          <span className="tabular-nums text-foreground">${formatAmount(manualAmount)}</span>
         </div>
 
         <div className="flex justify-between items-center pt-1 border-t border-border">
           <span className="text-foreground font-semibold">Total Amount</span>
-          <span className="tabular-nums text-foreground font-semibold">${total.toFixed(2)}</span>
+          <span className="tabular-nums text-foreground font-semibold">${formatAmount(total)}</span>
         </div>
       </div>
 

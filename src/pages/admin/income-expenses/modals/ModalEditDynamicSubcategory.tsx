@@ -18,6 +18,7 @@ import FormReceiptInModal from "../components/FormReceiptInModal";
 import ReceiptUploadZone from "../components/ReceiptUploadZone";
 import { useImageUpload } from "../utils/useImageUpload";
 import { dynamicFieldValue } from "../utils/expenseFormLink";
+import { formatAmount } from "@/lib/formatAmount";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -182,7 +183,7 @@ export default function ModalEditDynamicSubcategory() {
           <div>
             <Label className="text-muted-foreground text-xs">Inputted Amount:</Label>
             <Input
-              value={`$${value.toFixed(2)}`}
+              value={`$${formatAmount(value)}`}
               disabled
               className="bg-card border-border text-muted-foreground text-sm mt-1"
             />

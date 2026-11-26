@@ -56,6 +56,7 @@ import {
   annualSplitPercentTooltip,
   type AnnualSplitPercentResult,
 } from "@/lib/annualSplitPercent";
+import { formatAmount } from "@/lib/formatAmount";
 
 /** I&E category types that have a matching Expense Receipt form. parkingFeeLabor
  *  has no form submission target (the expense_form_submission table only accepts
@@ -5252,7 +5253,7 @@ function OrphanFormRow({
         return (
           <td key={i} className="border-l border-border px-1 py-1 text-right">
             <span
-              title={value > 0 ? `$${value.toFixed(2)} from an approved form submission` : undefined}
+              title={value > 0 ? `$${formatAmount(value)} from an approved form submission` : undefined}
               onClick={hasReceipts ? () => openReceipts(i + 1, category, field, `Approved Receipt #${idPart}`) : undefined}
               className={cn(
                 "px-1 py-0.5 rounded block text-xs text-right",
@@ -5260,7 +5261,7 @@ function OrphanFormRow({
                 hasReceipts && "cursor-pointer underline decoration-dotted underline-offset-2 hover:bg-muted",
               )}
             >
-              ${value.toFixed(2)}
+              ${formatAmount(value)}
             </span>
           </td>
         );
@@ -5271,7 +5272,7 @@ function OrphanFormRow({
           total === 0 ? "text-gray-600" : "text-primary",
         )}
       >
-        ${total.toFixed(2)}
+        ${formatAmount(total)}
       </td>
     </tr>
   );
@@ -5424,7 +5425,7 @@ function DynamicSubcategoryRow({
               onClick={() => handleCellClick(month, value)}
               title={
                 hasForm
-                  ? `Manual $${value.toFixed(2)} + Form $${formAmount.toFixed(2)} = Total $${displayed.toFixed(2)}`
+                  ? `Manual $${formatAmount(value)} + Form $${formatAmount(formAmount)} = Total $${formatAmount(displayed)}`
                   : undefined
               }
               className={cn(
@@ -5438,7 +5439,7 @@ function DynamicSubcategoryRow({
                     : "text-[#D3BC8D]",
               )}
             >
-              ${displayed.toFixed(2)}
+              ${formatAmount(displayed)}
             </span>
           </td>
         );
@@ -5449,7 +5450,7 @@ function DynamicSubcategoryRow({
           total === 0 ? "text-gray-600" : "text-[#D3BC8D]",
         )}
       >
-        ${total.toFixed(2)}
+        ${formatAmount(total)}
       </td>
     </tr>
   );
@@ -5690,25 +5691,25 @@ function CategoryRow({
     // e.g., -3 => (3), -100 => (100), 0 => $0.00
     if (field === "negativeBalanceCarryOver") {
       if (value < 0) {
-        return `(${Math.abs(value).toFixed(2)})`;
+        return `(${formatAmount(Math.abs(value))})`;
       }
-      return `$${value.toFixed(2)}`;
+      return `$${formatAmount(value)}`;
     }
 
     if (showAmountAndPercentage && percentageValues) {
       // Show both calculated amount and percentage
       const percentage = percentageValues[month - 1] || 0;
-      return `$${value.toFixed(2)} (${percentage.toFixed(0)}%)`;
+      return `$${formatAmount(value)} (${percentage.toFixed(0)}%)`;
     } else if (isPercentage) {
       // Format as percentage; number of decimals configurable via `percentageDecimals`.
       return `${value.toFixed(percentageDecimals)}%`;
     } else if (formatType === "managementSplit" || formatType === "ownerSplit") {
       // Format: $ {splitAmount.toFixed(2)}
-      return `$ ${value.toFixed(2)}`;
+      return `$ ${formatAmount(value)}`;
     } else if (isInteger) {
       return value.toString();
     } else {
-      return `$${value.toFixed(2)}`;
+      return `$${formatAmount(value)}`;
     }
   };
 
@@ -5727,13 +5728,13 @@ function CategoryRow({
         // @/lib/annualSplitPercent) — render a dash, never 0%, never NaN%.
         // The amount half is still known and still shown.
         if (percent === null) {
-          return `$${total.toFixed(2)} (${UNAVAILABLE_DASH})`;
+          return `$${formatAmount(total)} (${UNAVAILABLE_DASH})`;
         }
-        return `$${total.toFixed(2)} (${percent.toFixed(0)}%)`;
+        return `$${formatAmount(total)} (${percent.toFixed(0)}%)`;
       }
       const avgPercentage =
         percentageValues.reduce((sum, val) => sum + (val || 0), 0) / 12;
-      return `$${total.toFixed(2)} (${avgPercentage.toFixed(0)}%)`;
+      return `$${formatAmount(total)} (${avgPercentage.toFixed(0)}%)`;
     } else if (isPercentage) {
       // When the caller supplies a totalOverride for a percentage row, it is
       // already the correct annual figure (e.g. annual EBITDA / annual rental)
@@ -5746,13 +5747,13 @@ function CategoryRow({
       return `${displayTotal.toFixed(percentageDecimals)}%`;
     } else if (formatType === "managementSplit" || formatType === "ownerSplit") {
       // Split totals: $ {total.toFixed(2)}
-      return `$ ${total.toFixed(2)}`;
+      return `$ ${formatAmount(total)}`;
     } else if (isInteger) {
       // Integer values (like trips, days): just the number
       return total.toString();
     } else {
       // All other currency values: $ {total.toFixed(2)}
-      return `$ ${total.toFixed(2)}`;
+      return `$ ${formatAmount(total)}`;
     }
   };
 
@@ -5845,7 +5846,7 @@ function CategoryRow({
                 <>
                   <div className="text-xs text-right">
                     <span className={cn(cellValue === 0 && "text-gray-600")}>
-                      ${cellValue.toFixed(2)}
+                      ${formatAmount(cellValue)}
                     </span>
                   </div>
                   <EditableCell
@@ -5911,7 +5912,7 @@ function CategoryRow({
                       isUnavailable
                         ? category === "history" ? data.history.find(row=>row.month===month)?.rentalMetricsWarning || "Enter a reviewed value; automatic data is unavailable." : "This month's figure could not be computed."
                         : hasForm
-                        ? `Manual $${cellValue.toFixed(2)} + Form $${cellFormAmount.toFixed(2)} = Total $${(displayedCellValue as number).toFixed(2)}`
+                        ? `Manual $${formatAmount(cellValue)} + Form $${formatAmount(cellFormAmount)} = Total $${formatAmount((displayedCellValue as number))}`
                         : category === "history" && data.history.find(row=>row.month===month)?.rentalMetricsWarning
                           ? data.history.find(row=>row.month===month)?.rentalMetricsWarning ?? undefined
                         : onPercentCellClick && !isReadOnly

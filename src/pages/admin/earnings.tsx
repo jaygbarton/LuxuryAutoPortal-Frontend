@@ -24,6 +24,7 @@ import { findStandardCategoryMatch } from "@/pages/admin/income-expenses/utils/s
 import { CO_HOST_EXPENSES_HEADING, GLA_EXPENSES_HEADING, isCoHostExpenseName } from "@/pages/admin/income-expenses/utils/coHostExpenses";
 import { dynamicFieldValue } from "@/pages/admin/income-expenses/utils/expenseFormLink";
 import { INCOME_SHARE_FIELDS, incomeShareNote, type IncomeShareField } from "@/pages/admin/income-expenses/utils/incomeShareNotes";
+import { formatAmount } from "@/lib/formatAmount";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -2672,7 +2673,7 @@ function TableRow({
         if (value === null) {
           displayText = "—";
         } else if (isNegativeBalance && cellValue < 0) {
-          displayText = `(${Math.abs(cellValue).toFixed(2)})`;
+          displayText = `(${formatAmount(Math.abs(cellValue))})`;
         } else if (isInteger) {
           displayText = cellValue.toString();
         } else {
@@ -2732,7 +2733,7 @@ function TableRow({
           ? null
           : total === null ? "—"
           : isNegativeBalance && total < 0
-            ? `(${Math.abs(total).toFixed(2)})`
+            ? `(${formatAmount(Math.abs(total))})`
             : (
               <span title={isPartial ? `Partial total — ${missingMonths.join(", ")} need${missingMonths.length === 1 ? "s" : ""} review and ${missingMonths.length === 1 ? "is" : "are"} not included.` : undefined}>
                 {isInteger ? total.toString() : formatCurrency(total)}

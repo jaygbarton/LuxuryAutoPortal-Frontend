@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useIncomeExpense } from "../context/IncomeExpenseContext";
+import { formatAmount } from "@/lib/formatAmount";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -253,7 +254,7 @@ export default function ModalEditManagementSplit() {
           <div>
             <Label className="text-muted-foreground text-xs">Calculated Amount:</Label>
             <Input
-              value={`$${editingCell.value.toFixed(2)}`}
+              value={`$${formatAmount(editingCell.value)}`}
               disabled
               className="bg-card border-border text-muted-foreground text-sm mt-1"
             />
@@ -272,71 +273,71 @@ export default function ModalEditManagementSplit() {
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Car Rentals - Turo (Trip Income):</span>
-                  <span>${incomeValues.rentalIncome.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.rentalIncome)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Delivery:</span>
-                  <span>${incomeValues.deliveryIncome.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.deliveryIncome)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Electric Prepaid:</span>
-                  <span>${incomeValues.electricPrepaidIncome.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.electricPrepaidIncome)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Smoking Fines:</span>
-                  <span>${incomeValues.smokingFines.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.smokingFines)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Gas Prepaid:</span>
-                  <span>${incomeValues.gasPrepaidIncome.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.gasPrepaidIncome)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Gas Prepaid (Owner Share):</span>
-                  <span>${incomeValues.gasPrepaidOwnerIncome.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.gasPrepaidOwnerIncome)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Ski Racks:</span>
-                  <span>${incomeValues.skiRacksIncome.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.skiRacksIncome)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Miles:</span>
-                  <span>${incomeValues.milesIncome.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.milesIncome)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Car Seats:</span>
-                  <span>${incomeValues.childSeatIncome.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.childSeatIncome)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Coolers/Camp Chairs:</span>
-                  <span>${incomeValues.coolersIncome.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.coolersIncome)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Turo Claims & Insurance Payments:</span>
-                  <span>${incomeValues.insuranceWreckIncome.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.insuranceWreckIncome)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Other Turo:</span>
-                  <span>${incomeValues.otherIncome.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.otherIncome)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Other Credit:</span>
-                  <span>${incomeValues.otherCreditIncome.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.otherCreditIncome)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Guest Cancellation:</span>
-                  <span>${incomeValues.guestCancellationIncome.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.guestCancellationIncome)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income Gas Reimbursed:</span>
-                  <span>${incomeValues.gasReimbursementIncome.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.gasReimbursementIncome)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income EV On-Trip Charging Reimbursed:</span>
-                  <span>${incomeValues.onTripChargingIncome.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.onTripChargingIncome)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Income EV Post-Trip Charging Reimbursed:</span>
-                  <span>${incomeValues.postTripChargingIncome.toFixed(2)}</span>
+                  <span>${formatAmount(incomeValues.postTripChargingIncome)}</span>
                 </div>
               </div>
             </div>
@@ -347,27 +348,27 @@ export default function ModalEditManagementSplit() {
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Labor - Cleaning:</span>
-                  <span>${directDeliveryValues.laborCarCleaning.toFixed(2)}</span>
+                  <span>${formatAmount(directDeliveryValues.laborCarCleaning)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Labor - Delivery:</span>
-                  <span>${directDeliveryValues.laborDelivery.toFixed(2)}</span>
+                  <span>${formatAmount(directDeliveryValues.laborDelivery)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Parking Airport Reimbursed:</span>
-                  <span>${directDeliveryValues.parkingAirport.toFixed(2)}</span>
+                  <span>${formatAmount(directDeliveryValues.parkingAirport)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Parking Airport Not Reimbursed:</span>
-                  <span>${directDeliveryValues.parkingAirportNotReimbursed.toFixed(2)}</span>
+                  <span>${formatAmount(directDeliveryValues.parkingAirportNotReimbursed)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Parking - Lot:</span>
-                  <span>${directDeliveryValues.parkingLot.toFixed(2)}</span>
+                  <span>${formatAmount(directDeliveryValues.parkingLot)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Uber/Lyft/Lime:</span>
-                  <span>${directDeliveryValues.uberLyftLime.toFixed(2)}</span>
+                  <span>${formatAmount(directDeliveryValues.uberLyftLime)}</span>
                 </div>
                 {dynamicSubcategories.directDelivery.map((subcat) => {
                   const monthValue = subcat.values.find((v: any) => v.month === month);
@@ -375,13 +376,13 @@ export default function ModalEditManagementSplit() {
                   return value > 0 ? (
                     <div key={subcat.id} className="flex justify-between text-muted-foreground">
                       <span>{subcat.name}:</span>
-                      <span>${value.toFixed(2)}</span>
+                      <span>${formatAmount(value)}</span>
                     </div>
                   ) : null;
                 })}
                 <div className="flex justify-between text-primary font-semibold pt-1 border-t border-border">
                   <span>TOTAL OPERATING EXPENSE (Direct Delivery):</span>
-                  <span>${totalDirectDelivery.toFixed(2)}</span>
+                  <span>${formatAmount(totalDirectDelivery)}</span>
                 </div>
               </div>
             </div>
@@ -392,99 +393,99 @@ export default function ModalEditManagementSplit() {
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Auto Body Shop / Wreck:</span>
-                  <span>${cogsValues.autoBodyShopWreck.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.autoBodyShopWreck)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Alignment:</span>
-                  <span>${cogsValues.alignment.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.alignment)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Battery:</span>
-                  <span>${cogsValues.battery.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.battery)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Brakes:</span>
-                  <span>${cogsValues.brakes.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.brakes)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Car Payment:</span>
-                  <span>${cogsValues.carPayment.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.carPayment)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Car Insurance:</span>
-                  <span>${cogsValues.carInsurance.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.carInsurance)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Car Seats:</span>
-                  <span>${cogsValues.carSeats.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.carSeats)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Cleaning Supplies / Tools:</span>
-                  <span>${cogsValues.cleaningSuppliesTools.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.cleaningSuppliesTools)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Emissions:</span>
-                  <span>${cogsValues.emissions.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.emissions)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>GPS System:</span>
-                  <span>${cogsValues.gpsSystem.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.gpsSystem)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Key & Fob:</span>
-                  <span>${cogsValues.keyFob.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.keyFob)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Labor - Cleaning:</span>
-                  <span>${cogsValues.laborCleaning.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.laborCleaning)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>License & Registration:</span>
-                  <span>${cogsValues.licenseRegistration.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.licenseRegistration)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Mechanic:</span>
-                  <span>${cogsValues.mechanic.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.mechanic)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Oil/Lube:</span>
-                  <span>${cogsValues.oilLube.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.oilLube)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Parts:</span>
-                  <span>${cogsValues.parts.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.parts)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Ski Racks:</span>
-                  <span>${cogsValues.skiRacks.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.skiRacks)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Tickets & Tolls:</span>
-                  <span>${cogsValues.tickets.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.tickets)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Tired Air Station:</span>
-                  <span>${cogsValues.tiredAirStation.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.tiredAirStation)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Tires:</span>
-                  <span>${cogsValues.tires.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.tires)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Towing / Impound Fees:</span>
-                  <span>${cogsValues.towingImpoundFees.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.towingImpoundFees)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Uber/Lyft/Lime:</span>
-                  <span>${cogsValues.uberLyftLime.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.uberLyftLime)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Windshield:</span>
-                  <span>${cogsValues.windshield.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.windshield)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Wipers:</span>
-                  <span>${cogsValues.wipers.toFixed(2)}</span>
+                  <span>${formatAmount(cogsValues.wipers)}</span>
                 </div>
                 {dynamicSubcategories.cogs.map((subcat) => {
                   const monthValue = subcat.values.find((v: any) => v.month === month);
@@ -492,13 +493,13 @@ export default function ModalEditManagementSplit() {
                   return value > 0 ? (
                     <div key={subcat.id} className="flex justify-between text-muted-foreground">
                       <span>{subcat.name}:</span>
-                      <span>${value.toFixed(2)}</span>
+                      <span>${formatAmount(value)}</span>
                     </div>
                   ) : null;
                 })}
                 <div className="flex justify-between text-primary font-semibold pt-1 border-t border-border">
                   <span>TOTAL OPERATING EXPENSE (COGS - Per Vehicle):</span>
-                  <span>${totalCogs.toFixed(2)}</span>
+                  <span>${formatAmount(totalCogs)}</span>
                 </div>
               </div>
             </div>
@@ -509,11 +510,11 @@ export default function ModalEditManagementSplit() {
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>GLA Parking Fee:</span>
-                  <span>${parkingFeeLaborValues.glaParkingFee.toFixed(2)}</span>
+                  <span>${formatAmount(parkingFeeLaborValues.glaParkingFee)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Labor - Cleaning:</span>
-                  <span>${parkingFeeLaborValues.laborCleaning.toFixed(2)}</span>
+                  <span>${formatAmount(parkingFeeLaborValues.laborCleaning)}</span>
                 </div>
                 {dynamicSubcategories.parkingFeeLabor.map((subcat) => {
                   const monthValue = subcat.values.find((v: any) => v.month === month);
@@ -521,13 +522,13 @@ export default function ModalEditManagementSplit() {
                   return value > 0 ? (
                     <div key={subcat.id} className="flex justify-between text-muted-foreground">
                       <span>{subcat.name}:</span>
-                      <span>${value.toFixed(2)}</span>
+                      <span>${formatAmount(value)}</span>
                     </div>
                   ) : null;
                 })}
                 <div className="flex justify-between text-primary font-semibold pt-1 border-t border-border">
                   <span>Total Parking Fee & Labor Cleaning:</span>
-                  <span>${totalParkingFeeLabor.toFixed(2)}</span>
+                  <span>${formatAmount(totalParkingFeeLabor)}</span>
                 </div>
               </div>
             </div>
@@ -538,39 +539,39 @@ export default function ModalEditManagementSplit() {
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Expenses Electric - Reimbursed:</span>
-                  <span>${reimbursedBillsValues.electricReimbursed.toFixed(2)}</span>
+                  <span>${formatAmount(reimbursedBillsValues.electricReimbursed)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Expenses Electric - Not Reimbursed:</span>
-                  <span>${reimbursedBillsValues.electricNotReimbursed.toFixed(2)}</span>
+                  <span>${formatAmount(reimbursedBillsValues.electricNotReimbursed)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Expenses Gas – Charged to Guest:</span>
-                  <span>${reimbursedBillsValues.gasReimbursed.toFixed(2)}</span>
+                  <span>${formatAmount(reimbursedBillsValues.gasReimbursed)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Expenses Gas – Not Charged to Guest:</span>
-                  <span>${reimbursedBillsValues.gasNotReimbursed.toFixed(2)}</span>
+                  <span>${formatAmount(reimbursedBillsValues.gasNotReimbursed)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Expenses Gas - Service Run:</span>
-                  <span>${reimbursedBillsValues.gasServiceRun.toFixed(2)}</span>
+                  <span>${formatAmount(reimbursedBillsValues.gasServiceRun)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Expenses Parking Airport:</span>
-                  <span>${reimbursedBillsValues.parkingAirport.toFixed(2)}</span>
+                  <span>${formatAmount(reimbursedBillsValues.parkingAirport)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Expenses Uber/Lyft/Lime - Not Reimbursed:</span>
-                  <span>${reimbursedBillsValues.uberLyftLimeNotReimbursed.toFixed(2)}</span>
+                  <span>${formatAmount(reimbursedBillsValues.uberLyftLimeNotReimbursed)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Expenses Uber/Lyft/Lime - Reimbursed:</span>
-                  <span>${reimbursedBillsValues.uberLyftLimeReimbursed.toFixed(2)}</span>
+                  <span>${formatAmount(reimbursedBillsValues.uberLyftLimeReimbursed)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Expenses Credit to Car Owner:</span>
-                  <span>${reimbursedBillsValues.creditToCarOwner.toFixed(2)}</span>
+                  <span>${formatAmount(reimbursedBillsValues.creditToCarOwner)}</span>
                 </div>
                 {dynamicSubcategories.reimbursedBills.map((subcat) => {
                   const monthValue = subcat.values.find((v: any) => v.month === month);
@@ -578,13 +579,13 @@ export default function ModalEditManagementSplit() {
                   return value > 0 ? (
                     <div key={subcat.id} className="flex justify-between text-muted-foreground">
                       <span>{subcat.name}:</span>
-                      <span>${value.toFixed(2)}</span>
+                      <span>${formatAmount(value)}</span>
                     </div>
                   ) : null;
                 })}
                 <div className="flex justify-between text-primary font-semibold pt-1 border-t border-border">
                   <span>TOTAL REIMBURSE AND NON-REIMBURSE BILLS:</span>
-                  <span>${totalReimbursedBills.toFixed(2)}</span>
+                  <span>${formatAmount(totalReimbursedBills)}</span>
                 </div>
               </div>
             </div>
@@ -595,15 +596,15 @@ export default function ModalEditManagementSplit() {
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Car Management Total Expenses:</span>
-                  <span>${carManagementTotalExpenses.toFixed(2)}</span>
+                  <span>${formatAmount(carManagementTotalExpenses)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Car Owner Total Expenses:</span>
-                  <span>${carOwnerTotalExpenses.toFixed(2)}</span>
+                  <span>${formatAmount(carOwnerTotalExpenses)}</span>
                 </div>
                 <div className="flex justify-between text-primary font-semibold pt-1 border-t border-border">
                   <span>Total Expenses:</span>
-                  <span>${totalExpenses.toFixed(2)}</span>
+                  <span>${formatAmount(totalExpenses)}</span>
                 </div>
               </div>
             </div>

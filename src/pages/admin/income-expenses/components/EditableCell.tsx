@@ -1,6 +1,7 @@
 import React from "react";
 import { useIncomeExpense } from "../context/IncomeExpenseContext";
 import { cn } from "@/lib/utils";
+import { formatAmount } from "@/lib/formatAmount";
 
 interface EditableCellProps {
   value: number;
@@ -68,7 +69,7 @@ export default function EditableCell({
     ? `${value.toFixed(0)}%`
     : isInteger
     ? value.toString()
-    : `$${displayedTotal.toFixed(2)}`;
+    : `$${formatAmount(displayedTotal)}`;
 
   if (!isEditable) {
     return (
@@ -78,7 +79,7 @@ export default function EditableCell({
           displayedTotal === 0 && "text-gray-600",
           hasFormContribution && "text-primary"
         )}
-        title={description || (hasFormContribution ? `Includes $${formAmount.toFixed(2)} from approved form submissions` : undefined)}
+        title={description || (hasFormContribution ? `Includes $${formatAmount(formAmount)} from approved form submissions` : undefined)}
       >
         {displayValue}
       </span>
@@ -96,7 +97,7 @@ export default function EditableCell({
       )}
       title={
         description || (hasFormContribution
-          ? `Manual $${value.toFixed(2)} + Form $${formAmount.toFixed(2)} = Total $${displayedTotal.toFixed(2)}`
+          ? `Manual $${formatAmount(value)} + Form $${formatAmount(formAmount)} = Total $${formatAmount(displayedTotal)}`
           : undefined)
       }
     >
