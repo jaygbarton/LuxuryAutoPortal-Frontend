@@ -43,13 +43,7 @@ describe("Earnings page (car owners)", () => {
     expect(src).toContain('label="Owner Credit (not in Trip Income)"');
   });
 
-  it("hides Reimbursed Income from car owners", () => {
-    const at = src.indexOf('label="Reimbursed Income"');
-    expect(at).toBeGreaterThan(-1);
-    const gate = src.lastIndexOf("{!isClient && (", at);
-    expect(gate).toBeGreaterThan(-1);
-    // Nothing closes the gate between it and the Reimbursed Income rows.
-    const between = src.slice(gate, src.indexOf('label="Income EV Post-Trip Charging Reimbursed"'));
-    expect(between).not.toMatch(/\n\s*\)\}\n/);
+  it("does not show Reimbursed Income on Earnings", () => {
+    expect(src).not.toContain('label="Reimbursed Income"');
   });
 });

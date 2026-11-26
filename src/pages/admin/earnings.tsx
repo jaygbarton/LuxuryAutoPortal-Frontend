@@ -96,7 +96,10 @@ export default function EarningsPage() {
     retry: false,
   });
   const isAdmin = userData?.user?.isAdmin === true;
-  const isClient = userData?.user?.isClient === true;
+  // The Earnings page is built for client users. Admins and staff see the
+  // same page clients see (Cathy, 2026-11-26): no admin-only rows or badges,
+  // zero rows hidden, client charts. Staff keep inline editing (handleEditCell,
+  // isAdmin) and the admin page links.
 
   // Fetch car data
   const { data: carData, isLoading: isCarLoading, error: carError } = useQuery<{
@@ -1656,7 +1659,6 @@ export default function EarningsPage() {
                     const monthNum = index + 1;
                     const year = parseInt(selectedYear, 10);
                     const showSkiRacksToggle = year >= 2026;
-                    const currentMode = monthModes[monthNum] || 50;
                     const ownerSplitPercent = getCarOwnerSplitPercent(monthNum);
                     const currentSkiRacksOwner = skiRacksOwner[monthNum] || "GLA";
                     const hasSkiRacksIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], monthNum, "skiRacksIncome") > 0;
@@ -1669,30 +1671,15 @@ export default function EarningsPage() {
                         <div className="flex flex-col items-center gap-1 justify-center">
                           <span className="text-foreground text-xs font-medium">{month}</span>
                           <div className="flex items-center justify-center gap-1 h-[24px]">
-                            {/* Client users see the car's actual Car Owner Split % for
-                                the month instead of the 50/70 rate mode (Cathy,
-                                2026-11-26). Admins and staff keep the mode badge. */}
-                            {isClient ? (
-                              <div
-                                className="px-3 py-0.5 rounded-full text-xs font-semibold cursor-default bg-[#D3BC8D]/30 text-[#B8860B]"
-                                title={`Car Owner Split: ${ownerSplitPercent}%`}
-                              >
-                                {ownerSplitPercent}%
-                              </div>
-                            ) : (
-                            /* Mode Toggle (Read-only) - Shows 50:50 or 30:70 split mode */
+                            {/* The car's actual Car Owner Split % for the month, for
+                                every user (Cathy, 2026-11-26: replaced the 50/70
+                                rate-mode badge; admins see the client layout). */}
                             <div
-                              className={cn(
-                                "px-3 py-0.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-default",
-                                currentMode === 50
-                                  ? "bg-green-600 text-white"
-                                  : "bg-blue-600 text-white"
-                              )}
-                              title={`Rate mode: ${currentMode === 50 ? "50:50 (green)" : "30:70 (blue)"} (Read-only)`}
+                              className="px-3 py-0.5 rounded-full text-xs font-semibold cursor-default bg-[#D3BC8D]/30 text-[#B8860B]"
+                              title={`Car Owner Split: ${ownerSplitPercent}%`}
                             >
-                              {currentMode}
+                              {ownerSplitPercent}%
                             </div>
-                            )}
                             {/* Ski Racks Owner Toggle (Read-only) - Only show for years >= 2026 and when ski racks income exists */}
                             {showSkiRacksToggle && hasSkiRacksIncome && (
                               <div
@@ -1721,21 +1708,13 @@ export default function EarningsPage() {
                 {/* CAR MANAGEMENT - OWNER SPLIT — client-visible per Cathy
                     (2026-07-20), reversing the 2026-07-08 "hide from clients"
                     change. */}
-                {/* Client users see only their own split: the section is "CAR
-                    OWNER SPLIT" and the Car Management Split row is hidden
-                    (Cathy, 2026-11-26). Gated on isClient, so View as Client
-                    matches what owners see. */}
+                {/* Only the car owner's split shows: "CAR OWNER SPLIT", no Car
+                    Management Split row (Cathy, 2026-11-26, for every user). */}
                 <CategorySection
-                  title={isClient ? "CAR OWNER SPLIT" : "CAR MANAGEMENT - OWNER SPLIT"}
+                  title="CAR OWNER SPLIT"
                   isExpanded={expandedSections.managementOwner}
                   onToggle={() => toggleSection("managementOwner")}
                 >
-                  {!isClient && (
-                    <TableRow
-                      label="Car Management Split"
-                      values={MONTHS.map((_, i) => calculateCarManagementSplit(i + 1))}
-                    />
-                  )}
                   <TableRow
                     label="Car Owner Split"
                     values={MONTHS.map((_, i) => calculateCarOwnerSplit(i + 1))}
@@ -1747,7 +1726,7 @@ export default function EarningsPage() {
                   title="INCOME"
                   isExpanded={expandedSections.incomeExpenses}
                   onToggle={() => toggleSection("incomeExpenses")}
-                  hideZeroSubcategories={isClient}
+                  hideZeroSubcategories
                 >
                   <TableRow
                     label="Income Car Rentals - Turo (Trip Income)"
@@ -1853,38 +1832,9 @@ export default function EarningsPage() {
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "otherCreditIncome"))}
                     category="income" field="otherCreditIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
-                  {/* Reimbursed Income (Cathy, 2026-11-26): the 100% Host Share
-                      reimbursement rows, grouped under their own sub-heading.
-                      Hidden from car owners (Cathy, 2026-11-26); gated on
-                      isClient so View as Client hides it too. */}
-                  {!isClient && (
-                    <>
-                    <SubheaderRow
-                      label="Reimbursed Income"
-                      hasValues={(["gasReimbursementIncome", "onTripChargingIncome", "postTripChargingIncome"] as const).some((field) =>
-                        MONTHS.some((_, i) =>
-                          Math.abs(getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, field) + getFormAmount("income", field, i + 1)) >= 0.005))}
-                    />
-                    <TableRow
-                      label="Income Gas Reimbursed"
-                      splitLabel={shareNote("gasReimbursementIncome")}
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "gasReimbursementIncome"))}
-                      category="income" field="gasReimbursementIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Income EV On-Trip Charging Reimbursed"
-                      splitLabel={shareNote("onTripChargingIncome")}
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "onTripChargingIncome"))}
-                      category="income" field="onTripChargingIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Income EV Post-Trip Charging Reimbursed"
-                      splitLabel={shareNote("postTripChargingIncome")}
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "postTripChargingIncome"))}
-                      category="income" field="postTripChargingIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    </>
-                  )}
+                  {/* Reimbursed Income (Gas Reimbursed, EV On-Trip / Post-Trip
+                      Charging Reimbursed) is not shown on Earnings (Cathy,
+                      2026-11-26); it stays on Income & Expenses. */}
                   <TableRow
                     label="Negative Balance Carry Over"
                     values={MONTHS.map((_, i) => calculateNegativeBalanceCarryOver(i + 1))}
@@ -1899,7 +1849,7 @@ export default function EarningsPage() {
                   title="OPERATING EXPENSE (DIRECT DELIVERY)"
                   isExpanded={expandedSections.directDelivery}
                   onToggle={() => toggleSection("directDelivery")}
-                  hideZeroSubcategories={isClient}
+                  hideZeroSubcategories
                 >
                   {/* Retired row: shown only when it already holds money. */}
                   {MONTHS.some((_, i) =>
@@ -1958,7 +1908,7 @@ export default function EarningsPage() {
                   title="OPERATING EXPENSE (COGS - PER VEHICLE)"
                   isExpanded={expandedSections.cogs}
                   onToggle={() => toggleSection("cogs")}
-                  hideZeroSubcategories={isClient}
+                  hideZeroSubcategories
                 >
                   <TableRow
                     label="Auto Body Shop / Wreck"
@@ -2193,19 +2143,8 @@ export default function EarningsPage() {
                     isInteger
                     partialTotal
                   />
-                  {/* Cars Available - was made client-visible per Cathy (2026-07-02),
-                      but re-hidden from clients per Hoang (2026-07-23): fleet-wide
-                      availability count has no place on a single owner's Earnings page.
-                      Gated on isClient (not isUnderlyingAdmin) so it is also hidden
-                      when an admin uses "View as Client" — matches totals.tsx. */}
-                  {!isClient && (
-                  <TableRow
-                    label="Cars Available"
-                    values={MONTHS.map((_, i) => rentalMetric(incomeExpenseDataValue?.history?.find(row => row.month === i + 1)?.carsAvailableForRent))}
-                    isInteger
-                    partialTotal
-                  />
-                  )}
+                  {/* Cars Available is not shown on Earnings (Hoang, 2026-07-23:
+                      fleet-wide count; Cathy, 2026-11-26: same page for all users). */}
                   <TableRow
                     label="Trips Taken"
                     values={MONTHS.map((_, i) => rentalMetric(incomeExpenseDataValue?.history?.find(row => row.month === i + 1)?.tripsTaken))}
@@ -2568,7 +2507,7 @@ export default function EarningsPage() {
           calculateCarManagementTotalExpenses={calculateCarManagementTotalExpenses}
           calculateCarOwnerTotalExpenses={calculateCarOwnerTotalExpenses}
           getMonthValue={getMonthValue}
-          isClient={isClient}
+          isClient
         />
       </div>
       <ClientPageLinks />
