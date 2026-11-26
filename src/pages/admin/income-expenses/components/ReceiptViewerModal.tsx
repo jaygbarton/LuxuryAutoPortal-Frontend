@@ -5,6 +5,7 @@ import { X, Loader2, Trash2 } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import InAppReceipt from "@/components/receipts/InAppReceipt";
 import ServiceDateEditor from "./ServiceDateEditor";
+import { formatAmount } from "@/lib/formatAmount";
 
 /**
  * Receipt thumbnail. The receipt-image endpoint is auth-protected (session
@@ -217,7 +218,7 @@ export interface ReceiptOcr {
 }
 
 const money = (n: number | null) =>
-  n === null || n === undefined ? "--" : `$${n.toFixed(2)}`;
+  n === null || n === undefined ? "--" : `$${formatAmount(n)}`;
 
 /**
  * Shows what a receipt SAYS, and lets an admin confirm which I&E row each billed
