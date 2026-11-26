@@ -25,8 +25,9 @@ describe("Income Other Credit", () => {
     expect(DISTRIBUTION_ROWS[i - 1]).toEqual({ field: "otherCreditIncome", label: "Income Other Credit" });
   });
 
-  it("counts in EBITDA Total Income (outside Rental Income); Guest Cancellation does not", () => {
-    expect(EBITDA_ADDITIONAL_INCOME_FIELDS).toContain("otherCreditIncome");
-    expect(EBITDA_ADDITIONAL_INCOME_FIELDS).not.toContain("guestCancellationIncome");
+  it("is not EBITDA Total Income (it is a payment to the car owner); neither is Guest Cancellation", () => {
+    expect([...EBITDA_ADDITIONAL_INCOME_FIELDS]).toEqual([
+      "gasReimbursementIncome", "onTripChargingIncome", "postTripChargingIncome",
+    ]);
   });
 });
