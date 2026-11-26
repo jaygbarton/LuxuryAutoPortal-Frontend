@@ -22,7 +22,7 @@ import { useFormAmounts } from "@/pages/admin/income-expenses/utils/useFormAmoun
 import ReceiptViewerModal from "@/pages/admin/income-expenses/components/ReceiptViewerModal";
 import { findStandardCategoryMatch } from "@/pages/admin/income-expenses/utils/standardCategoryNames";
 import { DISTRIBUTION_ROWS, distributeIncomeMonth, percentNote } from "@/pages/admin/income-expenses/utils/incomeDistribution";
-import { CO_HOST_EXPENSES_HEADING, GLA_EXPENSES_HEADING, isCoHostExpenseName } from "@/pages/admin/income-expenses/utils/coHostExpenses";
+import { isCoHostExpenseName } from "@/pages/admin/income-expenses/utils/coHostExpenses";
 import { dynamicFieldValue } from "@/pages/admin/income-expenses/utils/expenseFormLink";
 import { INCOME_SHARE_FIELDS, incomeShareNote, type IncomeShareField } from "@/pages/admin/income-expenses/utils/incomeShareNotes";
 import { formatAmount } from "@/lib/formatAmount";
@@ -2167,75 +2167,9 @@ export default function EarningsPage() {
                   />
                 </CategorySection>
 
-                {/* REIMBURSED AND NON-REIMBURSED BILLS — GLA-internal. Hidden
-                    from clients (and from View as Client, which reports
-                    isAdmin false) so the client-facing Earnings table never
-                    shows internal reimbursed/non-reimbursed bill lines. */}
-                {isAdmin && (
-                <CategorySection
-                    title="REIMBURSED AND NON-REIMBURSED BILLS"
-                    isExpanded={expandedSections.reimbursedBills}
-                    onToggle={() => toggleSection("reimbursedBills")}
-                  >
-                    {/* GLA Expenses / Co-Host Expenses sub-headings (Cathy, 2026-11-26). */}
-                    <SubheaderRow label={GLA_EXPENSES_HEADING} />
-                    <TableRow
-                      label="Expenses Electric - Reimbursed"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "electricReimbursed"))}
-                      category="reimbursedBills" field="electricReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Expenses Electric - Not Reimbursed"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "electricNotReimbursed"))}
-                      category="reimbursedBills" field="electricNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Expenses Gas – Charged to Guest"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasReimbursed"))}
-                      category="reimbursedBills" field="gasReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Expenses Gas – Not Charged to Guest"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasNotReimbursed"))}
-                      category="reimbursedBills" field="gasNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Expenses Gas - Service Run"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasServiceRun"))}
-                      category="reimbursedBills" field="gasServiceRun" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Expenses Parking Airport"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "parkingAirport"))}
-                      category="reimbursedBills" field="parkingAirport" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Expenses Uber/Lyft/Lime - Not Reimbursed"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "uberLyftLimeNotReimbursed"))}
-                      category="reimbursedBills" field="uberLyftLimeNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Expenses Uber/Lyft/Lime - Reimbursed"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "uberLyftLimeReimbursed"))}
-                      category="reimbursedBills" field="uberLyftLimeReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    <TableRow
-                      label="Expenses Credit to Car Owner"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "creditToCarOwner"))}
-                      category="reimbursedBills" field="creditToCarOwner" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
-                    />
-                    {renderDynamicRows("reimbursedBills", "gla")}
-                    {dynamicSubcategories.reimbursedBills.some((s: any) => findStandardCategoryMatch("reimbursedBills", s.name) == null && isCoHostExpenseName(s.name)) && (
-                      <SubheaderRow label={CO_HOST_EXPENSES_HEADING} />
-                    )}
-                    {renderDynamicRows("reimbursedBills", "coHost")}
-                    <TableRow
-                      label="TOTAL REIMBURSED AND NON-REIMBURSED BILLS"
-                      values={MONTHS.map((_, i) => getTotalReimbursedBillsForMonth(i + 1))}
-                      isTotal
-                    />
-                  </CategorySection>
-                )}
+                {/* REIMBURSED AND NON-REIMBURSED BILLS is not shown on Earnings,
+                    for any user (Cathy, 2026-11-26); it stays on Income &
+                    Expenses. */}
 
                 {/* HISTORY — client-visible */}
                 <CategorySection
