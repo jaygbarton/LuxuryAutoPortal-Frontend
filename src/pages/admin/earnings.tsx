@@ -83,6 +83,7 @@ export default function EarningsPage() {
     parkingFeeLabor: true,
     parkingAverageQB: true,
     reimbursedBills: true,
+    incomeExpensesSummary: true,
   });
   const [uploadingChart, setUploadingChart] = useState<{ [month: number]: boolean }>({});
   const { toast } = useToast();
@@ -342,6 +343,16 @@ export default function EarningsPage() {
     .filter(({ field }) => field !== "tripIncome")
     .filter(({ field }) => ownerIncomeByMonth.some((m) => m && Math.abs(m[field].owner) >= 0.005))
     .map(({ field, label }) => ({ field, label: field === "gasPrepaidOwnerIncome" ? "Income Gas Prepaid" : label }));
+  // Total Car Owner Income: the owner's % of Total Income + the distribution rows.
+  const totalCarOwnerIncome = (month: number): number => {
+    const m = ownerIncomeByMonth[month - 1];
+    if (!m) return 0;
+    return Math.round((m.tripIncome.owner + ownerDistributionRows.reduce((sum, { field }) => sum + m[field].owner, 0)) * 100) / 100;
+  };
+  // Total Expenses, as on the Statement of Account: Direct Delivery + COGS +
+  // GLA Parking Fee & Labor Cleaning (Cathy, 2026-11-26).
+  const totalCarExpenses = (month: number): number =>
+    Math.round((getTotalDirectDeliveryForMonth(month) + getTotalCogsForMonth(month) + getTotalParkingFeeLaborForMonth(month)) * 100) / 100;
   // Who gets each add-on income, for the year's formula (see incomeShareNotes).
   const shareNote = (field: IncomeShareField) =>
     incomeShareNote(field, parseInt(selectedYear, 10), monthModes);
@@ -1875,11 +1886,7 @@ export default function EarningsPage() {
                   ))}
                   <TableRow
                     label="Total Car Owner Income"
-                    values={MONTHS.map((_, i) => {
-                      const m = ownerIncomeByMonth[i];
-                      if (!m) return 0;
-                      return Math.round((m.tripIncome.owner + ownerDistributionRows.reduce((sum, { field }) => sum + m[field].owner, 0)) * 100) / 100;
-                    })}
+                    values={MONTHS.map((_, i) => totalCarOwnerIncome(i + 1))}
                     isHighlighted
                   />
                   {/* Income Other Credit is NOT part of Trip Income: a credit GLA
@@ -2120,32 +2127,45 @@ export default function EarningsPage() {
                       category="parkingFeeLabor" field="laborCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     {renderDynamicRows("parkingFeeLabor")}
-                    {/* As on the Statement of Account (Cathy, 2026-11-26): Total
-                        Expenses = Direct Delivery + COGS + GLA Parking Fee &
-                        Labor Cleaning, all of the car's expenses. */}
+                    {/* The section's own total (Cathy, 2026-11-26). */}
                     <TableRow
-                      label="Total Expenses"
-                      values={MONTHS.map((_, i) =>
-                        Math.round((getTotalDirectDeliveryForMonth(i + 1) + getTotalCogsForMonth(i + 1) + getTotalParkingFeeLaborForMonth(i + 1)) * 100) / 100,
-                      )}
+                      label="Total GLA Parking Fee & Labor Cleaning"
+                      values={MONTHS.map((_, i) => Math.round(getTotalParkingFeeLaborForMonth(i + 1) * 100) / 100)}
                       isTotal
                     />
                   </CategorySection>
 
-                {/* Then Negative Balance Carry Over and Total Payout, the final
-                    Car Owner Split: what is payable to the car owner after all
-                    expenses and negative balances (Cathy, 2026-11-26). Outside
-                    the section so they stay visible when it is collapsed. */}
-                <TableRow
-                  label="Negative Balance Carry Over"
-                  values={MONTHS.map((_, i) => calculateNegativeBalanceCarryOver(i + 1))}
-                  hideTotal
-                />
-                <TableRow
-                  label="Total Payout"
-                  values={MONTHS.map((_, i) => calculateCarOwnerSplit(i + 1))}
-                  isTotal
-                />
+                {/* INCOME AND EXPENSES SUMMARY (Cathy, 2026-11-26): the owner's
+                    income, all of the car's expenses, the negative balance, and
+                    Total Payout, the final Car Owner Split (what is payable to
+                    the owner after all expenses and negative balances). */}
+                <CategorySection
+                  title="INCOME AND EXPENSES SUMMARY"
+                  isExpanded={expandedSections.incomeExpensesSummary}
+                  onToggle={() => toggleSection("incomeExpensesSummary")}
+                >
+                  <TableRow
+                    label="Total Car Owner Income"
+                    values={MONTHS.map((_, i) => totalCarOwnerIncome(i + 1))}
+                    isHighlighted
+                  />
+                  <TableRow
+                    label="Total Expenses"
+                    values={MONTHS.map((_, i) => totalCarExpenses(i + 1))}
+                    isHighlighted
+                  />
+                  <TableRow
+                    label="Negative Balance Carry Over"
+                    values={MONTHS.map((_, i) => calculateNegativeBalanceCarryOver(i + 1))}
+                    hideTotal
+                    isHighlighted
+                  />
+                  <TableRow
+                    label="Total Payout"
+                    values={MONTHS.map((_, i) => calculateCarOwnerSplit(i + 1))}
+                    isTotal
+                  />
+                </CategorySection>
 
                 {/* REIMBURSED AND NON-REIMBURSED BILLS — GLA-internal. Hidden
                     from clients (and from View as Client, which reports
