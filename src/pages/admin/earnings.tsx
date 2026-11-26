@@ -557,7 +557,10 @@ export default function EarningsPage() {
     const prevCoolersIncome = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "coolersIncome");
     const prevInsuranceWreckIncome = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "insuranceWreckIncome");
     const prevOtherIncome = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "otherIncome");
-    const prevGuestCancellationIncome = (getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "guestCancellationIncome") + getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "otherCreditIncome"));
+    // Guest Cancellation is carved out of Rental Income like Miles Income
+    // (pool deduction + 100% owner); Other Credit is an owner item outside it.
+    const prevGuestCancellationCarveOut = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "guestCancellationIncome");
+    const prevGuestCancellationIncome = (prevGuestCancellationCarveOut + getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "otherCreditIncome"));
     const prevNegativeBalanceCarryOver = calculatePrevYearNegativeBalance(prevMonth);
     const prevTotalDirectDelivery = getPrevYearTotalDirectDelivery(prevMonth);
     const prevTotalCogs = getPrevYearTotalCogs(prevMonth);
@@ -581,9 +584,9 @@ export default function EarningsPage() {
     
     if (currentMonthMode === 70) {
       // 30:70 Mode Formula
-      // Guest Cancellation Income: 100% owner, outside Rental Income (owner item, not pool).
+      // Guest Cancellation Income: 100% owner, carved out of the rental pool like Miles Income.
       const part1 = prevMilesIncome + prevGuestCancellationIncome + (prevSmokingFines * 0.1);
-      const part2 = prevRentalIncome - prevDeliveryIncome - prevElectricPrepaidIncome - prevSmokingFines 
+      const part2 = prevRentalIncome - prevGuestCancellationCarveOut - prevDeliveryIncome - prevElectricPrepaidIncome - prevSmokingFines 
                    - prevGasPrepaidIncome - prevMilesIncome - prevSkiRacksIncome - prevChildSeatIncome 
                    - prevCoolersIncome - prevInsuranceWreckIncome - prevOtherIncome;
       
@@ -595,7 +598,7 @@ export default function EarningsPage() {
       return calculation > 0 ? 0 : calculation;
     } else {
       // 50:50 Mode Formula
-      calculation = prevRentalIncome - prevDeliveryIncome - prevElectricPrepaidIncome - prevGasPrepaidIncome 
+      calculation = prevRentalIncome - prevGuestCancellationCarveOut - prevDeliveryIncome - prevElectricPrepaidIncome - prevGasPrepaidIncome 
                    - prevSmokingFines - prevMilesIncome - prevSkiRacksIncome - prevChildSeatIncome 
                    - prevCoolersIncome - prevInsuranceWreckIncome - prevOtherIncome 
                    - prevTotalDirectDelivery - prevTotalCogs + prevNegativeBalanceCarryOver;
@@ -642,6 +645,7 @@ export default function EarningsPage() {
     let prevInsuranceWreckIncome: number;
     let prevOtherIncome: number;
     let prevGuestCancellationIncome: number;
+    let prevGuestCancellationCarveOut: number;
     let prevNegativeBalanceCarryOver: number;
     let prevTotalDirectDelivery: number;
     let prevTotalCogs: number;
@@ -666,7 +670,8 @@ export default function EarningsPage() {
       prevCoolersIncome = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "coolersIncome");
       prevInsuranceWreckIncome = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "insuranceWreckIncome");
       prevOtherIncome = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "otherIncome");
-      prevGuestCancellationIncome = (getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "guestCancellationIncome") + getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "otherCreditIncome"));
+      prevGuestCancellationCarveOut = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "guestCancellationIncome");
+      prevGuestCancellationIncome = (prevGuestCancellationCarveOut + getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "otherCreditIncome"));
       
       prevTotalDirectDelivery = getPrevYearTotalDirectDelivery(prevDec);
       prevTotalCogs = getPrevYearTotalCogs(prevDec);
@@ -698,8 +703,9 @@ export default function EarningsPage() {
       prevCoolersIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "coolersIncome");
       prevInsuranceWreckIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "insuranceWreckIncome");
       prevOtherIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "otherIncome");
-      prevGuestCancellationIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "guestCancellationIncome") +
-        getFormAmount("income", "guestCancellationIncome", prevMonth) +
+      prevGuestCancellationCarveOut = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "guestCancellationIncome") +
+        getFormAmount("income", "guestCancellationIncome", prevMonth);
+      prevGuestCancellationIncome = prevGuestCancellationCarveOut +
         getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "otherCreditIncome") +
         getFormAmount("income", "otherCreditIncome", prevMonth);
       
@@ -737,9 +743,9 @@ export default function EarningsPage() {
       //   0,
       //   [return calculation]
       // )
-      // Guest Cancellation Income: 100% owner, outside Rental Income (owner item, not pool).
+      // Guest Cancellation Income: 100% owner, carved out of the rental pool like Miles Income.
       const part1 = prevMilesIncome + prevGuestCancellationIncome + (prevSmokingFines * 0.1);
-      const part2 = prevRentalIncome - prevDeliveryIncome - prevElectricPrepaidIncome - prevSmokingFines 
+      const part2 = prevRentalIncome - prevGuestCancellationCarveOut - prevDeliveryIncome - prevElectricPrepaidIncome - prevSmokingFines 
                    - prevGasPrepaidIncome - prevMilesIncome - prevSkiRacksIncome - prevChildSeatIncome 
                    - prevCoolersIncome - prevInsuranceWreckIncome - prevOtherIncome;
       
@@ -759,7 +765,7 @@ export default function EarningsPage() {
       //   0,
       //   [return calculation]
       // )
-      calculation = prevRentalIncome - prevDeliveryIncome - prevElectricPrepaidIncome - prevGasPrepaidIncome 
+      calculation = prevRentalIncome - prevGuestCancellationCarveOut - prevDeliveryIncome - prevElectricPrepaidIncome - prevGasPrepaidIncome 
                    - prevSmokingFines - prevMilesIncome - prevSkiRacksIncome - prevChildSeatIncome 
                    - prevCoolersIncome - prevInsuranceWreckIncome - prevOtherIncome 
                    - prevTotalDirectDelivery - prevTotalCogs + prevNegativeBalanceCarryOver;
@@ -799,7 +805,11 @@ export default function EarningsPage() {
         : (incomeExpenseDataValue?.formulaSetting?.carManagementSplitPercent ?? 50);
     const mgmtPercent = storedPercent / 100; // Split percentage for management
     
-    const rentalIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "rentalIncome");
+    // Rental pool: Income Guest Cancellation (manual + approved form) is carved
+    // out of Rental Income like Miles Income and paid 100% to the owner.
+    const rentalIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "rentalIncome") -
+      getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "guestCancellationIncome") -
+      getFormAmount("income", "guestCancellationIncome", month);
     const deliveryIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "deliveryIncome");
     const electricPrepaidIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "electricPrepaidIncome");
     const smokingFines = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "smokingFines");
@@ -968,7 +978,11 @@ export default function EarningsPage() {
         : (incomeExpenseDataValue?.formulaSetting?.carOwnerSplitPercent ?? 50);
     const ownerPercent = storedPercent / 100; // Split percentage for owner
     
-    const rentalIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "rentalIncome");
+    // Rental pool: Income Guest Cancellation (manual + approved form) is carved
+    // out of Rental Income like Miles Income and paid 100% to the owner.
+    const rentalIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "rentalIncome") -
+      getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "guestCancellationIncome") -
+      getFormAmount("income", "guestCancellationIncome", month);
     const deliveryIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "deliveryIncome");
     const electricPrepaidIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "electricPrepaidIncome");
     const smokingFines = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "smokingFines");
@@ -982,7 +996,8 @@ export default function EarningsPage() {
     const coolersIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "coolersIncome");
     const insuranceWreckIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "insuranceWreckIncome");
     const otherIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "otherIncome");
-    // 100% owner and NOT part of Rental Income: added on top, never pooled.
+    // 100% owner, added on top. Guest Cancellation is also carved out of the
+    // rental pool above (like Miles Income); Other Credit is outside Rental Income.
     const guestCancellationIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "guestCancellationIncome") +
       getFormAmount("income", "guestCancellationIncome", month) +
       getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "otherCreditIncome") +

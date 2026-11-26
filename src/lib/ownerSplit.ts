@@ -39,9 +39,15 @@ export interface OwnerSplitInputs {
   coolersIncome: number;
   insuranceWreckIncome: number;
   otherIncome: number;
-  /** 100% owner and NOT part of rentalIncome: added on top in every branch,
-   *  never subtracted from the rental pool. Mirrors computeCarMonthSplits. */
+  /** Income Guest Cancellation (manual + approved forms). Works like Miles
+   *  Income (Cathy, 2026-11-26): carved out of rentalIncome — subtracted from
+   *  the rental pool in every branch — and added 100% to the owner. Mirrors
+   *  computeCarMonthSplits on the backend. */
   guestCancellationIncome: number;
+  /** Income Other Credit (manual + approved forms): 100% owner and NOT part
+   *  of rentalIncome, so it is added on top in every branch and never
+   *  subtracted from the rental pool. Optional; defaults to 0. */
+  otherCreditIncome?: number;
   negativeBalanceCarryOver: number;
   totalDirectDelivery: number;
   totalCogs: number;
@@ -61,7 +67,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
     mode,
     ownerPercent,
     skiRacksOwner,
-    rentalIncome,
+    rentalIncome: rentalIncomeInput,
     deliveryIncome,
     electricPrepaidIncome,
     smokingFines,
@@ -73,11 +79,18 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
     insuranceWreckIncome,
     otherIncome,
     guestCancellationIncome,
+    otherCreditIncome = 0,
     negativeBalanceCarryOver,
     totalDirectDelivery,
     totalCogs,
     totalParkingFeeLabor,
   } = inputs;
+
+  // The rental pool every part2 below splits: Guest Cancellation is carved
+  // out of Rental Income like Miles Income.
+  const rentalIncome = rentalIncomeInput - guestCancellationIncome;
+  // Paid 100% to the owner on top of the formula.
+  const ownerAddOnIncome = guestCancellationIncome + otherCreditIncome;
 
   const isYear2026OrLater = year >= 2026;
   const isYear2019To2025 = year >= 2019 && year <= 2025;
@@ -104,7 +117,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
             totalDirectDelivery -
             totalCogs) *
           ownerPercent;
-        const calculation = part1 + part2 + guestCancellationIncome;
+        const calculation = part1 + part2 + ownerAddOnIncome;
         return calculation >= 0 ? calculation : 0;
       }
       // B) If Car Management (GLA) is ski racks owner
@@ -126,7 +139,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
             totalDirectDelivery -
             totalCogs) *
           ownerPercent;
-        const calculation = part1 + part2 + guestCancellationIncome;
+        const calculation = part1 + part2 + ownerAddOnIncome;
         return calculation >= 0 ? calculation : 0;
       }
       // C) If Car Owner is ski racks owner
@@ -148,7 +161,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
             totalDirectDelivery -
             totalCogs) *
           ownerPercent;
-        const calculation = part1 + part2 + guestCancellationIncome;
+        const calculation = part1 + part2 + ownerAddOnIncome;
         return calculation >= 0 ? calculation : 0;
       }
     }
@@ -177,7 +190,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
             smokingFines -
             otherIncome) *
           ownerPercent;
-        const calculation = part1 + part2 + guestCancellationIncome;
+        const calculation = part1 + part2 + ownerAddOnIncome;
         return calculation >= 0 ? calculation : 0;
       }
       // B) If Car Management (GLA) is ski racks owner
@@ -202,7 +215,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
             smokingFines -
             otherIncome) *
           ownerPercent;
-        const calculation = part1 + part2 + guestCancellationIncome;
+        const calculation = part1 + part2 + ownerAddOnIncome;
         return calculation >= 0 ? calculation : 0;
       }
       // C) If Car Owner is ski racks owner
@@ -228,7 +241,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
             smokingFines -
             otherIncome) *
           ownerPercent;
-        const calculation = part1 + part2 + guestCancellationIncome;
+        const calculation = part1 + part2 + ownerAddOnIncome;
         return calculation >= 0 ? calculation : 0;
       }
     }
@@ -259,7 +272,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
           totalDirectDelivery -
           totalCogs) *
         ownerPercent;
-      const calculation = part1 + part2 + guestCancellationIncome;
+      const calculation = part1 + part2 + ownerAddOnIncome;
       return calculation >= 0 ? calculation : 0;
     }
     // 70:30 mode
@@ -284,7 +297,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
           smokingFines -
           otherIncome) *
         ownerPercent;
-      const calculation = part1 + part2 + guestCancellationIncome;
+      const calculation = part1 + part2 + ownerAddOnIncome;
       return calculation >= 0 ? calculation : 0;
     }
   }

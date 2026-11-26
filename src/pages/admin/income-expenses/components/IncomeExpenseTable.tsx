@@ -1086,11 +1086,15 @@ lastSavedNote.current = coHostNote;
       prevMonth,
       "otherIncome",
     );
-    const prevGuestCancellationIncome = getPrevYearValue(
+    // Guest Cancellation is carved out of Rental Income like Miles Income
+    // (subtracted from the rental pool, kept 100% by the owner); Other Credit
+    // is an owner item outside Rental Income.
+    const prevGuestCancellationCarveOut = getPrevYearValue(
       prevYearDecData.incomeExpenses || [],
       prevMonth,
       "guestCancellationIncome",
-    ) +
+    );
+    const prevGuestCancellationIncome = prevGuestCancellationCarveOut +
       getPrevYearValue(prevYearDecData.incomeExpenses || [], prevMonth, "otherCreditIncome");
     const prevNegativeBalanceCarryOver =
       calculatePrevYearNegativeBalance(prevMonth);
@@ -1143,12 +1147,14 @@ lastSavedNote.current = coHostNote;
       //      - Ski Racks Income - Child Seat Income - Coolers Income
       //      - Insurance Wreck Income - Other Income)
       //    × Car Owner Split%)
-      // Guest Cancellation Income is 100% owner and outside Rental Income, so
-      // it sits with the owner's direct items, never in part2's rental pool.
+      // Guest Cancellation Income is carved out of Rental Income like Miles
+      // Income: it sits with the owner's direct items in part1 and is
+      // subtracted from part2's rental pool (Other Credit is part1 only).
       // Mirrors calculateNegativeBalanceCarryOver in the backend.
       const part1 = prevMilesIncome + prevGuestCancellationIncome + prevSmokingFines * 0.1;
       const part2 =
         prevRentalIncome -
+        prevGuestCancellationCarveOut -
         prevDeliveryIncome -
         prevElectricPrepaidIncome -
         prevSmokingFines -
@@ -1183,6 +1189,7 @@ lastSavedNote.current = coHostNote;
       // )
       calculation =
         prevRentalIncome -
+        prevGuestCancellationCarveOut -
         prevDeliveryIncome -
         prevElectricPrepaidIncome -
         prevGasPrepaidIncome -
@@ -1266,6 +1273,7 @@ lastSavedNote.current = coHostNote;
     let prevInsuranceWreckIncome: number;
     let prevOtherIncome: number;
     let prevGuestCancellationIncome: number;
+    let prevGuestCancellationCarveOut: number;
     let prevNegativeBalanceCarryOver: number;
     let prevTotalDirectDelivery: number;
     let prevTotalCogs: number;
@@ -1338,12 +1346,13 @@ lastSavedNote.current = coHostNote;
         prevDec,
         "otherIncome",
       );
-      prevGuestCancellationIncome = getPrevYearValue(
+      prevGuestCancellationCarveOut = getPrevYearValue(
         prevYearDecData?.incomeExpenses || [],
         prevDec,
         "guestCancellationIncome",
-      ) +
-      getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "otherCreditIncome");
+      );
+      prevGuestCancellationIncome = prevGuestCancellationCarveOut +
+        getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "otherCreditIncome");
 
       prevTotalDirectDelivery = getPrevYearTotalDirectDelivery(prevDec);
       prevTotalCogs = getPrevYearTotalCogs(prevDec);
@@ -1426,11 +1435,12 @@ lastSavedNote.current = coHostNote;
         "otherIncome",
       );
       // Manual + approved form amount, as computeCarMonthSplits counts it.
-      prevGuestCancellationIncome =
+      // Guest Cancellation is carved out of Rental Income like Miles Income;
+      // Income Other Credit is 100% owner, outside Rental Income.
+      prevGuestCancellationCarveOut =
         getMonthValue(data.incomeExpenses, prevMonth, "guestCancellationIncome") +
-        getFormAmount("income", "guestCancellationIncome", prevMonth) +
-        // Income Other Credit is 100% owner, outside Rental Income — same as
-        // Guest Cancellation (Cathy, 2026-11-26).
+        getFormAmount("income", "guestCancellationIncome", prevMonth);
+      prevGuestCancellationIncome = prevGuestCancellationCarveOut +
         getMonthValue(data.incomeExpenses, prevMonth, "otherCreditIncome") +
         getFormAmount("income", "otherCreditIncome", prevMonth);
 
@@ -1475,12 +1485,14 @@ lastSavedNote.current = coHostNote;
       //      - Ski Racks Income - Child Seat Income - Coolers Income
       //      - Insurance Wreck Income - Other Income)
       //    × Car Owner Split%)
-      // Guest Cancellation Income is 100% owner and outside Rental Income, so
-      // it sits with the owner's direct items, never in part2's rental pool.
+      // Guest Cancellation Income is carved out of Rental Income like Miles
+      // Income: it sits with the owner's direct items in part1 and is
+      // subtracted from part2's rental pool (Other Credit is part1 only).
       // Mirrors calculateNegativeBalanceCarryOver in the backend.
       const part1 = prevMilesIncome + prevGuestCancellationIncome + prevSmokingFines * 0.1;
       const part2 =
         prevRentalIncome -
+        prevGuestCancellationCarveOut -
         prevDeliveryIncome -
         prevElectricPrepaidIncome -
         prevSmokingFines -
@@ -1515,6 +1527,7 @@ lastSavedNote.current = coHostNote;
       // )
       calculation =
         prevRentalIncome -
+        prevGuestCancellationCarveOut -
         prevDeliveryIncome -
         prevElectricPrepaidIncome -
         prevGasPrepaidIncome -
@@ -1565,11 +1578,16 @@ lastSavedNote.current = coHostNote;
         : defaultPct;
     const mgmtPercent = storedPercent / 100; // Split percentage for management
 
+    // The rental pool: Income Guest Cancellation (manual + approved form) is
+    // carved out of Rental Income like Miles Income and paid 100% to the
+    // owner, so Car Management never gets a % of it (Cathy, 2026-11-26).
     const rentalIncome = getMonthValue(
       data.incomeExpenses,
       month,
       "rentalIncome",
-    );
+    ) -
+      getMonthValue(data.incomeExpenses, month, "guestCancellationIncome") -
+      getFormAmount("income", "guestCancellationIncome", month);
     const deliveryIncome = getMonthValue(
       data.incomeExpenses,
       month,
@@ -2051,11 +2069,13 @@ lastSavedNote.current = coHostNote;
       "otherIncome",
     );
     // Manual + approved form amount, as computeCarMonthSplits counts it.
+    // Guest Cancellation is carved out of Rental Income like Miles Income
+    // (computeOwnerSplit subtracts it from the rental pool and pays it 100% to
+    // the owner); Income Other Credit is 100% owner, outside Rental Income.
     const guestCancellationIncome =
       getMonthValue(data.incomeExpenses, month, "guestCancellationIncome") +
-      getFormAmount("income", "guestCancellationIncome", month) +
-      // Income Other Credit is 100% owner, outside Rental Income — same as
-      // Guest Cancellation (Cathy, 2026-11-26).
+      getFormAmount("income", "guestCancellationIncome", month);
+    const otherCreditIncome =
       getMonthValue(data.incomeExpenses, month, "otherCreditIncome") +
       getFormAmount("income", "otherCreditIncome", month);
     // Use calculated Negative Balance Carry Over (January 2019 will be 0, other Januaries use previous year's December)
@@ -2084,6 +2104,7 @@ lastSavedNote.current = coHostNote;
       insuranceWreckIncome,
       otherIncome,
       guestCancellationIncome,
+      otherCreditIncome,
       negativeBalanceCarryOver,
       totalDirectDelivery,
       totalCogs,
@@ -2936,13 +2957,11 @@ lastSavedNote.current = coHostNote;
                   // "income minus owner-only expenses". See 6c08a49.
                   if (mgmt === null) return null;
                   const totalExpenses = mgmt + owner;
-                  // Guest Cancellation Income is not part of Rental Income,
-                  // so it is added on top (mirrors totalsService totalProfit).
-                  const guestCancellationIncome = getMonthValue(
-                    data.incomeExpenses,
-                    monthNum,
-                    "guestCancellationIncome",
-                  ) + getMonthValue(
+                  // Income Other Credit is not part of Rental Income, so it is
+                  // added on top (mirrors totalsService totalProfit). Guest
+                  // Cancellation Income is inside Rental Income (like Miles
+                  // Income), so it is not added again.
+                  const otherCreditIncome = getMonthValue(
                     data.incomeExpenses,
                     monthNum,
                     "otherCreditIncome",
@@ -2958,14 +2977,14 @@ lastSavedNote.current = coHostNote;
                   const chargingIncome =
                     getMonthValue(data.incomeExpenses, monthNum, "onTripChargingIncome") +
                     getMonthValue(data.incomeExpenses, monthNum, "postTripChargingIncome");
-                  // Approved form amounts for these four rows count too (as
+                  // Approved form amounts for these rows count too (as
                   // in computeCarMonthSplits); the All Cars rows already
                   // include them.
                   const formIncome = isAllCarsView
                     ? 0
-                    : (["guestCancellationIncome", "otherCreditIncome", "gasReimbursementIncome", "onTripChargingIncome", "postTripChargingIncome"] as const)
+                    : (["otherCreditIncome", "gasReimbursementIncome", "onTripChargingIncome", "postTripChargingIncome"] as const)
                         .reduce((sum, field) => sum + getFormAmount("income", field, monthNum), 0);
-                  return rentalIncome + guestCancellationIncome + gasReimbursementIncome + chargingIncome + formIncome - totalExpenses;
+                  return rentalIncome + otherCreditIncome + gasReimbursementIncome + chargingIncome + formIncome - totalExpenses;
                 })}
                 isEditable={false}
               />
