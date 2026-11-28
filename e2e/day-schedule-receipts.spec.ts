@@ -4,10 +4,11 @@ const image = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQ
 function event(id: number, extra: Record<string, unknown> = {}) {
   return { id, type: "pickup", bookingKey: `turo:${id + 100}`, category: "Pick Up", car_name: `Test Vehicle ${id}`, plate: `TEST${id}`, guest_name: "Test Guest", assigned_to: "Test Worker", assigned_to_id: 41, start_time: "09:00", end_time: null, location: "SLC Airport", status: "new", notes: null, detail: null, reservation_id: `R${id}`, extras: null, trip_start: "09:00", trip_end: "10:00", trip_start_mt: "2026-10-16 09:00", trip_end_mt: "2026-10-17 10:00", pickup_location: "SLC Airport", dropoff_location: "Office", location_tag: "slc", photos: null, car_photo: null, duration_minutes: null, scheduled_day: "2026-10-17", airport_parking_required: true, ...extra };
 }
-async function mock(page: Page, options: { unreadable?: boolean; failStatus?: boolean; unassigned?: boolean; owner?: boolean; nonAirport?: boolean; failUpload?: boolean; dropGasResponse?: boolean; myEmployeeId?: number; failSubmit?: boolean; missingDriver?: boolean } = {}) {
+async function mock(page: Page, options: { unreadable?: boolean; failStatus?: boolean; unassigned?: boolean; owner?: boolean; nonAirport?: boolean; failUpload?: boolean; dropGasResponse?: boolean; myEmployeeId?: number; failSubmit?: boolean; missingDriver?: boolean; savedReceipt?: boolean; employeeUser?: boolean } = {}) {
   const calls: { path: string; body: any }[] = [], errors: string[] = [];
   let saved = false, failed = false, myTasksFirst = true, driverId = options.missingDriver ? null : 41, driverAssignmentType: string | null = options.missingDriver ? null : 'employee';
   const events = options.unassigned ? [1,2,3,4,5].map(id => event(id, { assigned_to: null, assigned_to_id: null })) : [event(19, options.owner ? { type: "owner_dropoff", bookingKey: "owner_rental:19", category: "Drop Off", airport_parking_required: false } : options.nonAirport ? { location: "Office", airport_parking_required: false } : {})];
+  if (options.savedReceipt) Object.assign(events[0], { airport_parking_submission_id: 55, status: "completed" });
   page.on("pageerror", e => errors.push(e.message));
   await page.route((url) => url.pathname.startsWith("/api/"), async route => {
     const req = route.request(), path = new URL(req.url()).pathname;
@@ -16,7 +17,13 @@ async function mock(page: Page, options: { unreadable?: boolean; failStatus?: bo
     const body = req.headers()["content-type"]?.includes("application/json") ? req.postDataJSON() : null;
     if (isWrite) calls.push({ path, body });
     let result: any = { success: true, data: [], notifications: [], unreadCount: 0 }, status = 200;
-    if (path === "/api/auth/me") result = { user: { id: 7, name: "Actual Submitter", roleName: "Admin", isAdmin: true, isSuperAdmin: true, isEmployee: false, isClient: false, effectiveTimezone: "America/Denver" } };
+    if (path === "/api/auth/me") result = options.employeeUser
+      ? { user: { id: 7, name: "Actual Submitter", roleName: "Employee", isAdmin: false, isEmployee: true, isClient: false, effectiveTimezone: "America/Denver" } }
+      : { user: { id: 7, name: "Actual Submitter", roleName: "Admin", isAdmin: true, isSuperAdmin: true, isEmployee: false, isClient: false, effectiveTimezone: "America/Denver" } };
+    else if (path === "/api/operations/tasks/19/airport-parking-receipt" && req.method() === "DELETE") {
+      Object.assign(events[0], { airport_parking_submission_id: null, status: "new" });
+      result = { success: true, submissionId: 55, reopened: true };
+    }
     else if(path === "/api/me/employee") result={data:{employee_aid:options.myEmployeeId??7}};
     else if (path === "/api/me/preferences/day-schedule") {
       if (isWrite) myTasksFirst = body.myTasksFirst;
@@ -324,4 +331,31 @@ for (const [height, choice] of [[844, "41"], [500, "uber"], [667, "na"]] as cons
   expect(writes[0].body).toMatchObject({ assignmentType: choice === '41' ? 'employee' : choice, employeeId: choice === '41' ? 41 : null, date: '2026-10-17' });
   expect(writes[2].body).toMatchObject({ status: 'completed', airportParkingSubmissionId: 55 });
   expect(state.errors).toEqual([]);
+});
+
+test("admins can undo a saved airport parking receipt; employees keep the receipt button", async ({ page }) => {
+  const state = await mock(page, { savedReceipt: true });
+  await page.locator('[data-day-schedule-card][data-booking-key="turo:119"]').click();
+  const controls = page.locator("[data-day-schedule-controls]");
+  await expect(controls.getByRole("button", { name: "Airport parking receipt", exact: true })).toHaveCount(0);
+  const confirms: string[] = [];
+  page.once("dialog", async (d) => { confirms.push(d.message()); await d.dismiss(); });
+  await controls.getByRole("button", { name: "Undo parking receipt", exact: true }).click();
+  await expect.poll(() => confirms.length).toBe(1);
+  expect(confirms[0]).toContain("deletes the expense form entry and its commission chart entry");
+  expect(state.calls).toEqual([]);
+  page.once("dialog", (d) => d.accept());
+  await controls.getByRole("button", { name: "Undo parking receipt", exact: true }).click();
+  await expect(page.getByText("Parking receipt undone").first()).toBeVisible();
+  expect(state.calls.map(c => c.path)).toEqual(["/api/operations/tasks/19/airport-parking-receipt"]);
+  await expect(controls.getByRole("button", { name: "Airport parking receipt", exact: true })).toBeVisible();
+  expect(state.errors).toEqual([]);
+});
+
+test("employees do not see the undo option", async ({ page }) => {
+  await mock(page, { savedReceipt: true, employeeUser: true });
+  await page.locator('[data-day-schedule-card][data-booking-key="turo:119"]').click();
+  const controls = page.locator("[data-day-schedule-controls]");
+  await expect(controls.getByRole("button", { name: "Airport parking receipt", exact: true })).toBeVisible();
+  await expect(controls.getByRole("button", { name: "Undo parking receipt" })).toHaveCount(0);
 });

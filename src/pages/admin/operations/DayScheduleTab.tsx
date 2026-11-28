@@ -47,6 +47,8 @@ interface DayEvent {
   requires_driver?: boolean;
   carryover_note?: string | null;
   airport_parking_required?: boolean;
+  /** The saved airport parking receipt (expense form) for this pickup, if any. */
+  airport_parking_submission_id?: number | null;
   id: number;
   type: DayEventType;
   bookingKey?: string;
@@ -341,7 +343,7 @@ function DetailLine({ icon, label, value, className = "" }: {
   );
 }
 
-const ScheduleBookingContext = createContext<{ selectedBooking: string | null; date: string; now?: number; openAirportReceipt?: (event: DayEvent) => void; openFuelReceipt?: (event: DayEvent) => void; canRefreshTrips?: boolean; canSelectSwapVehicle?:boolean; canEditTaskNotes?: boolean; saveTaskNote?: (event: DayEvent, note: string) => Promise<void> }>({
+const ScheduleBookingContext = createContext<{ selectedBooking: string | null; date: string; now?: number; openAirportReceipt?: (event: DayEvent) => void; undoAirportReceipt?: (event: DayEvent) => void; canUndoParkingReceipt?: boolean; openFuelReceipt?: (event: DayEvent) => void; canRefreshTrips?: boolean; canSelectSwapVehicle?:boolean; canEditTaskNotes?: boolean; saveTaskNote?: (event: DayEvent, note: string) => Promise<void> }>({
   selectedBooking: null, date: "",
 });
 
@@ -492,7 +494,9 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
         </div>}
         <ScheduleBookingContext.Provider value={popupContext}>
           {!cancelled && (canRefuel(event) || event.airport_parking_required) && <div className="flex flex-wrap gap-2" aria-label="Trip receipt actions">
-            {event.airport_parking_required && <Button type="button" variant="outline" className="h-11 min-w-0 flex-1 rounded-lg px-3 text-xs sm:flex-none" onClick={()=>popupContext.openAirportReceipt(event)}>Airport parking receipt</Button>}
+            {event.airport_parking_required && (popupContext.canUndoParkingReceipt && event.airport_parking_submission_id
+              ? <Button type="button" variant="outline" data-undo-parking-receipt className="h-11 min-w-0 flex-1 rounded-lg border-red-300 px-3 text-xs text-red-700 hover:bg-red-50 hover:text-red-800 sm:flex-none" onClick={()=>popupContext.undoAirportReceipt?.(event)}>Undo parking receipt</Button>
+              : <Button type="button" variant="outline" className="h-11 min-w-0 flex-1 rounded-lg px-3 text-xs sm:flex-none" onClick={()=>popupContext.openAirportReceipt(event)}>Airport parking receipt</Button>)}
             {canRefuel(event) && <Button type="button" className="h-11 min-w-0 flex-1 rounded-lg px-3 text-xs sm:flex-none" title="Upload a Gas – Charged to Guest receipt" onClick={()=>popupContext.openFuelReceipt(event)}>Refuel</Button>}
           </div>}
           {!cancelled && <EventControls {...props} onStatusChange={(type, id, status, completedDate) => {
@@ -1606,8 +1610,27 @@ export function DayScheduleTab() {
     return acc;
   }, {});
 
+  // Admins only: remove a parking receipt filed on the wrong vehicle (form entry + commission chart entry) and reopen the pickup.
+  const undoParkingReceipt = async (event: DayEvent) => {
+    const vehicle = [event.car_name, event.plate].filter(Boolean).join(" · ") || "this pickup";
+    if (!window.confirm(`Undo the airport parking receipt for ${vehicle}?\n\nThis deletes the expense form entry and its commission chart entry, and reopens the pickup so the right receipt can be submitted.`)) return;
+    try {
+      const response = await fetch(buildApiUrl(`/api/operations/tasks/${event.id}/airport-parking-receipt`), { method: "DELETE", credentials: "include" });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || "The receipt could not be undone. Please try again.");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule/driver-rankings"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/operations/chart-management"] }),
+      ]);
+      toast({ title: "Parking receipt undone", description: body.reopened ? "The form and chart entries were deleted and the pickup is open again." : "The form and chart entries were deleted." });
+    } catch (error) {
+      toast({ title: "Couldn't undo the receipt", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" });
+    }
+  };
+
   return (
-    <ScheduleBookingContext.Provider value={{ selectedBooking, date, now: clockNow, canRefreshTrips:canForceUpdate, canSelectSwapVehicle:!!(authData?.user?.isAdmin||authData?.user?.isEmployee)&&!authData?.user?.viewAsClient, canEditTaskNotes, saveTaskNote, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
+    <ScheduleBookingContext.Provider value={{ selectedBooking, date, now: clockNow, canRefreshTrips:canForceUpdate, canSelectSwapVehicle:!!(authData?.user?.isAdmin||authData?.user?.isEmployee)&&!authData?.user?.viewAsClient, canEditTaskNotes, saveTaskNote, canUndoParkingReceipt: canForceUpdate, undoAirportReceipt: (event) => { void undoParkingReceipt(event); }, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
     <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
     <div className="min-w-0 space-y-3 sm:space-y-4">
       {fuelReturn?.bookingKey && <TripReceiptDialog key={fuelReturn.bookingKey} kind="gas" bookingKey={fuelReturn.bookingKey} onClose={() => setFuelReturn(null)} onComplete={async () => {
